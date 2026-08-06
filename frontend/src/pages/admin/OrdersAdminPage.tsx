@@ -1,0 +1,24 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
+import { apiClient } from '../../api/apiClient'
+import { LoadingState } from '../../components/common/LoadingState'
+import type { ApiResponse, Order, Pagination } from '../../types'
+import { formatPrice, statusLabel } from '../../utils/format'
+
+export function OrdersAdminPage() {
+  const [status, setStatus] = useState('')
+  const query = useQuery({ queryKey: ['admin-orders', status], queryFn: async () => (await apiClient.get<ApiResponse<Pagination<Order>>>('/admin/orders', { params: { status: status || undefined } })).data.data })
+  return <div><div className="mb-6 flex flex-wrap items-end justify-between"><div><h1 className="text-3xl font-black">Đơn hàng</h1><p className="muted">Theo dõi và xử lý vòng đời đơn hàng.</p></div><label><span className="label">Lọc trạng thái</span><select className="input w-52" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Tất cả</option>{['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'].map((item) => <option key={item} value={item}>{statusLabel[item]}</option>)}</select></label></div>{query.isLoading ? <LoadingState /> : <div className="table-wrap"><table className="table"><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Ngày đặt</th><th></th></tr></thead><tbody>{query.data?.data.map((order) => <tr key={order.id}><td className="font-bold">{order.order_number}</td><td>{order.customer_name}</td><td className="price">{formatPrice(order.total_amount)}</td><td>{statusLabel[order.payment_status]}</td><td>{statusLabel[order.order_status]}</td><td>{new Date(order.created_at).toLocaleDateString('vi-VN')}</td><td><Link className="font-bold text-emerald-800" to={`/admin/orders/${order.id}`}>Chi tiết</Link></td></tr>)}</tbody></table></div>}</div>
+}
+
+export function AdminOrderDetailPage() {
+  const { id } = useParams(); const client = useQueryClient()
+  const query = useQuery({ queryKey: ['admin-order', id], queryFn: async () => (await apiClient.get<ApiResponse<Order>>(`/admin/orders/${id}`)).data.data })
+  if (query.isLoading || !query.data) return <LoadingState />
+  const order = query.data
+  const update = async (order_status: string) => { try { await apiClient.patch(`/admin/orders/${id}/status`, { order_status }); await client.invalidateQueries({ queryKey: ['admin-order', id] }); toast.success('Đã cập nhật trạng thái.') } catch { toast.error('Chuyển trạng thái không hợp lệ.') } }
+  const next: Record<string, string[]> = { pending: ['confirmed', 'cancelled'], confirmed: ['processing', 'cancelled'], processing: ['shipping', 'cancelled'], shipping: ['completed'], completed: [], cancelled: [] }
+  return <div><div className="mb-6 flex items-center justify-between"><div><div className="muted">Chi tiết đơn</div><h1 className="text-3xl font-black">{order.order_number}</h1></div><span className="rounded-full bg-emerald-50 px-4 py-2 font-bold text-emerald-800">{statusLabel[order.order_status]}</span></div><div className="grid gap-6 lg:grid-cols-3"><section className="card p-6 lg:col-span-2"><h2 className="text-xl font-black">Sản phẩm</h2><div className="mt-4 table-wrap"><table className="table"><thead><tr><th>Tên</th><th>SKU</th><th>SL</th><th>Thành tiền</th></tr></thead><tbody>{order.items.map((item) => <tr key={item.id}><td>{item.product_name}</td><td>{item.sku}</td><td>{item.quantity}</td><td>{formatPrice(item.line_total)}</td></tr>)}</tbody></table></div></section><aside className="grid h-fit gap-5"><div className="card p-5"><h2 className="font-black">Khách hàng</h2><p className="mt-2">{order.customer_name}</p><p className="muted">{order.customer_phone}</p><p className="muted mt-2">{order.shipping_address}</p></div><div className="card p-5"><h2 className="font-black">Cập nhật trạng thái</h2><div className="mt-3 grid gap-2">{next[order.order_status].map((item) => <button key={item} className={item === 'cancelled' ? 'btn-secondary text-red-700' : 'btn-primary'} onClick={() => update(item)}>{statusLabel[item]}</button>)}</div></div><div className="card p-5"><div className="flex justify-between"><span>Tạm tính</span><strong>{formatPrice(order.subtotal)}</strong></div><div className="mt-2 flex justify-between"><span>Giảm giá</span><strong>-{formatPrice(order.discount_amount)}</strong></div><div className="mt-2 flex justify-between"><span>Phí giao hàng</span><strong>{formatPrice(order.shipping_fee)}</strong></div><div className="mt-3 flex justify-between border-t pt-3 text-lg"><strong>Tổng</strong><strong className="price">{formatPrice(order.total_amount)}</strong></div></div></aside></div></div>
+}

@@ -1,0 +1,92 @@
+# Nam Hair Store
+
+Website thương mại điện tử một cửa hàng chuyên tóc giả nam, toupee, hair system và phụ kiện. Repository gồm React + TypeScript ở `frontend/` và Laravel REST API ở `backend/`.
+
+## Chức năng
+
+- Public: trang chủ, danh mục, tìm kiếm, lọc, sắp xếp, phân trang, chi tiết và biến thể sản phẩm.
+- Khách: giỏ hàng tạm lưu trên trình duyệt; đăng ký/đăng nhập bằng Sanctum SPA cookie.
+- User: hồ sơ, địa chỉ, giỏ hàng server, coupon, checkout transaction, lịch sử/theo dõi/hủy đơn, wishlist và review đủ điều kiện.
+- Admin: dashboard Recharts; CRUD sản phẩm/biến thể/ảnh, danh mục, thuộc tính/giá trị, chi nhánh, coupon; quản lý tồn kho/chuyển kho, đơn hàng, khách hàng, review, cấu hình cửa hàng, import/export Excel và barcode CODE128.
+- Bảo mật: role chỉ gồm `user|admin`, middleware admin, validation backend, giá/tồn kho được tính lại, không lưu bearer token trong `localStorage`.
+
+## Yêu cầu
+
+- PHP 8.3+, Composer, Node.js, npm, MySQL 8.x.
+- Chromium cho Playwright.
+
+## Cài backend
+
+```bash
+cd backend
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+php artisan serve
+```
+
+Tạo database trước khi migrate:
+
+```sql
+CREATE DATABASE nam_hair CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Backend mặc định ở `http://localhost:8000`.
+
+### Laragon local
+
+Khi dùng MySQL của Laragon, cấu hình `backend/.env` với `DB_HOST=127.0.0.1`, `DB_PORT=3306`, `DB_DATABASE=nam_hair`, `DB_USERNAME=root` và mật khẩu tương ứng. Chạy `php artisan migrate` để tạo/cập nhật schema; không dùng `migrate:fresh` trên database đang có dữ liệu.
+
+## Cài frontend
+
+```bash
+cd frontend
+npm install
+copy .env.example .env
+npm run dev
+```
+
+Frontend mặc định ở `http://localhost:5173`.
+
+## Sanctum SPA local
+
+- `VITE_API_URL=http://localhost:8000`.
+- `FRONTEND_URL=http://localhost:5173`.
+- `SANCTUM_STATEFUL_DOMAINS` chứa cả frontend và backend local.
+- Axios dùng `withCredentials` và gọi `/sanctum/csrf-cookie` trước đăng nhập/đăng xuất.
+- Không trộn `localhost` với `127.0.0.1` trong cùng phiên trình duyệt.
+
+## Tài khoản seed
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@namhair.local` | `Admin@123456` |
+| User | `user@namhair.local` | `User@123456` |
+
+Chỉ dùng cho local development và phải đổi trên production.
+
+## Chạy kiểm tra
+
+```bash
+cd backend
+php artisan test
+./vendor/bin/pint --test
+
+cd ../frontend
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npx playwright install chromium
+npx playwright test --project=chromium
+```
+
+## Database chính
+
+`users`, `addresses`, `categories`, `brands`, `attributes`, `attribute_values`, `products`, `product_variants`, `product_variant_attribute_values`, `product_images`, `branches`, `inventories`, `inventory_transactions`, `carts`, `cart_items`, `wishlists`, `coupons`, `coupon_usages`, `orders`, `order_items`, `reviews`, `store_settings`.
+
+## Tài liệu
+
+Xem `docs/architecture.md`, `docs/database-schema.md`, `docs/api-endpoints.md`, `docs/authentication.md`, `docs/roles-and-permissions.md`, `docs/inventory-rules.md`, `docs/order-workflow.md`, `docs/excel-import-format.md` và `docs/deployment-notes.md`.
