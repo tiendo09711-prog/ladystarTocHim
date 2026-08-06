@@ -1,6 +1,10 @@
 import axios from 'axios'
 
-export const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const defaultApiBaseUrl = typeof window === 'undefined'
+  ? 'http://localhost:8000'
+  : `${window.location.protocol}//${window.location.hostname}:8000`
+
+export const apiBaseUrl = import.meta.env.VITE_API_URL ?? defaultApiBaseUrl
 
 export const apiClient = axios.create({
   baseURL: `${apiBaseUrl}/api/v1`,
