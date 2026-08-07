@@ -11,6 +11,7 @@ const navItems = [
 export function StoreLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const [search, setSearch] = useState('')
   const { user } = useAuth()
   const { count } = useCart()
@@ -20,6 +21,21 @@ export function StoreLayout() {
     document.body.classList.toggle('store-menu-open', menuOpen)
     return () => document.body.classList.remove('store-menu-open')
   }, [menuOpen])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const nextIsScrolled = window.scrollY > 36
+      setIsScrolled((current) => current === nextIsScrolled ? current : nextIsScrolled)
+      if (nextIsScrolled) {
+        setMenuOpen(false)
+        setSearchOpen(false)
+      }
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
@@ -32,7 +48,7 @@ export function StoreLayout() {
 
   return <div className="store-shell">
     <div className="store-announcement">Miễn phí giao hàng cho đơn từ 1.000.000đ <span>·</span> Tư vấn lựa chọn theo phong cách riêng</div>
-    <header className="store-header">
+    <header className={`store-header ${isScrolled ? 'is-scrolled' : ''}`}>
       <div className="container-page store-header-main">
         <div className="store-header-note">LADYSTARS CARE</div>
         <div className="store-mobile-tools"><button type="button" className="store-icon-button" onClick={() => setMenuOpen((current) => !current)} aria-label="Mở menu" aria-expanded={menuOpen}>{menuOpen ? <X /> : <Menu />}</button><button type="button" className="store-icon-button" onClick={() => setSearchOpen((current) => !current)} aria-label="Mở tìm kiếm" aria-expanded={searchOpen}><Search /></button></div>
