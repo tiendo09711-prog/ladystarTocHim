@@ -1,0 +1,29 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 960" fill="none">
+  <defs>
+    <linearGradient id="background" x1="90" y1="62" x2="796" y2="910" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8E5E9"/>
+      <stop offset="1" stop-color="#C8899A"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="330" y1="236" x2="643" y2="755" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5C3540"/>
+      <stop offset="1" stop-color="#2D2024"/>
+    </linearGradient>
+    <linearGradient id="face" x1="348" y1="253" x2="607" y2="657" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6C5AE"/>
+      <stop offset="1" stop-color="#D98E7B"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="960" rx="80" fill="url(#background)"/>
+  <circle cx="739" cy="165" r="146" fill="#FFF9F7" fill-opacity=".7"/>
+  <circle cx="152" cy="795" r="178" fill="#9B5F6D" fill-opacity=".18"/>
+  <path d="M143 693C230 545 331 496 451 497C590 498 703 570 765 722" stroke="#FFF9F7" stroke-width="16" stroke-linecap="round" stroke-opacity=".72"/>
+  <path d="M294 777C232 654 254 405 331 284C385 198 493 156 590 230C702 315 689 555 644 692C618 771 566 819 462 819C369 819 322 817 294 777Z" fill="url(#hair)"/>
+  <path d="M354 400C354 297 423 238 502 238C581 238 638 304 638 402V522C638 630 581 704 500 704C419 704 354 630 354 522V400Z" fill="url(#face)"/>
+  <path d="M322 420C325 300 405 209 505 209C596 209 680 279 672 430C631 366 581 329 503 329C425 329 371 364 322 420Z" fill="#3A252B"/>
+  <path d="M386 430C427 391 468 380 508 380C555 380 596 396 627 429" stroke="#6E3F4B" stroke-width="22" stroke-linecap="round"/>
+  <ellipse cx="420" cy="484" rx="13" ry="17" fill="#342125"/>
+  <ellipse cx="575" cy="484" rx="13" ry="17" fill="#342125"/>
+  <path d="M457 575C481 594 519 594 544 575" stroke="#9A4E5C" stroke-width="11" stroke-linecap="round"/>
+  <path d="M273 834C311 748 386 704 502 704C618 704 691 750 729 834" fill="#FFF9F7" fill-opacity=".82"/>
+  <path d="M492 704L454 792L501 845L549 792L511 704H492Z" fill="#9B5F6D"/>
+</svg>

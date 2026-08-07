@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test'
 
-test('khách xem sản phẩm và thêm vào giỏ', async ({ page }) => {
+test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Tự tin với mái tóc/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Danh mục sản phẩm và dịch vụ' })).toBeVisible()
+  await page.screenshot({ path: '../artifacts/ladystars-home-desktop.png' })
+  await page.getByRole('link', { name: /Khám phá sản phẩm/ }).first().click()
+  await expect(page).toHaveURL(/san-pham/)
+  await page.goBack()
   await page.getByRole('link', { name: 'Sản phẩm', exact: true }).first().click()
   await expect(page.getByRole('heading', { name: 'Tất cả sản phẩm' })).toBeVisible()
   await page.locator('article').first().getByRole('link').first().click()

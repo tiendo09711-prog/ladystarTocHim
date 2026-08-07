@@ -1,46 +1,48 @@
-import { Menu, Search, ShoppingBag, UserRound, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { CalendarDays, Menu, Search, ShoppingBag, UserRound, X } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../stores/AuthContext'
 import { useCart } from '../stores/CartContext'
 
-const navItems = [['Sản phẩm', '/san-pham'], ['Hair system', '/danh-muc/hair-system-nam'], ['Toupee', '/danh-muc/toupee-nam'], ['Hướng dẫn', '/huong-dan-chon-toc'], ['Liên hệ', '/lien-he']]
+const navItems = [
+  ['Trang chủ', '/'], ['Sản phẩm', '/san-pham'], ['Hair system', '/danh-muc/hair-system-nam'], ['Toupee', '/danh-muc/toupee-nam'], ['Câu chuyện LADYSTARS', '/gioi-thieu'], ['Hướng dẫn', '/huong-dan-chon-toc'], ['Liên hệ', '/lien-he'],
+] as const
 
 export function StoreLayout() {
-  const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [search, setSearch] = useState('')
   const { user } = useAuth()
   const { count } = useCart()
   const navigate = useNavigate()
-  const submit = (event: FormEvent) => { event.preventDefault(); if (search.trim()) navigate(`/tim-kiem?search=${encodeURIComponent(search.trim())}`) }
 
-  return <div className="min-h-screen bg-[#f7f8f6]">
-    <div className="bg-[#1f4f3a] py-2 text-center text-sm text-white">Miễn phí giao hàng cho đơn từ 1.000.000đ · Tư vấn lựa chọn phù hợp</div>
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="container-page flex h-18 items-center gap-5">
-        <button className="md:hidden" onClick={() => setOpen(!open)} aria-label="Mở menu">{open ? <X /> : <Menu />}</button>
-        <Link to="/" className="shrink-0 text-2xl font-black tracking-tight text-[#245c43]">NAM HAIR</Link>
-        <form onSubmit={submit} className="hidden flex-1 sm:flex"><div className="relative w-full"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} /><input className="input pl-12" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm hair system, toupee, phụ kiện..." aria-label="Tìm kiếm sản phẩm" /></div></form>
-        <div className="ml-auto flex items-center gap-2">
-          <Link to={user ? '/tai-khoan' : '/dang-nhap'} className="btn-secondary px-3" aria-label="Tài khoản"><UserRound size={20} /><span className="hidden lg:inline">{user?.name ?? 'Đăng nhập'}</span></Link>
-          <Link to="/gio-hang" className="btn-secondary relative px-3" aria-label={`Giỏ hàng có ${count} sản phẩm`}><ShoppingBag size={20} /><span className="hidden lg:inline">Giỏ hàng</span>{count > 0 && <span className="absolute -right-2 -top-2 grid h-6 min-w-6 place-items-center rounded-full bg-red-600 px-1 text-xs text-white">{count}</span>}</Link>
-        </div>
+  useEffect(() => {
+    document.body.classList.toggle('store-menu-open', menuOpen)
+    return () => document.body.classList.remove('store-menu-open')
+  }, [menuOpen])
+
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault()
+    if (!search.trim()) return
+    setSearchOpen(false)
+    setMenuOpen(false)
+    navigate(`/tim-kiem?search=${encodeURIComponent(search.trim())}`)
+  }
+  const accountPath = user ? '/tai-khoan' : '/dang-nhap'
+
+  return <div className="store-shell">
+    <div className="store-announcement">Miễn phí giao hàng cho đơn từ 1.000.000đ <span>·</span> Tư vấn lựa chọn theo phong cách riêng</div>
+    <header className="store-header">
+      <div className="container-page store-header-main">
+        <div className="store-header-note">LADYSTARS CARE</div>
+        <div className="store-mobile-tools"><button type="button" className="store-icon-button" onClick={() => setMenuOpen((current) => !current)} aria-label="Mở menu" aria-expanded={menuOpen}>{menuOpen ? <X /> : <Menu />}</button><button type="button" className="store-icon-button" onClick={() => setSearchOpen((current) => !current)} aria-label="Mở tìm kiếm" aria-expanded={searchOpen}><Search /></button></div>
+        <Link to="/" className="store-brand" aria-label="LADYSTARS - Trang chủ"><img src="/images/brand/ladystars-wordmark.png" alt="LADYSTARS" /></Link>
+        <div className="store-header-actions"><button type="button" className="store-icon-button store-desktop-search" onClick={() => setSearchOpen((current) => !current)} aria-label="Mở tìm kiếm" aria-expanded={searchOpen}><Search size={21} /></button><Link to={accountPath} className="store-icon-button" aria-label={user ? 'Tài khoản của bạn' : 'Đăng nhập'}><UserRound size={21} /></Link><Link to="/gio-hang" className="store-icon-button store-cart-button" aria-label={`Giỏ hàng có ${count} sản phẩm`}><ShoppingBag size={21} />{count > 0 && <span>{count}</span>}</Link><Link to="/lien-he" className="store-booking-link"><CalendarDays size={18} /><span>Đặt lịch tư vấn</span></Link></div>
       </div>
-      <nav className={`${open ? 'block' : 'hidden'} border-t border-slate-100 md:block`}>
-        <div className="container-page flex flex-col gap-1 py-3 md:flex-row md:items-center md:gap-7">
-          {navItems.map(([label, path]) => <NavLink key={path} onClick={() => setOpen(false)} to={path} className={({ isActive }) => `rounded-lg px-2 py-2 text-sm font-bold ${isActive ? 'text-emerald-800' : 'text-slate-600 hover:text-emerald-800'}`}>{label}</NavLink>)}
-          {user?.role === 'admin' && <Link to="/admin" className="md:ml-auto text-sm font-bold text-amber-700">Quản trị</Link>}
-        </div>
-      </nav>
+      <form className={`store-search-panel ${searchOpen ? 'is-open' : ''}`} onSubmit={submitSearch} role="search"><div className="container-page"><label className="store-search-field"><Search size={20} /><input autoFocus={searchOpen} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm sản phẩm, hair system, phụ kiện..." aria-label="Tìm kiếm sản phẩm" /><button type="button" onClick={() => setSearchOpen(false)} aria-label="Đóng tìm kiếm"><X size={19} /></button></label></div></form>
+      <nav className={`store-navigation ${menuOpen ? 'is-open' : ''}`} aria-label="Điều hướng chính"><div className="container-page">{navItems.map(([label, path]) => <NavLink key={path} onClick={() => setMenuOpen(false)} to={path} end={path === '/'} className={({ isActive }) => isActive ? 'is-active' : ''}>{label}</NavLink>)}<Link to="/lien-he" onClick={() => setMenuOpen(false)} className="store-mobile-booking"><CalendarDays size={18} /> Đặt lịch tư vấn</Link></div></nav>
     </header>
     <main><Outlet /></main>
-    <footer className="mt-16 bg-[#183c2d] py-12 text-slate-200">
-      <div className="container-page grid gap-8 md:grid-cols-4">
-        <div><div className="text-2xl font-black text-white">NAM HAIR</div><p className="mt-3 text-sm leading-6">Cửa hàng chuyên tóc giả nam, toupee và hair system với thông tin minh bạch, hỗ trợ lựa chọn dễ hiểu.</p></div>
-        <div><h3 className="font-bold text-white">Mua sắm</h3><div className="mt-3 grid gap-2 text-sm"><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/gio-hang">Giỏ hàng</Link><Link to="/tai-khoan/don-hang">Theo dõi đơn</Link></div></div>
-        <div><h3 className="font-bold text-white">Hỗ trợ</h3><div className="mt-3 grid gap-2 text-sm"><Link to="/huong-dan-chon-toc">Hướng dẫn chọn tóc</Link><Link to="/chinh-sach-giao-hang">Chính sách giao hàng</Link><Link to="/chinh-sach-doi-tra">Đổi trả</Link></div></div>
-        <div><h3 className="font-bold text-white">Liên hệ</h3><p className="mt-3 text-sm leading-6">Hotline: 028 7300 8899<br />Email: hello@namhair.local<br />Thứ 2 - Chủ nhật: 8:00 - 20:00</p></div>
-      </div>
-    </footer>
+    <footer className="store-footer"><div className="container-page store-footer-grid"><div className="store-footer-brand"><img src="/images/brand/ladystars-wordmark.png" alt="LADYSTARS" /><p>LADYSTARS đồng hành cùng bạn trên hành trình tìm ra diện mạo tự nhiên, mềm mại và tự tin hơn mỗi ngày.</p><Link to="/lien-he">Đặt lịch tư vấn <CalendarDays size={17} /></Link></div><div><h2>Mua sắm</h2><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/danh-muc/hair-system-nam">Hair system</Link><Link to="/danh-muc/toupee-nam">Toupee</Link><Link to="/gio-hang">Giỏ hàng</Link></div><div><h2>Hỗ trợ</h2><Link to="/huong-dan-chon-toc">Hướng dẫn lựa chọn</Link><Link to="/chinh-sach-giao-hang">Chính sách giao hàng</Link><Link to="/chinh-sach-doi-tra">Chính sách đổi trả</Link><Link to="/chinh-sach-bao-mat">Chính sách bảo mật</Link></div><div><h2>Kết nối</h2><p>Khi bạn cần trao đổi kỹ hơn, LADYSTARS luôn sẵn sàng lắng nghe.</p><Link to="/gioi-thieu">Câu chuyện LADYSTARS</Link><Link to="/lien-he">Liên hệ LADYSTARS</Link></div></div><div className="container-page store-footer-bottom"><span>© {new Date().getFullYear()} LADYSTARS. All rights reserved.</span><span>Beautifully made for your confidence.</span></div></footer>
   </div>
 }
