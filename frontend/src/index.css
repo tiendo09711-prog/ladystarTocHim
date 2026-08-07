@@ -76,10 +76,19 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .store-search-field button { display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; background: var(--color-brand-pale); color: var(--color-brand-deep); }
 .store-navigation { border-top: 1px solid rgba(234, 217, 221, .75); }
 .store-navigation > div { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: clamp(14px, 2.4vw, 34px); }
-.store-navigation a { position: relative; padding: 15px 0 13px; color: var(--color-text-muted); font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 750; letter-spacing: .01em; line-height: 1.4; transition: color .2s ease; }
-.store-navigation a::after { position: absolute; right: 0; bottom: 8px; left: 0; height: 2px; border-radius: 999px; background: var(--color-brand); content: ""; transform: scaleX(0); transform-origin: center; transition: transform .2s ease; }
-.store-navigation a:hover, .store-navigation a.is-active { color: var(--color-brand-deep); }
-.store-navigation a.is-active::after { transform: scaleX(1); }
+.store-nav-item { position: relative; }
+.store-navigation a, .store-nav-trigger { position: relative; display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; padding: 15px 0 13px; color: var(--color-text-muted); font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 750; letter-spacing: .01em; line-height: 1.4; transition: color .2s ease; }
+.store-navigation a::after, .store-nav-trigger::after { position: absolute; right: 0; bottom: 8px; left: 0; height: 2px; border-radius: 999px; background: var(--color-brand); content: ""; transform: scaleX(0); transform-origin: center; transition: transform .2s ease; }
+.store-navigation a:hover, .store-navigation a.is-active, .store-nav-trigger:hover, .store-nav-item.is-dropdown-open .store-nav-trigger { color: var(--color-brand-deep); }
+.store-navigation a.is-active::after, .store-nav-item.is-dropdown-open .store-nav-trigger::after { transform: scaleX(1); }
+.store-dropdown { position: absolute; top: calc(100% - 1px); left: 50%; display: grid; min-width: 236px; border: 1px solid var(--color-border); border-radius: 0 0 7px 7px; background: white; box-shadow: 0 12px 24px rgba(82, 42, 51, .12); opacity: 0; pointer-events: none; transform: translate(-50%, -6px); transition: opacity .18s ease, transform .18s ease; }
+.store-nav-item.is-dropdown-open .store-dropdown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+@media (min-width: 901px) { .store-nav-item.has-dropdown:hover .store-dropdown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); } }
+.store-dropdown a { width: 100%; justify-content: space-between; border-bottom: 1px solid #f2e7e9; padding: 12px 16px; color: var(--color-text); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.store-dropdown a:last-child { border-bottom: 0; }
+.store-dropdown a::after { display: none; }
+.store-dropdown a:hover { background: var(--color-brand-pale); color: var(--color-brand-deep); }
+.store-new-badge { border-radius: 4px; background: #ef4d59; color: white; padding: 2px 6px; font-size: 10px; font-weight: 800; }
 .store-mobile-booking { display: none; }
 .store-header.is-scrolled .store-header-main { height: 0; min-height: 0; opacity: 0; }
 .store-header.is-scrolled .store-navigation { border-top-color: transparent; box-shadow: 0 4px 14px rgba(82, 42, 51, .08); }
@@ -237,9 +246,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
   .store-navigation { position: fixed; top: 104px; right: 12px; left: 12px; overflow: hidden; max-height: 0; border: 0; border-radius: 22px; background: white; box-shadow: var(--shadow-card); opacity: 0; transform: translateY(-8px); transition: max-height .25s ease, opacity .2s ease, transform .2s ease; }
   .store-navigation.is-open { max-height: calc(100vh - 125px); border: 1px solid var(--color-border); opacity: 1; transform: translateY(0); }
   .store-navigation > div { display: grid; justify-content: stretch; gap: 0; padding: 10px; }
-  .store-navigation a { border-bottom: 1px solid #f2e7e9; padding: 15px 10px; color: var(--color-text); font-size: 15px; font-weight: 700; letter-spacing: .005em; line-height: 1.45; }
-  .store-navigation a::after { display: none; }
-  .store-navigation a.is-active { color: var(--color-brand); }
+  .store-nav-item { border-bottom: 1px solid #f2e7e9; }
+  .store-navigation a, .store-nav-trigger { width: 100%; justify-content: space-between; border-bottom: 0; padding: 15px 10px; color: var(--color-text); font-size: 15px; font-weight: 700; letter-spacing: .005em; line-height: 1.45; text-align: left; }
+  .store-navigation a::after, .store-nav-trigger::after { display: none; }
+  .store-navigation a.is-active, .store-nav-item.is-dropdown-open .store-nav-trigger { color: var(--color-brand); }
+  .store-dropdown { position: static; min-width: 0; border: 0; border-radius: 0; box-shadow: none; opacity: 1; pointer-events: auto; transform: none; }
+  .store-dropdown a { padding: 12px 20px; background: #fffafa; font-size: 14px; font-weight: 500; }
+  .store-nav-item:not(.is-dropdown-open) .store-dropdown { display: none; }
   .store-header.is-scrolled .store-navigation { top: 12px; border-top-color: var(--color-border); box-shadow: var(--shadow-card); }
   .store-mobile-booking { display: inline-flex !important; justify-content: center; margin-top: 9px; border-bottom: 0 !important; }
   .home-hero { min-height: 590px; grid-template-columns: 1fr .76fr; }
