@@ -10,7 +10,7 @@ const navItems: NavItem[] = [
   { label: 'Trang chủ', path: '/' },
   { label: 'Câu chuyện thương hiệu', path: '/gioi-thieu' },
   { label: 'Sản phẩm & dịch vụ', path: '/san-pham', children: [['Tóc giả nam', '/san-pham'], ['Phụ kiện tóc giả', '/danh-muc/phu-kien-toc-gia'], ['Sản phẩm chăm sóc tóc', '/danh-muc/dung-dich-ve-sinh'], ['Hướng dẫn chọn tóc', '/huong-dan-chon-toc'], ['Tóc giả nữ', '/danh-muc/toc-gia-nu']] },
-  { label: 'Tin tức & ưu đãi', path: '/tin-tuc', children: [['Tin tức', '/tin-tuc'], ['Ưu đãi', '/san-pham'], ['Hướng dẫn', '/huong-dan-chon-toc']] },
+  { label: 'Tin tức & ưu đãi', path: '/tin-tuc', children: [['Tin tức', '/tin-tuc'], ['Ưu đãi', '/uu-dai'], ['Hướng dẫn', '/huong-dan-chon-toc']] },
   { label: 'Hệ thống cửa hàng', path: '/lien-he', children: [['Cơ sở Hà Nội', '/lien-he?location=ha-noi'], ['Cơ sở Hồ Chí Minh', '/lien-he?location=ho-chi-minh']] },
   { label: 'Liên hệ', path: '/lien-he' },
 ]

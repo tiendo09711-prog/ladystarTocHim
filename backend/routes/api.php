@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\Store\CatalogController;
 use App\Http\Controllers\Api\V1\Store\CatalogContentController;
 use App\Http\Controllers\Api\V1\Store\ConsultationRequestController;
 use App\Http\Controllers\Api\V1\Store\NewsController;
+use App\Http\Controllers\Api\V1\Store\NewsPageController;
+use App\Http\Controllers\Api\V1\Admin\NewsPageContentManagementController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +54,7 @@ Route::prefix('v1')->group(function () {
     Route::get('seo/{pageKey}', [AboutController::class, 'seo']);
     Route::get('news', [NewsController::class, 'index']);
     Route::get('news/{slug}', [NewsController::class, 'show']);
+    Route::get('news-page', [NewsPageController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
@@ -181,6 +184,11 @@ Route::prefix('v1')->group(function () {
             Route::patch('news/{article}/status', [NewsManagementController::class, 'status']);
             Route::post('news/{article}/cover-image', [NewsManagementController::class, 'uploadCover']);
             Route::delete('news/{article}/cover-image', [NewsManagementController::class, 'deleteCover']);
+
+            Route::get('news-page', [NewsPageContentManagementController::class, 'show']);
+            Route::put('news-page', [NewsPageContentManagementController::class, 'update']);
+            Route::post('news-page/cta-image', [NewsPageContentManagementController::class, 'uploadCtaImage']);
+            Route::delete('news-page/cta-image', [NewsPageContentManagementController::class, 'deleteCtaImage']);
         });
     });
 });

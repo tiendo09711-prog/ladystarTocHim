@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+test('nút ưu đãi mở trang ưu đãi riêng', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Tin tức & ưu đãi' }).hover()
+  await page.getByRole('link', { name: 'Ưu đãi', exact: true }).click()
+  await expect(page).toHaveURL('/uu-dai')
+  await expect(page.getByLabel('Trang ưu đãi')).toBeVisible()
+})
+
 test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn/ })).toBeVisible()
