@@ -128,6 +128,26 @@ class ProductManagementController extends Controller
         return $this->success($image->refresh());
     }
 
+    public function updateImage(Request $request, Product $product, ProductImage $image)
+    {
+        abort_unless($image->product_id === $product->id, 404);
+        $image->update($request->validate(['alt_text' => ['nullable', 'string', 'max:190']]));
+
+        return $this->success($image->refresh());
+    }
+
+    public function reorderImages(Request $request, Product $product)
+    {
+        $data = $request->validate(['order' => ['required', 'array', 'min:1'], 'order.*' => ['integer', 'distinct']]);
+        $ids = $product->images()->pluck('id')->all();
+        abort_unless(count($ids) === count($data['order']) && ! array_diff($ids, $data['order']), 422, 'Danh sách ảnh không hợp lệ.');
+        DB::transaction(function () use ($data, $product) {
+            foreach ($data['order'] as $index => $id) $product->images()->whereKey($id)->update(['sort_order' => $index]);
+        });
+
+        return $this->success($product->images()->orderBy('sort_order')->get());
+    }
+
     public function storeVariant(Request $request, Product $product)
     {
         $data = $this->variantData($request);

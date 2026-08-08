@@ -35,6 +35,8 @@ const ImportExportPage = lazy(() => import('../pages/admin/ImportExportPage').th
 const BarcodesPage = lazy(() => import('../pages/admin/BarcodesPage').then((module) => ({ default: module.BarcodesPage })))
 const SettingsAdminPage = lazy(() => import('../pages/admin/SettingsAdminPage').then((module) => ({ default: module.SettingsAdminPage })))
 const AboutAdminPage = lazy(() => import('../pages/admin/AboutAdminPage').then((module) => ({ default: module.AboutAdminPage })))
+const CatalogContentAdminPage = lazy(() => import('../pages/admin/CatalogContentAdminPage').then((module) => ({ default: module.CatalogContentAdminPage })))
+const ConsultationRequestsAdminPage = lazy(() => import('../pages/admin/ConsultationRequestsAdminPage').then((module) => ({ default: module.ConsultationRequestsAdminPage })))
 const NewsAdminPage = lazy(() => import('../pages/admin/NewsAdminPage').then((module) => ({ default: module.NewsAdminPage })))
 const NewsFormPage = lazy(() => import('../pages/admin/NewsFormPage').then((module) => ({ default: module.NewsFormPage })))
 
@@ -55,6 +57,7 @@ export const router = createBrowserRouter([
     { path: 'import-export', element: lazyPage(<ImportExportPage />) }, { path: 'barcodes', element: lazyPage(<BarcodesPage />) },
     { path: 'reports', element: lazyPage(<DashboardPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
     { path: 'about', element: lazyPage(<AboutAdminPage />) },
+    { path: 'catalog-content', element: lazyPage(<CatalogContentAdminPage />) }, { path: 'consultation-requests', element: lazyPage(<ConsultationRequestsAdminPage />) },
     { path: 'news', element: lazyPage(<NewsAdminPage />) }, { path: 'news/create', element: lazyPage(<NewsFormPage />) }, { path: 'news/:id/edit', element: lazyPage(<NewsFormPage />) },
   ] }] },
   { path: '/', element: <StoreLayout />, children: [

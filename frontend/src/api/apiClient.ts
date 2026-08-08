@@ -20,10 +20,14 @@ function readXsrfToken() {
 
 let csrfRequest: Promise<void> | null = null
 
-export async function csrfCookie() {
-  if (readXsrfToken()) return
+async function requestCsrfCookie() {
   csrfRequest ??= axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, { withCredentials: true }).then(() => undefined).finally(() => { csrfRequest = null })
   await csrfRequest
+}
+
+export async function csrfCookie() {
+  if (readXsrfToken()) return
+  await requestCsrfCookie()
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -34,7 +38,15 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const request = error.config as (typeof error.config & { _csrfRetried?: boolean }) | undefined
+    if (error.response?.status === 419 && request && !request._csrfRetried) {
+      request._csrfRetried = true
+      await requestCsrfCookie()
+      const token = readXsrfToken()
+      if (token) request.headers.set('X-XSRF-TOKEN', token)
+      return apiClient.request(request)
+    }
     if (error.response?.status === 401) window.dispatchEvent(new Event('auth:unauthorized'))
     return Promise.reject(error)
   },
