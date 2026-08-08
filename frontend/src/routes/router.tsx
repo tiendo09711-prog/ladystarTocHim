@@ -14,6 +14,7 @@ import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from '
 import { HomePage } from '../pages/store/HomePage'
 import { ProductPage } from '../pages/store/ProductPage'
 import { ProductsPage } from '../pages/store/ProductsPage'
+import { PromotionsPage } from '../pages/store/PromotionsPage'
 import { AdminProtectedRoute } from './AdminProtectedRoute'
 import { UserProtectedRoute } from './UserProtectedRoute'
 
@@ -39,6 +40,7 @@ const CatalogContentAdminPage = lazy(() => import('../pages/admin/CatalogContent
 const ConsultationRequestsAdminPage = lazy(() => import('../pages/admin/ConsultationRequestsAdminPage').then((module) => ({ default: module.ConsultationRequestsAdminPage })))
 const NewsAdminPage = lazy(() => import('../pages/admin/NewsAdminPage').then((module) => ({ default: module.NewsAdminPage })))
 const NewsFormPage = lazy(() => import('../pages/admin/NewsFormPage').then((module) => ({ default: module.NewsFormPage })))
+const NewsPageSettingsAdminPage = lazy(() => import('../pages/admin/NewsPageSettingsAdminPage').then((module) => ({ default: module.NewsPageSettingsAdminPage })))
 const HairGuidePage = lazy(() => import('../pages/store/HairGuidePage').then((module) => ({ default: module.HairGuidePage })))
 
 const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p-8 text-center">Đang tải màn hình...</div>}>{page}</Suspense>
@@ -59,14 +61,14 @@ export const router = createBrowserRouter([
     { path: 'reports', element: lazyPage(<DashboardPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
     { path: 'about', element: lazyPage(<AboutAdminPage />) },
     { path: 'catalog-content', element: lazyPage(<CatalogContentAdminPage />) }, { path: 'consultation-requests', element: lazyPage(<ConsultationRequestsAdminPage />) },
-    { path: 'news', element: lazyPage(<NewsAdminPage />) }, { path: 'news/create', element: lazyPage(<NewsFormPage />) }, { path: 'news/:id/edit', element: lazyPage(<NewsFormPage />) },
+    { path: 'news', element: lazyPage(<NewsAdminPage />) }, { path: 'news/create', element: lazyPage(<NewsFormPage />) }, { path: 'news/:id/edit', element: lazyPage(<NewsFormPage />) }, { path: 'news/settings', element: lazyPage(<NewsPageSettingsAdminPage />) },
   ] }] },
   { path: '/', element: <StoreLayout />, children: [
     { index: true, element: <HomePage /> }, { path: 'san-pham', element: <ProductsPage /> }, { path: 'san-pham/:slug', element: <ProductPage /> },
     { path: 'danh-muc/:slug', element: <ProductsPage /> }, { path: 'tim-kiem', element: <ProductsPage /> }, { path: 'gio-hang', element: <CartPage /> },
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },
-    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'huong-dan-chon-toc', element: lazyPage(<HairGuidePage />) },
+    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'huong-dan-chon-toc', element: lazyPage(<HairGuidePage />) },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { element: <UserProtectedRoute />, children: [{ path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },

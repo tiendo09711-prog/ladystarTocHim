@@ -63,3 +63,16 @@ test('admin tạo nháp, xuất bản và dọn dẹp bản tin', async ({ page 
   await rowAgain.getByRole('button', { name: `Xóa ${title}` }).click()
   await expect(page.getByText('Đã xóa bản tin.')).toBeVisible()
 })
+
+test('admin mở và lưu lại thiết lập trang bản tin', async ({ page }) => {
+  await loginAdmin(page)
+  await page.goto('/admin/news/settings')
+  await expect(page.getByRole('heading', { name: 'Thiết lập trang bản tin' })).toBeVisible()
+  const title = page.getByLabel('Tiêu đề H1')
+  const currentTitle = await title.inputValue()
+  await title.fill(currentTitle)
+  await page.getByRole('button', { name: 'Lưu thiết lập' }).click()
+  await expect(page.getByText('Đã lưu thiết lập trang bản tin.')).toBeVisible()
+  await page.goto('/tin-tuc')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(currentTitle)
+})

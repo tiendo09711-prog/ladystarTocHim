@@ -50,7 +50,7 @@ export function NewsAdminPage() {
   return <div>
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div><h1 className="text-3xl font-black">Bản tin</h1><p className="muted">Quản lý bài viết hiển thị tại /tin-tuc.</p></div>
-      <Link className="btn-primary" to="/admin/news/create"><Plus size={18} />Tạo bản tin</Link>
+      <div className="flex flex-wrap gap-2"><Link className="btn-secondary" to="/admin/news/settings">Thiết lập trang</Link><Link className="btn-primary" to="/admin/news/create"><Plus size={18} />Tạo bản tin</Link></div>
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-3">
       <form onSubmit={submitSearch} className="flex gap-2"><input className="input w-64" name="search" placeholder="Tìm theo tiêu đề hoặc slug" defaultValue={search} /><button className="btn-secondary">Tìm</button></form>

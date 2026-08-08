@@ -102,5 +102,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(AboutContentSeeder::class);
         $this->call(CatalogContentSeeder::class);
+        $this->call(NewsPageContentSeeder::class);
     }
 }
