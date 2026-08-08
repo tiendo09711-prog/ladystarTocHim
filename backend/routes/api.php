@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\V1\Store\ConsultationRequestController;
 use App\Http\Controllers\Api\V1\Store\NewsController;
 use App\Http\Controllers\Api\V1\Store\NewsPageController;
 use App\Http\Controllers\Api\V1\Admin\NewsPageContentManagementController;
+use App\Http\Controllers\Api\V1\Store\PromotionPageController;
+use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +57,7 @@ Route::prefix('v1')->group(function () {
     Route::get('news', [NewsController::class, 'index']);
     Route::get('news/{slug}', [NewsController::class, 'show']);
     Route::get('news-page', [NewsPageController::class, 'index']);
+    Route::get('promotions-page', [PromotionPageController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
@@ -189,6 +192,19 @@ Route::prefix('v1')->group(function () {
             Route::put('news-page', [NewsPageContentManagementController::class, 'update']);
             Route::post('news-page/cta-image', [NewsPageContentManagementController::class, 'uploadCtaImage']);
             Route::delete('news-page/cta-image', [NewsPageContentManagementController::class, 'deleteCtaImage']);
+
+            Route::get('promotions', [NewsManagementController::class, 'index']);
+            Route::post('promotions', [NewsManagementController::class, 'store']);
+            Route::get('promotions/{article}', [NewsManagementController::class, 'show']);
+            Route::put('promotions/{article}', [NewsManagementController::class, 'update']);
+            Route::delete('promotions/{article}', [NewsManagementController::class, 'destroy']);
+            Route::patch('promotions/{article}/status', [NewsManagementController::class, 'status']);
+            Route::post('promotions/{article}/cover-image', [NewsManagementController::class, 'uploadCover']);
+            Route::delete('promotions/{article}/cover-image', [NewsManagementController::class, 'deleteCover']);
+            Route::get('promotions-page', [PromotionPageContentManagementController::class, 'show']);
+            Route::put('promotions-page', [PromotionPageContentManagementController::class, 'update']);
+            Route::post('promotions-page/cta-image', [PromotionPageContentManagementController::class, 'uploadCtaImage']);
+            Route::delete('promotions-page/cta-image', [PromotionPageContentManagementController::class, 'deleteCtaImage']);
         });
     });
 });

@@ -17,12 +17,24 @@ export async function getNewsPage(params?: { page?: number }) {
   return (await apiClient.get<ApiResponse<NewsPageData>>('/news-page', { params })).data.data
 }
 
+export async function getPromotionsPage(params?: { page?: number }) {
+  return (await apiClient.get<ApiResponse<NewsPageData>>('/promotions-page', { params })).data.data
+}
+
 export async function getAdminNewsPage() {
   return (await apiClient.get<ApiResponse<NewsPageAdminData>>('/admin/news-page')).data.data
 }
 
+export async function getAdminPromotionsPage() {
+  return (await apiClient.get<ApiResponse<NewsPageAdminData>>('/admin/promotions-page')).data.data
+}
+
 export async function updateNewsPageContent(payload: Record<string, unknown>) {
   return (await apiClient.put<ApiResponse<NewsPageAdminData>>('/admin/news-page', payload)).data.data
+}
+
+export async function updatePromotionsPageContent(payload: Record<string, unknown>) {
+  return (await apiClient.put<ApiResponse<NewsPageAdminData>>('/admin/promotions-page', payload)).data.data
 }
 
 export async function uploadNewsCtaImage(image: File) {
@@ -31,8 +43,18 @@ export async function uploadNewsCtaImage(image: File) {
   return (await apiClient.post<ApiResponse<{ cta_image_path: string; cta_image_alt: string }>>('/admin/news-page/cta-image', data)).data.data
 }
 
+export async function uploadPromotionsCtaImage(image: File) {
+  const data = new FormData()
+  data.append('image', image)
+  return (await apiClient.post<ApiResponse<{ cta_image_path: string; cta_image_alt: string }>>('/admin/promotions-page/cta-image', data)).data.data
+}
+
 export async function deleteNewsCtaImage() {
   return (await apiClient.delete<ApiResponse<unknown>>('/admin/news-page/cta-image')).data
+}
+
+export async function deletePromotionsCtaImage() {
+  return (await apiClient.delete<ApiResponse<unknown>>('/admin/promotions-page/cta-image')).data
 }
 
 export async function getCatalogContent() {

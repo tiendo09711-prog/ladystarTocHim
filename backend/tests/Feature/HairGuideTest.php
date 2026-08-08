@@ -15,6 +15,13 @@ class HairGuideTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_hair_guide_uses_hair_care_service_fallback_title(): void
+    {
+        $this->getJson('/api/v1/hair-guide')
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Dịch vụ chăm sóc tóc phù hợp với bạn');
+    }
+
     public function test_public_hair_guide_returns_selected_active_products_in_saved_order(): void
     {
         $this->seed();
@@ -32,6 +39,8 @@ class HairGuideTest extends TestCase
         $this->getJson('/api/v1/hair-guide')
             ->assertOk()
             ->assertJsonPath('data.page_key', 'hair-guide')
+            ->assertJsonPath('data.title', 'Dịch vụ chăm sóc tóc phù hợp với bạn')
+            ->assertJsonPath('data.seo.title', 'Dịch vụ chăm sóc tóc | LADYSTARS')
             ->assertJsonPath('data.products.0.product.id', $products[2]->id)
             ->assertJsonPath('data.products.1.product.id', $products[0]->id)
             ->assertJsonPath('data.products.2.badge', 'Second')
@@ -98,10 +107,10 @@ class HairGuideTest extends TestCase
             'name' => 'Guide Customer',
             'phone' => '0900000000',
             'product_id' => $product->id,
-            'source_page' => '/huong-dan-chon-toc',
+            'source_page' => '/dich-vu-cham-soc',
         ])->assertCreated();
 
-        $this->assertDatabaseHas('consultation_requests', ['product_id' => $product->id, 'source_page' => '/huong-dan-chon-toc']);
+        $this->assertDatabaseHas('consultation_requests', ['product_id' => $product->id, 'source_page' => '/dich-vu-cham-soc']);
     }
 
     private function payload(array $guideProducts): array

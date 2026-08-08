@@ -31,7 +31,7 @@ export function QuickConsultation() {
       <div className="home-consultation-options" aria-label="Nhu cầu tư vấn">
         <span>Che tóc thưa</span><span>Che vùng đỉnh</span><span>Thay đổi kiểu tóc</span>
       </div>
-      <Link to="/huong-dan-chon-toc" className="btn-primary">Bắt đầu tư vấn <ArrowRight size={18} /></Link>
+      <Link to="/dich-vu-cham-soc" className="btn-primary">Bắt đầu tư vấn <ArrowRight size={18} /></Link>
     </div>
   </section>
 }

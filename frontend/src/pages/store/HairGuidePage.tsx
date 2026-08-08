@@ -8,7 +8,7 @@ import { LoadingState } from '../../components/common/LoadingState'
 import { GuideProductCard } from '../../components/products/GuideProductCard'
 import type { ApiResponse, HairGuideContent, HairGuideProduct } from '../../types'
 
-const pagePath = '/huong-dan-chon-toc'
+const pagePath = '/dich-vu-cham-soc'
 
 export function HairGuidePage() {
   const query = useQuery({ queryKey: ['hair-guide'], queryFn: async () => (await apiClient.get<ApiResponse<HairGuideContent>>('/hair-guide')).data.data })

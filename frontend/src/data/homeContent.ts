@@ -25,7 +25,7 @@ export const testimonials = [
 ]
 
 export const insightLinks = [
-  ['Hướng dẫn lựa chọn', 'Bắt đầu từ nhu cầu sử dụng, vùng tóc cần quan tâm và cảm giác tự nhiên bạn mong muốn.', '/huong-dan-chon-toc'],
+  ['Dịch vụ chăm sóc tóc', 'Bắt đầu từ nhu cầu sử dụng, vùng tóc cần quan tâm và cảm giác tự nhiên bạn mong muốn.', '/dich-vu-cham-soc'],
   ['Chính sách giao hàng', 'Tìm hiểu cách LADYSTARS chuẩn bị và đồng hành cùng đơn hàng của bạn.', '/chinh-sach-giao-hang'],
   ['Chính sách đổi trả', 'Những thông tin cần biết để bạn luôn chủ động trong quá trình mua sắm.', '/chinh-sach-doi-tra'],
 ]

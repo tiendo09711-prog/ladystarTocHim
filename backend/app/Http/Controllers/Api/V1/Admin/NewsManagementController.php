@@ -22,6 +22,9 @@ class NewsManagementController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(fn ($q) => $q->where('title', 'like', '%'.$search.'%')->orWhere('slug', 'like', '%'.$search.'%'));

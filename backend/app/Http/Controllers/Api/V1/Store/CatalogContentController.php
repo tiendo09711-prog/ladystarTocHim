@@ -60,7 +60,8 @@ class CatalogContentController extends Controller
 
     private function payload(?CatalogPageContent $content, string $pageKey, ?Category $category = null): array
     {
-        $title = $content?->title ?? $category?->name ?? self::FALLBACK_TITLE;
+        $fallbackTitle = $pageKey === 'hair-guide' ? 'Dịch vụ chăm sóc tóc phù hợp với bạn' : self::FALLBACK_TITLE;
+        $title = $content?->title ?? $category?->name ?? $fallbackTitle;
         $subtitle = $content?->subtitle ?? $category?->description ?? 'Discover a tailored LADYSTARS solution for your style and everyday comfort.';
 
         return [

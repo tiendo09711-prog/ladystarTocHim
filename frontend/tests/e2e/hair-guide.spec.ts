@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 const product = (id: number, name: string, category: { slug: string; name: string }) => ({ id, name, slug: `product-${id}`, base_sku: `SKU-${id}`, short_description: `Short description ${id}`, description: `Description ${id}`, status: 'active', is_featured: false, is_new: false, category, images: [], variants: [{ id, sku: `SKU-${id}`, price: 1200000 + id, sale_price: null, current_price: 1200000 + id, status: 'active', stock: 3, attributes: [] }], price_min: 1200000 + id, price_max: 1200000 + id, available_stock: 3, best_listing_variant: { id, current_price: 1200000 + id, stock: 3 }, rating_average: 0, reviews_count: 0 })
 const guidePayload = {
-  page_key: 'hair-guide', eyebrow: 'LADYSTARS GUIDE', title: 'Tìm lựa chọn phù hợp với nhu cầu của bạn', subtitle: 'So sánh rõ ràng trước khi quyết định.', hero_image_alt: 'LADYSTARS guide', editorial_title: 'Các tiêu chí lựa chọn', editorial_intro: 'Thông tin giúp bạn cân nhắc theo nhu cầu thực tế.', editorial_sections: [{ title: 'Xác định nhu cầu', body: 'Bắt đầu từ vùng tóc cần quan tâm.' }, { title: 'Ưu tiên cảm giác', body: 'Cân nhắc độ nhẹ và độ thoáng.' }, { title: 'Chọn kiểu hoàn thiện', body: 'So sánh màu và chất liệu.' }, { title: 'Nhận tư vấn riêng', body: 'Trao đổi kỹ hơn trước khi quyết định.' }], consultation_title: 'Cần thêm một gợi ý phù hợp?', consultation_body: 'Đội ngũ LADYSTARS sẽ hỗ trợ bạn.', consultation_image_alt: 'Consultation', consultation_cta_label: 'Gửi yêu cầu tư vấn', settings: { hero_badge: 'Lựa chọn rõ ràng', trust_items: [{ title: 'Thông tin rõ ràng', description: 'Dữ liệu sản phẩm thực tế.' }, { title: 'Chọn theo nhu cầu', description: 'Theo thói quen sử dụng.' }, { title: 'Tư vấn tận tâm', description: 'Luôn sẵn sàng hỗ trợ.' }], guide_grid_title: 'Lựa chọn được gợi ý', guide_grid_intro: 'Sản phẩm theo đúng thứ tự admin đã chọn.', product_primary_cta_label: 'Xem chi tiết', product_secondary_cta_label: 'Nhận tư vấn', consultation_benefits: ['Gợi ý theo nhu cầu'] }, products: [{ product: product(2, 'Sản phẩm thứ hai', { slug: 'hair-system', name: 'Hair system' }), badge: 'Dùng hằng ngày', note: 'Gọn nhẹ, dễ so sánh.' }, { product: product(1, 'Sản phẩm đầu tiên', { slug: 'toupee', name: 'Toupee' }), badge: 'Tự nhiên', note: 'Phù hợp nhiều phong cách.' }], contact: { support_phone: null }, seo: { title: 'Hair Guide SEO', description: 'Hair guide description' },
+  page_key: 'hair-guide', eyebrow: 'LADYSTARS GUIDE', title: 'Dịch vụ chăm sóc tóc phù hợp với bạn', subtitle: 'So sánh rõ ràng trước khi quyết định.', hero_image_alt: 'LADYSTARS guide', editorial_title: 'Các tiêu chí lựa chọn', editorial_intro: 'Thông tin giúp bạn cân nhắc theo nhu cầu thực tế.', editorial_sections: [{ title: 'Xác định nhu cầu', body: 'Bắt đầu từ vùng tóc cần quan tâm.' }, { title: 'Ưu tiên cảm giác', body: 'Cân nhắc độ nhẹ và độ thoáng.' }, { title: 'Chọn kiểu hoàn thiện', body: 'So sánh màu và chất liệu.' }, { title: 'Nhận tư vấn riêng', body: 'Trao đổi kỹ hơn trước khi quyết định.' }], consultation_title: 'Cần thêm một gợi ý phù hợp?', consultation_body: 'Đội ngũ LADYSTARS sẽ hỗ trợ bạn.', consultation_image_alt: 'Consultation', consultation_cta_label: 'Gửi yêu cầu tư vấn', settings: { hero_badge: 'Lựa chọn rõ ràng', trust_items: [{ title: 'Thông tin rõ ràng', description: 'Dữ liệu sản phẩm thực tế.' }, { title: 'Chọn theo nhu cầu', description: 'Theo thói quen sử dụng.' }, { title: 'Tư vấn tận tâm', description: 'Luôn sẵn sàng hỗ trợ.' }], guide_grid_title: 'Lựa chọn được gợi ý', guide_grid_intro: 'Sản phẩm theo đúng thứ tự admin đã chọn.', product_primary_cta_label: 'Xem chi tiết', product_secondary_cta_label: 'Nhận tư vấn', consultation_benefits: ['Gợi ý theo nhu cầu'] }, products: [{ product: product(2, 'Sản phẩm thứ hai', { slug: 'hair-system', name: 'Hair system' }), badge: 'Dùng hằng ngày', note: 'Gọn nhẹ, dễ so sánh.' }, { product: product(1, 'Sản phẩm đầu tiên', { slug: 'toupee', name: 'Toupee' }), badge: 'Tự nhiên', note: 'Phù hợp nhiều phong cách.' }], contact: { support_phone: null }, seo: { title: 'Dịch vụ chăm sóc tóc | LADYSTARS', description: 'Dịch vụ chăm sóc tóc phù hợp với nhu cầu của bạn.' },
 }
 
 async function mockPublicApi(page: Page, payload = guidePayload) {
@@ -19,9 +19,9 @@ test('Hair Guide desktop renders selected product order and consultation safely'
   await mockPublicApi(page)
   let consultationBody: Record<string, unknown> | undefined
   await page.route('**/api/v1/consultation-requests', async (route) => { consultationBody = route.request().postDataJSON() as Record<string, unknown>; await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 1 } }) }) })
-  await page.goto('/huong-dan-chon-toc')
-  await expect(page).toHaveTitle('Hair Guide SEO')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Tìm lựa chọn phù hợp')
+  await page.goto('/dich-vu-cham-soc')
+  await expect(page).toHaveTitle('Dịch vụ chăm sóc tóc | LADYSTARS')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Dịch vụ chăm sóc tóc phù hợp')
   await expect(page.locator('.guide-card-title').evaluateAll((items) => items.map((item) => item.textContent))).resolves.toEqual(['Sản phẩm thứ hai', 'Sản phẩm đầu tiên'])
   await expect(page.getByRole('link', { name: /Xem chi tiết/ }).first()).toHaveAttribute('href', '/san-pham/product-2')
   await page.locator('.guide-card-actions').first().getByRole('button', { name: 'Nhận tư vấn' }).click()
@@ -30,7 +30,7 @@ test('Hair Guide desktop renders selected product order and consultation safely'
   await dialog.getByLabel('Họ và tên').fill('Khách Hair Guide')
   await dialog.getByLabel('Số điện thoại').fill('0900000000')
   await dialog.getByRole('button', { name: 'Gửi yêu cầu tư vấn' }).click()
-  await expect.poll(() => consultationBody).toMatchObject({ product_id: 2, source_page: '/huong-dan-chon-toc' })
+  await expect.poll(() => consultationBody).toMatchObject({ product_id: 2, source_page: '/dich-vu-cham-soc' })
   await expect(dialog).toBeHidden()
   await page.screenshot({ path: '../artifacts/hair-guide-desktop.png', fullPage: true })
 })
@@ -38,10 +38,10 @@ test('Hair Guide desktop renders selected product order and consultation safely'
 test('Hair Guide mobile has no overflow, keyboard dialog and header menu', async ({ page }) => {
   await mockPublicApi(page)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/huong-dan-chon-toc')
+  await page.goto('/dich-vu-cham-soc')
   await page.getByRole('button', { name: 'Mở menu' }).click()
   await page.getByRole('button', { name: 'Sản phẩm & dịch vụ' }).click()
-  await expect(page.getByRole('link', { name: 'Hướng dẫn chọn tóc', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Dịch vụ chăm sóc tóc', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Mở menu' }).click()
   await page.locator('.guide-hero-actions').getByRole('button', { name: 'Nhận tư vấn' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nhận tư vấn phù hợp' })
@@ -54,7 +54,7 @@ test('Hair Guide mobile has no overflow, keyboard dialog and header menu', async
 
 test('Hair Guide shows its public empty state', async ({ page }) => {
   await mockPublicApi(page, { ...guidePayload, products: [] })
-  await page.goto('/huong-dan-chon-toc')
+  await page.goto('/dich-vu-cham-soc')
   await expect(page.getByRole('heading', { name: 'Chưa có sản phẩm phù hợp' })).toBeVisible()
 })
 
@@ -70,8 +70,24 @@ test('Hair Guide admin selector and product picker render without database write
   })
   await page.goto('/admin/catalog-content')
   await page.getByLabel('Trang cần chỉnh').selectOption('hair-guide')
-  await expect(page.getByRole('heading', { name: 'Nội dung Hair Guide' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nội dung Dịch vụ chăm sóc tóc' })).toBeVisible()
   await expect(page.getByText('Danh sách sản phẩm hướng dẫn')).toBeVisible()
   await expect(page.getByText('Sản phẩm thứ hai')).toBeVisible()
   await page.screenshot({ path: '../artifacts/hair-guide-admin.png', fullPage: true })
+})
+
+test('legacy hair guide URL redirects to hair care service', async ({ page }) => {
+  await mockPublicApi(page)
+  await page.goto('/huong-dan-chon-toc')
+  await expect(page).toHaveURL('/dich-vu-cham-soc')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Dịch vụ chăm sóc tóc phù hợp')
+})
+
+test('news guide menu opens its own blank guide page', async ({ page }) => {
+  await mockPublicApi(page)
+  await page.goto('/dich-vu-cham-soc')
+  await page.getByRole('button', { name: 'Tin tức & ưu đãi' }).click()
+  await page.getByRole('link', { name: 'Hướng dẫn', exact: true }).click()
+  await expect(page).toHaveURL('/huong-dan')
+  await expect(page.getByRole('heading', { name: 'Hướng dẫn', level: 1 })).toBeVisible()
 })

@@ -569,6 +569,16 @@ body.guide-dialog-open { overflow: hidden; }
 .news-page-kicker { margin: 0 0 10px; color: var(--color-brand); font-size: 12px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
 .news-page-heading h1 { margin: 0; font-size: clamp(36px, 4.1vw, 52px); font-weight: 760; letter-spacing: -.055em; line-height: 1.08; }
 .news-page-heading > p:last-child, .news-list-heading > p:last-child { margin: 15px 0 0; color: var(--color-text-muted); font-size: 16px; line-height: 1.72; }
+.promotions-page { position: relative; }
+.promotions-page::before { position: absolute; z-index: -1; top: 0; right: 0; left: 0; height: 520px; background: radial-gradient(circle at 82% 6%, rgba(217, 168, 179, .2), transparent 34%), linear-gradient(180deg, rgba(255, 247, 243, .76), transparent); content: ''; pointer-events: none; }
+.promotions-page-heading { max-width: 820px; }
+.promotions-page-heading .news-page-kicker { display: inline-flex; align-items: center; gap: 7px; }
+.promotions-assurance { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; margin-top: 24px; color: var(--color-brand-deep); font-size: 12px; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.promotions-assurance span { display: inline-flex; align-items: center; gap: 7px; }
+.promotions-assurance i { color: var(--color-brand); font-style: normal; }
+.promotions-featured-card .news-featured-image { object-position: center 38%; }
+.promotions-grid .news-card { border-color: rgba(155, 95, 109, .2); }
+.promotions-grid .news-card-body { min-height: 228px; }
 .news-featured-card { position: relative; display: block; min-height: clamp(440px, 43vw, 556px); margin-top: 30px; overflow: hidden; border: 1px solid rgba(92, 53, 64, .13); border-radius: 32px; background: var(--color-brand-pale); box-shadow: var(--shadow-soft); isolation: isolate; transition: transform .24s ease, box-shadow .24s ease; }
 .news-featured-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); }
 .news-featured-image, .news-image-placeholder { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
@@ -690,6 +700,8 @@ body.guide-dialog-open { overflow: hidden; }
 }
 @media (max-width: 640px) {
   .news-page { padding-top: 24px; }
+  .promotions-assurance { gap: 8px; font-size: 10px; }
+  .promotions-assurance i { display: none; }
   .news-page-breadcrumb { margin-bottom: 24px; }
   .news-page-heading h1 { font-size: clamp(34px, 10vw, 42px); }
   .news-featured-card { min-height: 0; aspect-ratio: 1 / 1; margin-top: 24px; border-radius: 28px; }

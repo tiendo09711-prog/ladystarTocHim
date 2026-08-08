@@ -32,7 +32,7 @@ class CatalogContentSeeder extends Seeder
         $guideProducts = Product::query()->where('status', 'active')->whereHas('variants', fn ($query) => $query->where('status', 'active'))->orderBy('id')->limit(6)->pluck('id')->values();
         CatalogPageContent::firstOrCreate(['page_key' => 'hair-guide'], [
             'eyebrow' => 'LADYSTARS GUIDE',
-            'title' => 'Tìm lựa chọn phù hợp với nhu cầu của bạn',
+            'title' => 'Dịch vụ chăm sóc tóc phù hợp với bạn',
             'subtitle' => 'Bắt đầu từ vùng tóc cần quan tâm, cảm giác mong muốn và thói quen sử dụng để so sánh rõ ràng trước khi quyết định.',
             'hero_image_alt' => 'Tư vấn lựa chọn tóc LADYSTARS',
             'editorial_title' => 'Các tiêu chí lựa chọn',
@@ -63,6 +63,6 @@ class CatalogContentSeeder extends Seeder
             ],
             'is_active' => true,
         ]);
-        PageSeo::firstOrCreate(['page_key' => 'hair-guide'], ['title' => 'Hướng dẫn chọn tóc | LADYSTARS', 'description' => 'Tìm lựa chọn tóc phù hợp với nhu cầu và thói quen sử dụng của bạn.']);
+        PageSeo::firstOrCreate(['page_key' => 'hair-guide'], ['title' => 'Dịch vụ chăm sóc tóc | LADYSTARS', 'description' => 'Khám phá dịch vụ chăm sóc tóc phù hợp với nhu cầu và thói quen sử dụng của bạn.']);
     }
 }
