@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, ChevronLeft, ClipboardList, FileSpreadsheet, History, LayoutDashboard, LogOut, Menu, Package, Settings, ShoppingBag, Tags, TicketPercent, Users, Warehouse, X } from 'lucide-react'
+import { BarChart3, Boxes, ChevronLeft, ClipboardList, FileSpreadsheet, History, PanelsTopLeft, LayoutDashboard, LogOut, Menu, Newspaper, Package, Settings, ShoppingBag, Tags, TicketPercent, Users, Warehouse, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../stores/AuthContext'
@@ -8,7 +8,8 @@ const menu = [
   ['Thuộc tính', '/admin/attributes', Boxes], ['Chi nhánh', '/admin/branches', Warehouse], ['Tồn kho', '/admin/inventory', ClipboardList],
   ['Lịch sử kho', '/admin/inventory/transactions', History], ['Đơn hàng', '/admin/orders', ShoppingBag], ['Khách hàng', '/admin/customers', Users],
   ['Đánh giá', '/admin/reviews', BarChart3], ['Mã giảm giá', '/admin/coupons', TicketPercent], ['Import / Export', '/admin/import-export', FileSpreadsheet],
-  ['Barcode', '/admin/barcodes', Boxes], ['Báo cáo', '/admin/reports', BarChart3], ['Cài đặt', '/admin/settings', Settings],
+  ['Barcode', '/admin/barcodes', Boxes], ['Báo cáo', '/admin/reports', BarChart3],
+  ['Nội dung About', '/admin/about', PanelsTopLeft], ['Bản tin', '/admin/news', Newspaper], ['Cài đặt', '/admin/settings', Settings],
 ] as const
 
 export function AdminLayout() {

@@ -24,3 +24,21 @@ export interface Coupon { id: number; code: string; type: 'fixed' | 'percentage'
 export interface InventoryRow { id: number; branch_id: number; product_variant_id: number; quantity_on_hand: number; quantity_reserved: number; quantity_available: number; reorder_level: number; branch: Branch; variant: { id: number; sku: string; product: { id: number; name: string } } }
 export interface InventoryTransaction { id: number; type: string; quantity: number; quantity_before: number; quantity_after: number; note?: string | null; created_at: string; branch: Branch; variant: { sku: string; product: { name: string } } }
 export interface StoreSettings { id: number; store_name: string; support_phone?: string | null; support_email?: string | null; store_address?: string | null; currency: 'VND'; shipping_fee: number; free_shipping_from: number; low_stock_threshold: number; order_prefix: string }
+
+export interface AboutSectionItem { icon?: string; title?: string; description?: string; quote?: string; name?: string; role?: string; rating?: number; label?: string }
+export interface AboutSectionSettings {
+  secondary_cta_label?: string; secondary_cta_url?: string; image_badge?: string; quote?: string; layout?: 'image-left' | 'image-right'
+  caption_title?: string; caption_subtitle?: string; trust_items?: string[]; pills?: string[]
+  floating_card?: { title?: string; subtitle?: string }; items?: AboutSectionItem[]; steps?: AboutSectionItem[]
+}
+export type AboutSectionType = 'hero' | 'rich_text_image' | 'timeline' | 'showcase' | 'cards' | 'goals' | 'testimonials' | 'cta'
+export interface AboutSection {
+  id?: number; section_key: string; section_type: AboutSectionType; eyebrow?: string | null; title?: string | null; subtitle?: string | null; body?: string | null
+  image_path?: string | null; image_alt?: string | null; secondary_image_path?: string | null; secondary_image_alt?: string | null
+  cta_label?: string | null; cta_url?: string | null; settings?: AboutSectionSettings; sort_order: number; is_active?: boolean
+}
+export interface PageSeo { page_key?: string; title: string; description?: string | null; og_image_path?: string | null }
+export interface AboutPageData { sections: AboutSection[]; seo: PageSeo }
+export type NewsStatus = 'draft' | 'published' | 'archived'
+export interface NewsArticleSummary { id: number; title: string; slug: string; excerpt?: string | null; cover_image_path?: string | null; cover_image_alt?: string | null; category?: string | null; published_at?: string | null }
+export interface NewsArticle extends NewsArticleSummary { content?: string | null; status: NewsStatus; seo_title?: string | null; seo_description?: string | null; sort_order: number; created_at?: string; author?: { id: number; name: string } | null }
