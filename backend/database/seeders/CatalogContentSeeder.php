@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\CatalogPageContent;
 use App\Models\PageSeo;
+use App\Models\Product;
 use Illuminate\Database\Seeder;
 
 class CatalogContentSeeder extends Seeder
@@ -27,5 +28,41 @@ class CatalogContentSeeder extends Seeder
             'is_active' => true,
         ]);
         PageSeo::firstOrCreate(['page_key' => 'products'], ['title' => 'Sản phẩm LADYSTARS', 'description' => 'Khám phá các sản phẩm tóc và giải pháp chăm sóc từ LADYSTARS.']);
+
+        $guideProducts = Product::query()->where('status', 'active')->whereHas('variants', fn ($query) => $query->where('status', 'active'))->orderBy('id')->limit(6)->pluck('id')->values();
+        CatalogPageContent::firstOrCreate(['page_key' => 'hair-guide'], [
+            'eyebrow' => 'LADYSTARS GUIDE',
+            'title' => 'Tìm lựa chọn phù hợp với nhu cầu của bạn',
+            'subtitle' => 'Bắt đầu từ vùng tóc cần quan tâm, cảm giác mong muốn và thói quen sử dụng để so sánh rõ ràng trước khi quyết định.',
+            'hero_image_alt' => 'Tư vấn lựa chọn tóc LADYSTARS',
+            'editorial_title' => 'Các tiêu chí lựa chọn',
+            'editorial_intro' => 'Mỗi lựa chọn được trình bày rõ ràng để bạn dễ cân nhắc theo nhu cầu thực tế.',
+            'editorial_sections_json' => [
+                ['title' => 'Xác định nhu cầu', 'body' => 'Bắt đầu từ vùng tóc cần quan tâm và mức độ che phủ bạn mong muốn.'],
+                ['title' => 'Ưu tiên cảm giác', 'body' => 'Cân nhắc độ nhẹ, độ thoáng và thời gian sử dụng phù hợp với sinh hoạt hằng ngày.'],
+                ['title' => 'Chọn kiểu hoàn thiện', 'body' => 'So sánh màu tóc, chất liệu và kiểu tạo hình để tìm phong cách hài hòa.'],
+                ['title' => 'Nhận tư vấn riêng', 'body' => 'Đội ngũ LADYSTARS có thể hỗ trợ bạn đối chiếu các lựa chọn trước khi quyết định.'],
+            ],
+            'consultation_title' => 'Cần thêm một gợi ý phù hợp?',
+            'consultation_body' => 'Để lại thông tin, đội ngũ LADYSTARS sẽ hỗ trợ bạn tìm lựa chọn phù hợp với nhu cầu.',
+            'consultation_image_alt' => 'Không gian tư vấn LADYSTARS',
+            'consultation_cta_label' => 'Gửi yêu cầu tư vấn',
+            'settings_json' => [
+                'hero_badge' => 'Lựa chọn rõ ràng, tự tin hơn',
+                'trust_items' => [
+                    ['title' => 'Thông tin rõ ràng', 'description' => 'So sánh dựa trên dữ liệu sản phẩm thực tế.'],
+                    ['title' => 'Chọn theo nhu cầu', 'description' => 'Gợi ý theo thói quen và cảm giác mong muốn.'],
+                    ['title' => 'Tư vấn tận tâm', 'description' => 'Hỗ trợ khi bạn cần trao đổi kỹ hơn.'],
+                ],
+                'guide_grid_title' => 'Lựa chọn được gợi ý',
+                'guide_grid_intro' => 'Khám phá các sản phẩm được trình bày để bạn thuận tiện so sánh.',
+                'guide_products' => $guideProducts->map(fn (int $id, int $index) => ['product_id' => $id, 'badge' => $index === 0 ? 'Phù hợp sử dụng hằng ngày' : null, 'note' => null])->all(),
+                'product_primary_cta_label' => 'Xem chi tiết',
+                'product_secondary_cta_label' => 'Nhận tư vấn',
+                'consultation_benefits' => ['Gợi ý theo nhu cầu', 'Thông tin sản phẩm minh bạch'],
+            ],
+            'is_active' => true,
+        ]);
+        PageSeo::firstOrCreate(['page_key' => 'hair-guide'], ['title' => 'Hướng dẫn chọn tóc | LADYSTARS', 'description' => 'Tìm lựa chọn tóc phù hợp với nhu cầu và thói quen sử dụng của bạn.']);
     }
 }

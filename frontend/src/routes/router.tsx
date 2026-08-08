@@ -39,6 +39,7 @@ const CatalogContentAdminPage = lazy(() => import('../pages/admin/CatalogContent
 const ConsultationRequestsAdminPage = lazy(() => import('../pages/admin/ConsultationRequestsAdminPage').then((module) => ({ default: module.ConsultationRequestsAdminPage })))
 const NewsAdminPage = lazy(() => import('../pages/admin/NewsAdminPage').then((module) => ({ default: module.NewsAdminPage })))
 const NewsFormPage = lazy(() => import('../pages/admin/NewsFormPage').then((module) => ({ default: module.NewsFormPage })))
+const HairGuidePage = lazy(() => import('../pages/store/HairGuidePage').then((module) => ({ default: module.HairGuidePage })))
 
 const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p-8 text-center">Đang tải màn hình...</div>}>{page}</Suspense>
 
@@ -65,7 +66,7 @@ export const router = createBrowserRouter([
     { path: 'danh-muc/:slug', element: <ProductsPage /> }, { path: 'tim-kiem', element: <ProductsPage /> }, { path: 'gio-hang', element: <CartPage /> },
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },
-    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'huong-dan-chon-toc', element: <ContentPage page="huong-dan-chon-toc" /> },
+    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'huong-dan-chon-toc', element: lazyPage(<HairGuidePage />) },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { element: <UserProtectedRoute />, children: [{ path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },

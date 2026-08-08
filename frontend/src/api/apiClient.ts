@@ -47,7 +47,8 @@ apiClient.interceptors.response.use(
       if (token) request.headers.set('X-XSRF-TOKEN', token)
       return apiClient.request(request)
     }
-    if (error.response?.status === 401) window.dispatchEvent(new Event('auth:unauthorized'))
+    const isAuthProbe = request?.url?.endsWith('/auth/me') || request?.url?.endsWith('/admin/auth/me')
+    if (error.response?.status === 401 && !isAuthProbe) window.dispatchEvent(new Event('auth:unauthorized'))
     return Promise.reject(error)
   },
 )

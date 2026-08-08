@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function () {
     Route::get('attributes', [CatalogController::class, 'attributes']);
     Route::get('catalog/content', [CatalogContentController::class, 'products']);
     Route::get('catalog/content/category/{slug}', [CatalogContentController::class, 'category']);
+    Route::get('hair-guide', [CatalogContentController::class, 'hairGuide']);
     Route::get('catalog/filters', [CatalogController::class, 'filters']);
     Route::post('consultation-requests', [ConsultationRequestController::class, 'store'])->middleware('throttle:10,1');
     Route::get('products/featured', [ProductController::class, 'featured']);

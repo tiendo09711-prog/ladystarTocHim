@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\CatalogPageContentRequest;
 use App\Models\CatalogPageContent;
 use App\Models\Category;
 use App\Models\PageSeo;
+use App\Models\Product;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,21 @@ class CatalogContentManagementController extends Controller
 
     public function index()
     {
-        return $this->success(['contents' => CatalogPageContent::with('category')->orderBy('page_key')->get(), 'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug'])]);
+        return $this->success([
+            'contents' => CatalogPageContent::with('category')->orderBy('page_key')->get(),
+            'categories' => Category::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'slug']),
+            'products' => Product::with(['category:id,name', 'images' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('sort_order')])
+                ->orderBy('name')
+                ->get(['id', 'name', 'base_sku', 'category_id', 'status'])
+                ->map(fn (Product $product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'base_sku' => $product->base_sku,
+                    'category' => $product->category?->only(['id', 'name']),
+                    'status' => $product->status,
+                    'image_path' => $this->assetUrl($product->images->first()?->image_path),
+                ]),
+        ]);
     }
 
     public function show(string $pageKey)
@@ -70,7 +85,7 @@ class CatalogContentManagementController extends Controller
     private function contentFor(string $pageKey): array
     {
         $category = null;
-        if ($pageKey !== 'products') {
+        if (! in_array($pageKey, ['products', 'hair-guide'], true)) {
             abort_unless(preg_match('/^category-(\d+)$/', $pageKey, $matches) === 1, 404);
             $category = Category::findOrFail((int) $matches[1]);
         }
@@ -85,5 +100,11 @@ class CatalogContentManagementController extends Controller
     private function deleteLocalAsset(?string $path): void
     {
         if ($path && ! str_starts_with($path, '/') && ! str_starts_with($path, 'http')) Storage::disk('public')->delete($path);
+    }
+
+    private function assetUrl(?string $path): ?string
+    {
+        if (! $path) return null;
+        return str_starts_with($path, '/') || str_starts_with($path, 'http') ? $path : Storage::disk('public')->url($path);
     }
 }
