@@ -53,6 +53,14 @@ class ProductResource extends JsonResource
                     'value' => $value->display_value,
                 ]) : [],
             ])),
+            'price_min' => $this->whenLoaded('variants', fn () => (float) ($this->variants->min(fn ($variant) => $variant->currentPrice()) ?? 0)),
+            'price_max' => $this->whenLoaded('variants', fn () => (float) ($this->variants->max(fn ($variant) => $variant->currentPrice()) ?? 0)),
+            'available_stock' => $this->whenLoaded('variants', fn () => (int) $this->variants->sum(fn ($variant) => $variant->availableStock())),
+            'best_listing_variant' => $this->whenLoaded('variants', function () {
+                $variants = $this->variants->sortBy(fn ($variant) => [$variant->availableStock() > 0 ? 0 : 1, $variant->currentPrice()]);
+                $variant = $variants->first();
+                return $variant ? ['id' => $variant->id, 'current_price' => $variant->currentPrice(), 'stock' => $variant->availableStock()] : null;
+            }),
             'rating_average' => round((float) ($this->reviews_avg_rating ?? 0), 1),
             'reviews_count' => (int) ($this->reviews_count ?? 0),
             'created_at' => $this->created_at,

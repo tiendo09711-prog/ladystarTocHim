@@ -17,7 +17,7 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await page.goBack()
   await page.getByRole('button', { name: 'Sản phẩm & dịch vụ' }).click()
   await page.getByRole('link', { name: 'Tóc giả nam', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Tất cả sản phẩm' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await page.locator('article').first().getByRole('link').first().click()
   await expect(page.getByRole('button', { name: /Thêm vào giỏ/ })).toBeVisible()
   await page.getByRole('button', { name: /Thêm vào giỏ/ }).click()

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { apiClient, csrfCookie } from '../api/apiClient'
 import type { ApiResponse, User } from '../types'
 
@@ -18,22 +18,24 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const authRevision = useRef(0)
 
   const refresh = useCallback(async () => {
+    const revision = ++authRevision.current
     try {
       await csrfCookie()
       const response = await apiClient.get<ApiResponse<User>>('/auth/me')
-      setUser(response.data.data)
+      if (revision === authRevision.current) setUser(response.data.data)
     } catch {
-      setUser(null)
+      if (revision === authRevision.current) setUser(null)
     } finally {
-      setLoading(false)
+      if (revision === authRevision.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void refresh()
-    const unauthorized = () => setUser(null)
+    const unauthorized = () => { authRevision.current += 1; setUser(null) }
     window.addEventListener('auth:unauthorized', unauthorized)
     return () => window.removeEventListener('auth:unauthorized', unauthorized)
   }, [refresh])
@@ -41,20 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (payload: Credentials, admin = false) => {
     await csrfCookie()
     const response = await apiClient.post<ApiResponse<User>>(admin ? '/admin/auth/login' : '/auth/login', payload)
+    authRevision.current += 1
     setUser(response.data.data)
+    setLoading(false)
     return response.data.data
   }
 
   const register = async (payload: RegisterPayload) => {
     await csrfCookie()
     const response = await apiClient.post<ApiResponse<User>>('/auth/register', payload)
+    authRevision.current += 1
     setUser(response.data.data)
+    setLoading(false)
     return response.data.data
   }
 
   const logout = async () => {
     await csrfCookie()
     await apiClient.post(user?.role === 'admin' ? '/admin/auth/logout' : '/auth/logout')
+    authRevision.current += 1
     setUser(null)
   }
 

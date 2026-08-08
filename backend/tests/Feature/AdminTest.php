@@ -75,6 +75,11 @@ class AdminTest extends TestCase
         $image = Product::findOrFail($productId)->images()->firstOrFail();
         Storage::disk('public')->assertExists($image->image_path);
         $this->actingAs($admin)->patchJson('/api/v1/admin/products/'.$productId.'/images/'.$image->id.'/primary')->assertOk()->assertJsonPath('data.is_primary', true);
+        $this->actingAs($admin)->patchJson('/api/v1/admin/products/'.$productId.'/images/'.$image->id, ['alt_text' => 'Ảnh toupee phía trước'])->assertOk()->assertJsonPath('data.alt_text', 'Ảnh toupee phía trước');
+        $this->actingAs($admin)->post('/api/v1/admin/products/'.$productId.'/images', ['images' => [UploadedFile::fake()->image('toupee-2.webp', 600, 600)]], ['Accept' => 'application/json'])->assertCreated();
+        $order = Product::findOrFail($productId)->images()->orderByDesc('id')->pluck('id')->all();
+        $this->actingAs($admin)->patchJson('/api/v1/admin/products/'.$productId.'/images/reorder', ['order' => $order])->assertOk();
+        $this->assertSame($order, Product::findOrFail($productId)->images()->orderBy('sort_order')->pluck('id')->all());
     }
 
     public function test_admin_can_manage_auxiliary_modules_and_persistent_settings(): void

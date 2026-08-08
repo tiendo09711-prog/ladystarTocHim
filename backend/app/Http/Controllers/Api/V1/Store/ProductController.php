@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Models\Attribute;
 use App\Support\ApiResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -92,10 +93,11 @@ class ProductController extends Controller
                     ->when($request->filled('max_price'), fn ($x) => $x->whereRaw('COALESCE(sale_price, price) <= ?', [$request->input('max_price')]));
             });
         }
-        foreach (['color', 'length', 'density', 'base_size'] as $code) {
-            if ($request->filled($code)) {
-                $query->whereHas('variants.attributeValues', fn ($q) => $q->where('value', $request->input($code))->whereHas('attribute', fn ($a) => $a->where('code', $code)));
-            }
+        $codes = Attribute::where('is_active', true)->where('is_filterable', true)->pluck('code');
+        foreach ($codes as $code) {
+            $values = array_values(array_filter((array) $request->input($code, [])));
+            if (! $values) continue;
+            $query->whereHas('variants.attributeValues', fn ($valuesQuery) => $valuesQuery->whereIn('value', $values)->whereHas('attribute', fn ($attributeQuery) => $attributeQuery->where('code', $code)));
         }
     }
 
