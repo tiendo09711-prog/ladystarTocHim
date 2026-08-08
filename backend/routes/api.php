@@ -5,11 +5,15 @@ use App\Http\Controllers\Api\V1\Account\CartController;
 use App\Http\Controllers\Api\V1\Account\CheckoutController;
 use App\Http\Controllers\Api\V1\Account\OrderController;
 use App\Http\Controllers\Api\V1\Admin\CatalogManagementController;
+use App\Http\Controllers\Api\V1\Admin\AboutManagementController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\NewsManagementController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\Admin\ProductManagementController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Store\AboutController;
 use App\Http\Controllers\Api\V1\Store\CatalogController;
+use App\Http\Controllers\Api\V1\Store\NewsController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +38,11 @@ Route::prefix('v1')->group(function () {
     Route::get('products/sale', [ProductController::class, 'sale']);
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/{slug}', [ProductController::class, 'show']);
+
+    Route::get('about', [AboutController::class, 'index']);
+    Route::get('seo/{pageKey}', [AboutController::class, 'seo']);
+    Route::get('news', [NewsController::class, 'index']);
+    Route::get('news/{slug}', [NewsController::class, 'show']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
@@ -134,6 +143,26 @@ Route::prefix('v1')->group(function () {
             Route::post('barcodes/{variant}/generate', [OperationsController::class, 'generateBarcode']);
             Route::get('settings', [OperationsController::class, 'settings']);
             Route::put('settings', [OperationsController::class, 'updateSettings']);
+
+            Route::get('about/sections', [AboutManagementController::class, 'index']);
+            Route::post('about/sections', [AboutManagementController::class, 'store']);
+            Route::patch('about/reorder', [AboutManagementController::class, 'reorder']);
+            Route::get('about/sections/{section}', [AboutManagementController::class, 'show']);
+            Route::put('about/sections/{section}', [AboutManagementController::class, 'update']);
+            Route::patch('about/sections/{section}/status', [AboutManagementController::class, 'status']);
+            Route::post('about/sections/{section}/image', [AboutManagementController::class, 'uploadImage']);
+            Route::delete('about/sections/{section}/image', [AboutManagementController::class, 'deleteImage']);
+            Route::get('about/seos', [AboutManagementController::class, 'seos']);
+            Route::put('about/seos/{pageKey}', [AboutManagementController::class, 'updateSeo']);
+
+            Route::get('news', [NewsManagementController::class, 'index']);
+            Route::post('news', [NewsManagementController::class, 'store']);
+            Route::get('news/{article}', [NewsManagementController::class, 'show']);
+            Route::put('news/{article}', [NewsManagementController::class, 'update']);
+            Route::delete('news/{article}', [NewsManagementController::class, 'destroy']);
+            Route::patch('news/{article}/status', [NewsManagementController::class, 'status']);
+            Route::post('news/{article}/cover-image', [NewsManagementController::class, 'uploadCover']);
+            Route::delete('news/{article}/cover-image', [NewsManagementController::class, 'deleteCover']);
         });
     });
 });

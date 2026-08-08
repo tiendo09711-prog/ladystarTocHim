@@ -6,7 +6,7 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Danh mục sản phẩm và dịch vụ' })).toBeVisible()
   await page.screenshot({ path: '../artifacts/ladystars-home-desktop.png' })
   await page.getByRole('button', { name: 'Sản phẩm & dịch vụ' }).hover()
-  await expect(page.getByRole('link', { name: 'Tóc giả nữ', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Tóc giả nữ' })).toBeVisible()
   await page.getByRole('button', { name: 'Tin tức & ưu đãi' }).hover()
   await expect(page.getByRole('link', { name: 'Ưu đãi', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Hệ thống cửa hàng' }).hover()

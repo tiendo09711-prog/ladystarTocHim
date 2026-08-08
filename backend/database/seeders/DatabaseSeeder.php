@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Inventory;
+use App\Models\NewsArticle;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
@@ -88,5 +89,17 @@ class DatabaseSeeder extends Seeder
         }
 
         $user->addresses()->updateOrCreate(['address_line' => '10 Nguyễn Huệ'], ['recipient_name' => $user->name, 'phone' => $user->phone, 'province' => 'TP. Hồ Chí Minh', 'district' => 'Quận 1', 'ward' => 'Bến Nghé', 'is_default' => true]);
+
+        NewsArticle::updateOrCreate(['slug' => 'chao-mung-den-voi-ladystars'], [
+            'title' => 'Chào mừng đến với bản tin LADYSTARS',
+            'excerpt' => 'Nơi LADYSTARS chia sẻ cẩm nang chăm sóc, câu chuyện thương hiệu và những cập nhật mới nhất.',
+            'content' => "Bản tin LADYSTARS là nơi chúng tôi chia sẻ những kiến thức hữu ích về lựa chọn, sử dụng và chăm sóc tóc.\n\nHãy quay lại thường xuyên để không bỏ lỡ nội dung mới.",
+            'category' => 'Cẩm nang',
+            'author_id' => $admin->id,
+            'status' => 'draft',
+            'sort_order' => 0,
+        ]);
+
+        $this->call(AboutContentSeeder::class);
     }
 }
