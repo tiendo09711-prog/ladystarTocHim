@@ -18,6 +18,8 @@ class ConsultationRequestStoreRequest extends FormRequest
             'phone' => ['required', 'string', 'min:8', 'max:30'],
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'service_name' => ['nullable', 'string', 'max:190'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             'source_page' => ['required', 'string', 'max:120'],
             'message' => ['nullable', 'string', 'max:2000'],
         ];

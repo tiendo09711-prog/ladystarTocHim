@@ -31,7 +31,8 @@ test('hệ thống cửa hàng là liên kết đơn đến trang trống', asyn
 
   for (const location of ['ha-noi', 'ho-chi-minh']) {
     await page.goto(`/lien-he?location=${location}`)
-    await expect(page).toHaveURL('/he-thong-cua-hang')
+    await expect(page).toHaveURL(`/lien-he?location=${location}`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Mỗi lựa chọn đẹp bắt đầu từ một cuộc trò chuyện' })).toBeVisible()
   }
 })
 
@@ -39,6 +40,8 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Danh mục sản phẩm và dịch vụ' })).toBeVisible()
+  await expect(page.locator('.store-header-main .store-booking-link')).toBeVisible()
+  expect(await page.locator('.store-navigation a').evaluateAll((links) => links.filter((link) => link.getAttribute('href') === '/lien-he').length)).toBe(1)
   await page.screenshot({ path: '../artifacts/ladystars-home-desktop.png' })
   await page.getByRole('button', { name: 'Sản phẩm & dịch vụ' }).hover()
   await expect(page.getByRole('link', { name: 'Tóc giả nữ' })).toBeVisible()

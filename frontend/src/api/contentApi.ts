@@ -1,8 +1,20 @@
 import { apiClient, csrfCookie } from './apiClient'
-import type { AboutPageData, ApiResponse, CatalogContent, NewsArticle, NewsArticleSummary, NewsPageAdminData, NewsPageData, Pagination, StorePageAdminData, StorePageData } from '../types'
+import type { AboutPageData, ApiResponse, CatalogContent, ContactPageAdminData, ContactPageData, HomePageContent, NewsArticle, NewsArticleSummary, NewsPageAdminData, NewsPageData, Pagination, StorePageAdminData, StorePageData } from '../types'
 
 export async function getAboutPage() {
   return (await apiClient.get<ApiResponse<AboutPageData>>('/about')).data.data
+}
+
+export async function getHomePageContent() {
+  return (await apiClient.get<ApiResponse<HomePageContent>>('/home-page')).data.data
+}
+
+export async function getAdminHomePageContent() {
+  return (await apiClient.get<ApiResponse<HomePageContent>>('/admin/home-page')).data.data
+}
+
+export async function updateHomePageContent(payload: Pick<HomePageContent, 'announcement_messages' | 'announcement_interval_seconds' | 'announcement_enabled'>) {
+  return (await apiClient.put<ApiResponse<HomePageContent>>('/admin/home-page', payload)).data.data
 }
 
 export async function getNewsArticles(params?: Record<string, string | number | undefined>) {
@@ -92,7 +104,7 @@ export async function getCategoryCatalogContent(slug: string) {
   return (await apiClient.get<ApiResponse<CatalogContent>>(`/catalog/content/category/${slug}`)).data.data
 }
 
-export async function submitConsultation(payload: { name: string; phone: string; source_page: string; message?: string; category_id?: number }) {
+export async function submitConsultation(payload: { name: string; phone: string; source_page: string; message?: string; category_id?: number; product_id?: number; service_name?: string; branch_id?: number }) {
   await csrfCookie()
   return (await apiClient.post<ApiResponse<{ id: number }>>('/consultation-requests', payload)).data.data
 }
@@ -107,4 +119,16 @@ export async function getAdminStorePage() {
 
 export async function updateStorePage(payload: Record<string, unknown>) {
   return (await apiClient.put<ApiResponse<StorePageAdminData>>('/admin/store-page', payload)).data.data
+}
+
+export async function getContactPage() {
+  return (await apiClient.get<ApiResponse<ContactPageData>>('/contact-page')).data.data
+}
+
+export async function getAdminContactPage() {
+  return (await apiClient.get<ApiResponse<ContactPageAdminData>>('/admin/contact-page')).data.data
+}
+
+export async function updateContactPage(payload: Record<string, unknown>) {
+  return (await apiClient.put<ApiResponse<ContactPageAdminData>>('/admin/contact-page', payload)).data.data
 }

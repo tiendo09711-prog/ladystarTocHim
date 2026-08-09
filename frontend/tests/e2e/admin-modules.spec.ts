@@ -8,6 +8,45 @@ async function loginAdmin(page: import('@playwright/test').Page) {
   await expect(page).toHaveURL(/admin\/dashboard/)
 }
 
+test('layout admin hiển thị đầy đủ tiếng Việt', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await loginAdmin(page)
+  const sidebarText = await page.locator('aside nav').innerText()
+  const labels = [
+    'Sản phẩm',
+    'Danh mục',
+    'Thuộc tính',
+    'Chi nhánh',
+    'Tồn kho',
+    'Lịch sử kho',
+    'Đơn hàng',
+    'Khách hàng',
+    'Đánh giá',
+    'Mã giảm giá',
+    'Báo cáo',
+    'Nội dung About',
+    'Bản tin',
+    'Cài đặt',
+  ]
+
+  for (const label of labels) expect(sidebarText).toContain(label)
+  await expect(page.getByText('Khu vực quản trị')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible()
+  expect(sidebarText).not.toMatch(/[\u0080-\u009f\u00ba\u00bb\ufffd]|Ã.|Ä.|Æ./u)
+
+  const dashboardLink = page.getByRole('link', { name: 'Dashboard', exact: true })
+  await expect(dashboardLink).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(dashboardLink).toHaveCSS('color', 'rgb(75, 46, 31)')
+
+  await page.getByRole('link', { name: 'Sản phẩm', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toHaveCSS('color', 'rgb(75, 46, 31)')
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('button', { name: 'Mở menu quản trị' }).click()
+  await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Đóng menu', exact: true })).toBeVisible()
+})
+
 test('admin quản lý thuộc tính, coupon và cấu hình', async ({ page }) => {
   await loginAdmin(page)
   const suffix = Date.now().toString().slice(-7)

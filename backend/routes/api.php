@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Account\CheckoutController;
 use App\Http\Controllers\Api\V1\Account\OrderController;
 use App\Http\Controllers\Api\V1\Admin\CatalogManagementController;
 use App\Http\Controllers\Api\V1\Admin\CatalogContentManagementController;
+use App\Http\Controllers\Api\V1\Admin\ContactPageManagementController;
 use App\Http\Controllers\Api\V1\Admin\ConsultationManagementController;
 use App\Http\Controllers\Api\V1\Admin\AboutManagementController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
@@ -17,12 +18,15 @@ use App\Http\Controllers\Api\V1\Store\AboutController;
 use App\Http\Controllers\Api\V1\Store\CatalogController;
 use App\Http\Controllers\Api\V1\Store\CatalogContentController;
 use App\Http\Controllers\Api\V1\Store\ConsultationRequestController;
+use App\Http\Controllers\Api\V1\Store\ContactPageController;
 use App\Http\Controllers\Api\V1\Store\NewsController;
 use App\Http\Controllers\Api\V1\Store\NewsPageController;
 use App\Http\Controllers\Api\V1\Store\GuideController;
 use App\Http\Controllers\Api\V1\Store\GuidePageController;
+use App\Http\Controllers\Api\V1\Store\HomePageController;
 use App\Http\Controllers\Api\V1\Admin\NewsPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\GuidePageContentManagementController;
+use App\Http\Controllers\Api\V1\Admin\HomePageManagementController;
 use App\Http\Controllers\Api\V1\Store\PromotionPageController;
 use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\StorePageManagementController;
@@ -65,7 +69,9 @@ Route::prefix('v1')->group(function () {
     Route::get('guides-page', [GuidePageController::class, 'index']);
     Route::get('guides/{slug}', [GuideController::class, 'show']);
     Route::get('promotions-page', [PromotionPageController::class, 'index']);
+    Route::get('home-page', [HomePageController::class, 'show']);
     Route::get('store-page', [StorePageController::class, 'index']);
+    Route::get('contact-page', [ContactPageController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
@@ -176,6 +182,9 @@ Route::prefix('v1')->group(function () {
             Route::get('settings', [OperationsController::class, 'settings']);
             Route::put('settings', [OperationsController::class, 'updateSettings']);
 
+            Route::get('home-page', [HomePageManagementController::class, 'show']);
+            Route::put('home-page', [HomePageManagementController::class, 'update']);
+
             Route::get('store-page', [StorePageManagementController::class, 'index']);
             Route::put('store-page', [StorePageManagementController::class, 'update']);
             Route::post('store-page/images/{slot}', [StorePageManagementController::class, 'uploadImage']);
@@ -189,6 +198,11 @@ Route::prefix('v1')->group(function () {
             Route::delete('store-page/items/{item}/image', [StorePageManagementController::class, 'deleteItemImage']);
             Route::post('store-page/branches/{branch}/image', [StorePageManagementController::class, 'uploadBranchImage']);
             Route::delete('store-page/branches/{branch}/image', [StorePageManagementController::class, 'deleteBranchImage']);
+
+            Route::get('contact-page', [ContactPageManagementController::class, 'show']);
+            Route::put('contact-page', [ContactPageManagementController::class, 'update']);
+            Route::post('contact-page/images/{slot}', [ContactPageManagementController::class, 'uploadImage']);
+            Route::delete('contact-page/images/{slot}', [ContactPageManagementController::class, 'deleteImage']);
 
             Route::get('about/sections', [AboutManagementController::class, 'index']);
             Route::post('about/sections', [AboutManagementController::class, 'store']);

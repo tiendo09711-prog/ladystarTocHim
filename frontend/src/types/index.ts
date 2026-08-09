@@ -75,3 +75,29 @@ export interface StorePageItem {
 export interface StoreLocation extends Branch { full_address?: string | null }
 export interface StorePageData { content: StorePageContent | null; steps: StorePageItem[]; policies: StorePageItem[]; branches: StoreLocation[]; seo?: NewsPageSeo | null }
 export interface StorePageAdminData { content: StorePageContent; items: StorePageItem[]; seo?: NewsPageSeo | null }
+export interface ContactCommitment { icon?: string | null; title: string; description?: string | null }
+export interface ContactPageSettings {
+  hero_primary_label?: string | null; hero_primary_url?: string | null; hero_secondary_label?: string | null; hero_secondary_url?: string | null
+  hotline_label?: string | null; email_label?: string | null; hours_label?: string | null; hours_value?: string | null
+  branch_call_label?: string | null; branch_directions_label?: string | null; form_name_label?: string | null; form_phone_label?: string | null
+  form_service_label?: string | null; form_branch_label?: string | null; form_message_label?: string | null; form_submit_label?: string | null
+  form_success_message?: string | null; privacy_note?: string | null; services?: string[]; commitments?: ContactCommitment[]; guide_points?: string[]
+}
+export interface ContactPageContent {
+  id?: number; page_key?: string; hero_eyebrow?: string | null; hero_title?: string | null; hero_description?: string | null; hero_image_path?: string | null; hero_image_alt?: string | null
+  contact_eyebrow?: string | null; contact_title?: string | null; contact_description?: string | null; commitments_eyebrow?: string | null; commitments_title?: string | null
+  commitments_description?: string | null; guide_eyebrow?: string | null; guide_title?: string | null; guide_description?: string | null; guide_image_path?: string | null
+  guide_image_alt?: string | null; guide_quote?: string | null; branches_eyebrow?: string | null; branches_title?: string | null; branches_description?: string | null
+  form_eyebrow?: string | null; form_title?: string | null; form_description?: string | null; settings?: ContactPageSettings
+}
+export interface ContactPageBranch { id: number; name: string; phone?: string | null; email?: string | null; full_address?: string | null; opening_hours?: string | null; map_url?: string | null }
+export interface ContactPageStore { store_name: string; support_phone?: string | null; support_email?: string | null; store_address?: string | null }
+export interface ContactPageData { content: ContactPageContent | null; store: ContactPageStore | null; branches: ContactPageBranch[]; seo?: NewsPageSeo | null }
+export interface ContactPageAdminData { content: ContactPageContent; seo?: NewsPageSeo | null }
+export interface HomePageContent {
+  id?: number
+  page_key?: string
+  announcement_messages: string[]
+  announcement_interval_seconds: number
+  announcement_enabled: boolean
+}
