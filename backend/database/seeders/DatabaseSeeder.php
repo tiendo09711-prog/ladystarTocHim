@@ -21,13 +21,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::updateOrCreate(['email' => 'admin@namhair.local'], ['name' => 'Quản trị Nam Hair', 'phone' => '0900000001', 'password' => 'Admin@123456', 'role' => 'admin', 'status' => 'active']);
+        $admin = User::updateOrCreate(['email' => 'admin@namhair.local'], ['name' => 'Quản trị LADYSTARS', 'phone' => '0900000001', 'password' => 'Admin@123456', 'role' => 'admin', 'status' => 'active']);
         $user = User::updateOrCreate(['email' => 'user@namhair.local'], ['name' => 'Khách hàng mẫu', 'phone' => '0900000002', 'password' => 'User@123456', 'role' => 'user', 'status' => 'active']);
-        $branch = Branch::updateOrCreate(['code' => 'MAIN'], ['name' => 'Nam Hair - Chi nhánh trung tâm', 'phone' => '02873008899', 'province' => 'TP. Hồ Chí Minh', 'district' => 'Quận 3', 'ward' => 'Phường 6', 'address_line' => '123 Đường Mẫu', 'is_default' => true, 'is_active' => true]);
+        $branch = Branch::updateOrCreate(['code' => 'MAIN'], ['name' => 'LADYSTARS - Chi nhánh trung tâm', 'phone' => '02873008899', 'province' => 'TP. Hồ Chí Minh', 'district' => 'Quận 3', 'ward' => 'Phường 6', 'address_line' => '123 Đường Mẫu', 'is_default' => true, 'is_active' => true]);
 
         $categoryNames = ['Tóc giả nam nguyên đầu', 'Tóc giả nam bán phần', 'Tóc dán nam', 'Toupee nam', 'Hair system nam', 'Tóc mái nam', 'Tóc kẹp nam', 'Tóc giả nam tóc thật', 'Tóc giả nam sợi tổng hợp', 'Phụ kiện tóc giả', 'Keo dán tóc', 'Dung dịch vệ sinh', 'Lược và dụng cụ chăm sóc'];
-        $categories = collect($categoryNames)->map(fn ($name, $index) => Category::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Danh mục {$name} tại Nam Hair", 'is_active' => true, 'sort_order' => $index + 1]));
-        $brands = collect(['Nam Hair Select', 'Urban Crown', 'Gentleman System'])->map(fn ($name) => Brand::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Thương hiệu {$name}", 'is_active' => true]));
+        $categories = collect($categoryNames)->map(fn ($name, $index) => Category::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Danh mục {$name} tại LADYSTARS", 'is_active' => true, 'sort_order' => $index + 1]));
+        $brands = collect(['LADYSTARS Select', 'Urban Crown', 'Gentleman System'])->map(fn ($name) => Brand::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Thương hiệu {$name}", 'is_active' => true]));
 
         $attributeData = [
             'color' => ['Màu tóc', ['Đen tự nhiên', 'Đen nâu', 'Nâu đậm', 'Muối tiêu']],

@@ -2,11 +2,11 @@ import { CheckCircle2 } from 'lucide-react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 
 const content: Record<string, { title: string; intro: string; points: string[] }> = {
-  'gioi-thieu': { title: 'Giới thiệu Nam Hair', intro: 'Nam Hair hướng đến trải nghiệm mua tóc giả nam rõ ràng, dễ hiểu và tôn trọng nhu cầu riêng của từng khách hàng.', points: ['Thông tin sản phẩm minh bạch', 'Tư vấn dựa trên nhu cầu thực tế', 'Chính sách mua hàng rõ ràng'] },
-  'lien-he': { title: 'Liên hệ', intro: 'Đội ngũ Nam Hair sẵn sàng hỗ trợ từ 8:00 đến 20:00 mỗi ngày.', points: ['Hotline: 028 7300 8899', 'Email: hello@namhair.local', 'Địa chỉ mẫu: 123 Đường Mẫu, Quận 3, TP. Hồ Chí Minh'] },
+  'gioi-thieu': { title: 'Giới thiệu LADYSTARS', intro: 'LADYSTARS hướng đến trải nghiệm lựa chọn tóc rõ ràng, dễ hiểu và tôn trọng nhu cầu riêng của từng khách hàng.', points: ['Thông tin sản phẩm minh bạch', 'Tư vấn dựa trên nhu cầu thực tế', 'Chính sách mua hàng rõ ràng'] },
+  'lien-he': { title: 'Liên hệ', intro: 'Đội ngũ LADYSTARS sẵn sàng hỗ trợ từ 8:00 đến 20:00 mỗi ngày.', points: ['Hotline: 028 7300 8899', 'Email: hello@ladystars.local', 'Địa chỉ mẫu: 123 Đường Mẫu, Quận 3, TP. Hồ Chí Minh'] },
   'dich-vu-cham-soc': { title: 'Dịch vụ chăm sóc tóc', intro: 'Hãy bắt đầu từ vùng tóc cần che, thời gian sử dụng mỗi ngày và mức độ tự nhiên mong muốn.', points: ['Đế PU dễ vệ sinh và bám chắc', 'Đế lace thoáng, đường chân tóc tự nhiên', 'Tóc thật tạo kiểu linh hoạt', 'Chọn màu gần màu tóc thật', 'Đo kích thước vùng cần che trước khi mua'] },
   'chinh-sach-giao-hang': { title: 'Chính sách giao hàng', intro: 'Đơn hàng được kiểm tra trước khi bàn giao cho đơn vị vận chuyển.', points: ['Miễn phí từ 1.000.000đ', 'Phí tiêu chuẩn 30.000đ', 'Theo dõi trạng thái trong tài khoản'] },
-  'chinh-sach-doi-tra': { title: 'Chính sách đổi trả', intro: 'Nam Hair tiếp nhận yêu cầu đổi trả theo tình trạng sản phẩm và thời hạn công bố.', points: ['Giữ nguyên phụ kiện và bao bì', 'Không áp dụng với sản phẩm đã cắt hoặc tạo kiểu', 'Liên hệ trước khi gửi trả'] },
+  'chinh-sach-doi-tra': { title: 'Chính sách đổi trả', intro: 'LADYSTARS tiếp nhận yêu cầu đổi trả theo tình trạng sản phẩm và thời hạn công bố.', points: ['Giữ nguyên phụ kiện và bao bì', 'Không áp dụng với sản phẩm đã cắt hoặc tạo kiểu', 'Liên hệ trước khi gửi trả'] },
   'chinh-sach-bao-mat': { title: 'Chính sách bảo mật', intro: 'Thông tin cá nhân chỉ được sử dụng để xử lý đơn hàng và chăm sóc khách hàng.', points: ['Không bán dữ liệu khách hàng', 'Mật khẩu được mã hóa', 'Phiên đăng nhập dùng cookie HttpOnly'] },
 }
 

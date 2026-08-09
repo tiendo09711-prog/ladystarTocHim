@@ -94,10 +94,34 @@ export interface ContactPageBranch { id: number; name: string; phone?: string | 
 export interface ContactPageStore { store_name: string; support_phone?: string | null; support_email?: string | null; store_address?: string | null }
 export interface ContactPageData { content: ContactPageContent | null; store: ContactPageStore | null; branches: ContactPageBranch[]; seo?: NewsPageSeo | null }
 export interface ContactPageAdminData { content: ContactPageContent; seo?: NewsPageSeo | null }
+export interface HomeTextItem { title: string; description: string }
+export interface HomeLinkedItem extends HomeTextItem { url: string }
+export interface HomeImageFields { image_path?: string | null; image_alt: string }
+export interface HomeImageLinkedItem extends HomeLinkedItem, HomeImageFields {}
+export interface HomeProcessStep extends HomeTextItem, HomeImageFields { number: string }
+export interface HomeTestimonial extends HomeImageFields { quote: string; customer: string; label: string; detail_title: string; detail: string }
+export interface HomePageSections {
+  hero: { eyebrow: string; title: string; description: string; primary_label: string; primary_url: string; secondary_label: string; secondary_url: string; trust_items: string[]; note_label: string; note_value: string }
+  consultation: { kicker: string; title: string; description: string; options: string[]; cta_label: string; cta_url: string }
+  products: { kicker: string; title: string; description: string; featured_label: string; view_all_label: string; view_all_url: string }
+  brand_story: { kicker: string; title: string; description: string; image_alt: string; values: HomeTextItem[]; cta_label: string; cta_url: string }
+  solutions: { kicker: string; title: string; description: string; bullets: string[]; cta_label: string; cta_url: string; art_text: string; image_path?: string | null; image_alt: string }
+  styles: { kicker: string; title: string; items: HomeImageLinkedItem[] }
+  process: { kicker: string; title: string; description: string; steps: HomeProcessStep[]; cta_label: string; cta_url: string }
+  testimonials: { kicker: string; title: string; items: HomeTestimonial[] }
+  contact: { kicker: string; title: string; description: string; cards: HomeLinkedItem[] }
+  insights: { kicker: string; title: string; items: HomeLinkedItem[] }
+  final_cta: { kicker: string; title: string; description: string; primary_label: string; primary_url: string; secondary_label: string; secondary_url: string }
+  floating_contact: { trigger_label: string; consultation_label: string; consultation_url: string; guide_label: string; guide_url: string }
+}
 export interface HomePageContent {
   id?: number
   page_key?: string
   announcement_messages: string[]
   announcement_interval_seconds: number
   announcement_enabled: boolean
+  hero_image_path?: string | null
+  hero_image_alt?: string | null
+  brand_story_image_path?: string | null
+  sections: HomePageSections
 }

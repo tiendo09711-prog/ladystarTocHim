@@ -13,8 +13,43 @@ export async function getAdminHomePageContent() {
   return (await apiClient.get<ApiResponse<HomePageContent>>('/admin/home-page')).data.data
 }
 
-export async function updateHomePageContent(payload: Pick<HomePageContent, 'announcement_messages' | 'announcement_interval_seconds' | 'announcement_enabled'>) {
+export async function updateHomePageContent(payload: Pick<HomePageContent, 'announcement_messages' | 'announcement_interval_seconds' | 'announcement_enabled' | 'hero_image_alt' | 'sections'>) {
   return (await apiClient.put<ApiResponse<HomePageContent>>('/admin/home-page', payload)).data.data
+}
+
+export async function uploadHomeHeroImage(image: File, alt?: string | null) {
+  const data = new FormData()
+  data.append('image', image)
+  if (alt) data.append('hero_image_alt', alt)
+  return (await apiClient.post<ApiResponse<HomePageContent>>('/admin/home-page/hero-image', data)).data.data
+}
+
+export async function deleteHomeHeroImage() {
+  return (await apiClient.delete<ApiResponse<HomePageContent>>('/admin/home-page/hero-image')).data.data
+}
+
+export async function uploadHomeBrandStoryImage(image: File) {
+  const data = new FormData()
+  data.append('image', image)
+  return (await apiClient.post<ApiResponse<HomePageContent>>('/admin/home-page/brand-story-image', data)).data.data
+}
+
+export async function deleteHomeBrandStoryImage() {
+  return (await apiClient.delete<ApiResponse<HomePageContent>>('/admin/home-page/brand-story-image')).data.data
+}
+
+export type HomeSectionImageSlot = 'solutions' | 'styles' | 'process' | 'testimonials'
+
+export async function uploadHomeSectionImage(slot: HomeSectionImageSlot, image: File, index?: number) {
+  const data = new FormData()
+  data.append('image', image)
+  const suffix = index === undefined ? '' : `/${index}`
+  return (await apiClient.post<ApiResponse<HomePageContent>>(`/admin/home-page/section-images/${slot}${suffix}`, data)).data.data
+}
+
+export async function deleteHomeSectionImage(slot: HomeSectionImageSlot, index?: number) {
+  const suffix = index === undefined ? '' : `/${index}`
+  return (await apiClient.delete<ApiResponse<HomePageContent>>(`/admin/home-page/section-images/${slot}${suffix}`)).data.data
 }
 
 export async function getNewsArticles(params?: Record<string, string | number | undefined>) {

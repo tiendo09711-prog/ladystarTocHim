@@ -20,7 +20,7 @@ class StoreSetting extends Model
     public static function current(): self
     {
         return self::firstOrCreate([], [
-            'store_name' => config('app.store_name', 'Nam Hair'),
+            'store_name' => config('app.store_name', 'LADYSTARS'),
             'currency' => 'VND',
             'shipping_fee' => 30000,
             'free_shipping_from' => 1000000,

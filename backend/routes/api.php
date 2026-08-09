@@ -184,6 +184,12 @@ Route::prefix('v1')->group(function () {
 
             Route::get('home-page', [HomePageManagementController::class, 'show']);
             Route::put('home-page', [HomePageManagementController::class, 'update']);
+            Route::post('home-page/hero-image', [HomePageManagementController::class, 'uploadHeroImage']);
+            Route::delete('home-page/hero-image', [HomePageManagementController::class, 'deleteHeroImage']);
+            Route::post('home-page/brand-story-image', [HomePageManagementController::class, 'uploadBrandStoryImage']);
+            Route::delete('home-page/brand-story-image', [HomePageManagementController::class, 'deleteBrandStoryImage']);
+            Route::post('home-page/section-images/{slot}/{index?}', [HomePageManagementController::class, 'uploadSectionImage']);
+            Route::delete('home-page/section-images/{slot}/{index?}', [HomePageManagementController::class, 'deleteSectionImage']);
 
             Route::get('store-page', [StorePageManagementController::class, 'index']);
             Route::put('store-page', [StorePageManagementController::class, 'update']);

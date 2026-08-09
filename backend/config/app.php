@@ -13,9 +13,9 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Nam Hair'),
+    'name' => env('APP_NAME', 'LADYSTARS'),
 
-    'store_name' => env('STORE_NAME', 'Nam Hair'),
+    'store_name' => env('STORE_NAME', 'LADYSTARS'),
 
     /*
     |--------------------------------------------------------------------------
