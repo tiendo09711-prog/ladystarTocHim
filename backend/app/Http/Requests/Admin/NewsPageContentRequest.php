@@ -20,6 +20,7 @@ class NewsPageContentRequest extends FormRequest
             'eyebrow' => $text(120),
             'title' => $text(190),
             'description' => ['nullable', 'string', 'max:2000'],
+            'hero_image_alt' => $text(190),
             'featured_article_id' => ['nullable', 'integer', 'exists:news_articles,id'],
             'featured_badge_label' => $text(120),
             'list_eyebrow' => $text(120),

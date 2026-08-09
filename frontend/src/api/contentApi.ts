@@ -1,5 +1,5 @@
 import { apiClient, csrfCookie } from './apiClient'
-import type { AboutPageData, ApiResponse, CatalogContent, NewsArticle, NewsArticleSummary, NewsPageAdminData, NewsPageData, Pagination } from '../types'
+import type { AboutPageData, ApiResponse, CatalogContent, NewsArticle, NewsArticleSummary, NewsPageAdminData, NewsPageData, Pagination, StorePageAdminData, StorePageData } from '../types'
 
 export async function getAboutPage() {
   return (await apiClient.get<ApiResponse<AboutPageData>>('/about')).data.data
@@ -21,6 +21,14 @@ export async function getPromotionsPage(params?: { page?: number }) {
   return (await apiClient.get<ApiResponse<NewsPageData>>('/promotions-page', { params })).data.data
 }
 
+export async function getGuidesPage(params?: { page?: number }) {
+  return (await apiClient.get<ApiResponse<NewsPageData>>('/guides-page', { params })).data.data
+}
+
+export async function getGuideArticle(slug: string) {
+  return (await apiClient.get<ApiResponse<NewsArticle>>(`/guides/${slug}`)).data.data
+}
+
 export async function getAdminNewsPage() {
   return (await apiClient.get<ApiResponse<NewsPageAdminData>>('/admin/news-page')).data.data
 }
@@ -29,12 +37,31 @@ export async function getAdminPromotionsPage() {
   return (await apiClient.get<ApiResponse<NewsPageAdminData>>('/admin/promotions-page')).data.data
 }
 
+export async function getAdminGuidesPage() {
+  return (await apiClient.get<ApiResponse<NewsPageAdminData>>('/admin/guides-page')).data.data
+}
+
 export async function updateNewsPageContent(payload: Record<string, unknown>) {
   return (await apiClient.put<ApiResponse<NewsPageAdminData>>('/admin/news-page', payload)).data.data
 }
 
 export async function updatePromotionsPageContent(payload: Record<string, unknown>) {
   return (await apiClient.put<ApiResponse<NewsPageAdminData>>('/admin/promotions-page', payload)).data.data
+}
+
+export async function updateGuidesPageContent(payload: Record<string, unknown>) {
+  return (await apiClient.put<ApiResponse<NewsPageAdminData>>('/admin/guides-page', payload)).data.data
+}
+
+export async function uploadGuidesHeroImage(image: File, alt?: string) {
+  const data = new FormData()
+  data.append('image', image)
+  if (alt) data.append('hero_image_alt', alt)
+  return (await apiClient.post<ApiResponse<NewsPageAdminData>>('/admin/guides-page/hero-image', data)).data.data
+}
+
+export async function deleteGuidesHeroImage() {
+  return (await apiClient.delete<ApiResponse<NewsPageAdminData>>('/admin/guides-page/hero-image')).data.data
 }
 
 export async function uploadNewsCtaImage(image: File) {
@@ -68,4 +95,16 @@ export async function getCategoryCatalogContent(slug: string) {
 export async function submitConsultation(payload: { name: string; phone: string; source_page: string; message?: string; category_id?: number }) {
   await csrfCookie()
   return (await apiClient.post<ApiResponse<{ id: number }>>('/consultation-requests', payload)).data.data
+}
+
+export async function getStorePage() {
+  return (await apiClient.get<ApiResponse<StorePageData>>('/store-page')).data.data
+}
+
+export async function getAdminStorePage() {
+  return (await apiClient.get<ApiResponse<StorePageAdminData>>('/admin/store-page')).data.data
+}
+
+export async function updateStorePage(payload: Record<string, unknown>) {
+  return (await apiClient.put<ApiResponse<StorePageAdminData>>('/admin/store-page', payload)).data.data
 }

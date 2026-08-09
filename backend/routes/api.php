@@ -19,10 +19,15 @@ use App\Http\Controllers\Api\V1\Store\CatalogContentController;
 use App\Http\Controllers\Api\V1\Store\ConsultationRequestController;
 use App\Http\Controllers\Api\V1\Store\NewsController;
 use App\Http\Controllers\Api\V1\Store\NewsPageController;
+use App\Http\Controllers\Api\V1\Store\GuideController;
+use App\Http\Controllers\Api\V1\Store\GuidePageController;
 use App\Http\Controllers\Api\V1\Admin\NewsPageContentManagementController;
+use App\Http\Controllers\Api\V1\Admin\GuidePageContentManagementController;
 use App\Http\Controllers\Api\V1\Store\PromotionPageController;
 use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
+use App\Http\Controllers\Api\V1\Admin\StorePageManagementController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
+use App\Http\Controllers\Api\V1\Store\StorePageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -57,7 +62,10 @@ Route::prefix('v1')->group(function () {
     Route::get('news', [NewsController::class, 'index']);
     Route::get('news/{slug}', [NewsController::class, 'show']);
     Route::get('news-page', [NewsPageController::class, 'index']);
+    Route::get('guides-page', [GuidePageController::class, 'index']);
+    Route::get('guides/{slug}', [GuideController::class, 'show']);
     Route::get('promotions-page', [PromotionPageController::class, 'index']);
+    Route::get('store-page', [StorePageController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
@@ -168,6 +176,20 @@ Route::prefix('v1')->group(function () {
             Route::get('settings', [OperationsController::class, 'settings']);
             Route::put('settings', [OperationsController::class, 'updateSettings']);
 
+            Route::get('store-page', [StorePageManagementController::class, 'index']);
+            Route::put('store-page', [StorePageManagementController::class, 'update']);
+            Route::post('store-page/images/{slot}', [StorePageManagementController::class, 'uploadImage']);
+            Route::delete('store-page/images/{slot}', [StorePageManagementController::class, 'deleteImage']);
+            Route::post('store-page/items', [StorePageManagementController::class, 'storeItem']);
+            Route::patch('store-page/items/reorder', [StorePageManagementController::class, 'reorderItems']);
+            Route::put('store-page/items/{item}', [StorePageManagementController::class, 'updateItem']);
+            Route::delete('store-page/items/{item}', [StorePageManagementController::class, 'deleteItem']);
+            Route::patch('store-page/items/{item}/status', [StorePageManagementController::class, 'itemStatus']);
+            Route::post('store-page/items/{item}/image', [StorePageManagementController::class, 'uploadItemImage']);
+            Route::delete('store-page/items/{item}/image', [StorePageManagementController::class, 'deleteItemImage']);
+            Route::post('store-page/branches/{branch}/image', [StorePageManagementController::class, 'uploadBranchImage']);
+            Route::delete('store-page/branches/{branch}/image', [StorePageManagementController::class, 'deleteBranchImage']);
+
             Route::get('about/sections', [AboutManagementController::class, 'index']);
             Route::post('about/sections', [AboutManagementController::class, 'store']);
             Route::patch('about/reorder', [AboutManagementController::class, 'reorder']);
@@ -205,6 +227,19 @@ Route::prefix('v1')->group(function () {
             Route::put('promotions-page', [PromotionPageContentManagementController::class, 'update']);
             Route::post('promotions-page/cta-image', [PromotionPageContentManagementController::class, 'uploadCtaImage']);
             Route::delete('promotions-page/cta-image', [PromotionPageContentManagementController::class, 'deleteCtaImage']);
+
+            Route::get('guides', [NewsManagementController::class, 'index']);
+            Route::post('guides', [NewsManagementController::class, 'store']);
+            Route::get('guides/{article}', [NewsManagementController::class, 'show']);
+            Route::put('guides/{article}', [NewsManagementController::class, 'update']);
+            Route::delete('guides/{article}', [NewsManagementController::class, 'destroy']);
+            Route::patch('guides/{article}/status', [NewsManagementController::class, 'status']);
+            Route::post('guides/{article}/cover-image', [NewsManagementController::class, 'uploadCover']);
+            Route::delete('guides/{article}/cover-image', [NewsManagementController::class, 'deleteCover']);
+            Route::get('guides-page', [GuidePageContentManagementController::class, 'show']);
+            Route::put('guides-page', [GuidePageContentManagementController::class, 'update']);
+            Route::post('guides-page/hero-image', [GuidePageContentManagementController::class, 'uploadHeroImage']);
+            Route::delete('guides-page/hero-image', [GuidePageContentManagementController::class, 'deleteHeroImage']);
         });
     });
 });

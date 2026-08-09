@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 
 const content: Record<string, { title: string; intro: string; points: string[] }> = {
   'gioi-thieu': { title: 'Giới thiệu Nam Hair', intro: 'Nam Hair hướng đến trải nghiệm mua tóc giả nam rõ ràng, dễ hiểu và tôn trọng nhu cầu riêng của từng khách hàng.', points: ['Thông tin sản phẩm minh bạch', 'Tư vấn dựa trên nhu cầu thực tế', 'Chính sách mua hàng rõ ràng'] },
@@ -11,7 +11,9 @@ const content: Record<string, { title: string; intro: string; points: string[] }
 }
 
 export function ContentPage({ page }: { page?: string }) {
-  const params = useParams(); const item = content[page ?? params.page ?? 'gioi-thieu'] ?? content['gioi-thieu']
+  const params = useParams(); const [searchParams] = useSearchParams(); const contentPage = page ?? params.page ?? 'gioi-thieu'
+  if (contentPage === 'lien-he' && ['ha-noi', 'ho-chi-minh'].includes(searchParams.get('location') ?? '')) return <Navigate to="/he-thong-cua-hang" replace />
+  const item = content[contentPage] ?? content['gioi-thieu']
   return <div className="container-page py-12"><div className="card mx-auto max-w-3xl p-7 sm:p-10"><h1 className="section-title">{item.title}</h1><p className="mt-4 text-lg leading-8 text-slate-600">{item.intro}</p><div className="mt-7 grid gap-4">{item.points.map((point) => <div key={point} className="flex gap-3 rounded-xl bg-emerald-50 p-4"><CheckCircle2 className="shrink-0 text-emerald-700" /><span>{point}</span></div>)}</div><Link className="btn-primary mt-8" to="/san-pham">Xem sản phẩm</Link></div></div>
 }
 

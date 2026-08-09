@@ -13,9 +13,11 @@ import { NewsPage } from '../pages/store/NewsPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from '../pages/store/AuthPages'
 import { HomePage } from '../pages/store/HomePage'
 import { GuidePage } from '../pages/store/GuidePage'
+import { GuideDetailPage } from '../pages/store/GuideDetailPage'
 import { ProductPage } from '../pages/store/ProductPage'
 import { ProductsPage } from '../pages/store/ProductsPage'
 import { PromotionsPage } from '../pages/store/PromotionsPage'
+import { StoreLocationsPage } from '../pages/store/StoreLocationsPage'
 import { AdminProtectedRoute } from './AdminProtectedRoute'
 import { UserProtectedRoute } from './UserProtectedRoute'
 
@@ -45,6 +47,10 @@ const NewsPageSettingsAdminPage = lazy(() => import('../pages/admin/NewsPageSett
 const PromotionsAdminPage = lazy(() => import('../pages/admin/PromotionsAdminPage').then((module) => ({ default: module.PromotionsAdminPage })))
 const PromotionFormPage = lazy(() => import('../pages/admin/PromotionFormPage').then((module) => ({ default: module.PromotionFormPage })))
 const PromotionsPageSettingsAdminPage = lazy(() => import('../pages/admin/PromotionsPageSettingsAdminPage').then((module) => ({ default: module.PromotionsPageSettingsAdminPage })))
+const StorePageAdminPage = lazy(() => import('../pages/admin/StorePageAdminPage').then((module) => ({ default: module.StorePageAdminPage })))
+const GuidesAdminPage = lazy(() => import('../pages/admin/GuidesAdminPage').then((module) => ({ default: module.GuidesAdminPage })))
+const GuideFormAdminPage = lazy(() => import('../pages/admin/GuideFormAdminPage').then((module) => ({ default: module.GuideFormAdminPage })))
+const GuidesPageSettingsAdminPage = lazy(() => import('../pages/admin/GuidesPageSettingsAdminPage').then((module) => ({ default: module.GuidesPageSettingsAdminPage })))
 const HairGuidePage = lazy(() => import('../pages/store/HairGuidePage').then((module) => ({ default: module.HairGuidePage })))
 
 const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p-8 text-center">Đang tải màn hình...</div>}>{page}</Suspense>
@@ -64,16 +70,19 @@ export const router = createBrowserRouter([
     { path: 'import-export', element: lazyPage(<ImportExportPage />) }, { path: 'barcodes', element: lazyPage(<BarcodesPage />) },
     { path: 'reports', element: lazyPage(<DashboardPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
     { path: 'about', element: lazyPage(<AboutAdminPage />) },
+    { path: 'store-page', element: lazyPage(<StorePageAdminPage />) },
     { path: 'catalog-content', element: lazyPage(<CatalogContentAdminPage />) }, { path: 'consultation-requests', element: lazyPage(<ConsultationRequestsAdminPage />) },
     { path: 'news', element: lazyPage(<NewsAdminPage />) }, { path: 'news/create', element: lazyPage(<NewsFormPage />) }, { path: 'news/:id/edit', element: lazyPage(<NewsFormPage />) }, { path: 'news/settings', element: lazyPage(<NewsPageSettingsAdminPage />) },
     { path: 'promotions', element: lazyPage(<PromotionsAdminPage />) }, { path: 'promotions/create', element: lazyPage(<PromotionFormPage />) }, { path: 'promotions/:id/edit', element: lazyPage(<PromotionFormPage />) }, { path: 'promotions/settings', element: lazyPage(<PromotionsPageSettingsAdminPage />) },
+    { path: 'guides', element: lazyPage(<GuidesAdminPage />) }, { path: 'guides/create', element: lazyPage(<GuideFormAdminPage />) }, { path: 'guides/:id/edit', element: lazyPage(<GuideFormAdminPage />) }, { path: 'guides/settings', element: lazyPage(<GuidesPageSettingsAdminPage />) },
   ] }] },
   { path: '/', element: <StoreLayout />, children: [
     { index: true, element: <HomePage /> }, { path: 'san-pham', element: <ProductsPage /> }, { path: 'san-pham/:slug', element: <ProductPage /> },
     { path: 'danh-muc/:slug', element: <ProductsPage /> }, { path: 'tim-kiem', element: <ProductsPage /> }, { path: 'gio-hang', element: <CartPage /> },
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },
-    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
+    { path: 'huong-dan/:slug', element: <GuideDetailPage /> },
+    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContentPage page="lien-he" /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { element: <UserProtectedRoute />, children: [{ path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },

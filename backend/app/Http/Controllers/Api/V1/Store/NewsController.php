@@ -13,6 +13,7 @@ class NewsController extends Controller
     public function index()
     {
         $articles = NewsArticle::published()
+            ->where(fn ($query) => $query->whereNull('category')->orWhereNotIn('category', ['Ưu đãi', 'Hướng dẫn']))
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
             ->paginate(9, ['id', 'title', 'slug', 'excerpt', 'cover_image_path', 'cover_image_alt', 'category', 'published_at', 'seo_title', 'seo_description']);
@@ -22,7 +23,11 @@ class NewsController extends Controller
 
     public function show(string $slug)
     {
-        $article = NewsArticle::published()->with('author:id,name')->where('slug', $slug)->firstOrFail();
+        $article = NewsArticle::published()
+            ->where(fn ($query) => $query->whereNull('category')->orWhereNotIn('category', ['Ưu đãi', 'Hướng dẫn']))
+            ->with('author:id,name')
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         return $this->success($article);
     }

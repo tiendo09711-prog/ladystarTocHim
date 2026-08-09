@@ -1,15 +1,17 @@
-import { BarChart3, Boxes, ChevronLeft, ClipboardList, FileSpreadsheet, Gift, History, PanelsTopLeft, LayoutDashboard, LogOut, Menu, Newspaper, Package, Settings, ShoppingBag, Tags, TicketPercent, Users, Warehouse, X } from 'lucide-react'
+import { BarChart3, BookOpen, Boxes, ChevronLeft, ClipboardList, FileSpreadsheet, Gift, History, PanelsTopLeft, LayoutDashboard, LogOut, MapPin, Menu, Newspaper, Package, Settings, ShoppingBag, Tags, TicketPercent, Users, Warehouse, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../stores/AuthContext'
 
 const menu = [
+  ['Trang hệ thống cửa hàng', '/admin/store-page', MapPin],
   ['Dashboard', '/admin/dashboard', LayoutDashboard], ['Sáº£n pháº©m', '/admin/products', Package], ['Danh má»¥c', '/admin/categories', Tags],
   ['Thuá»™c tÃ­nh', '/admin/attributes', Boxes], ['Chi nhÃ¡nh', '/admin/branches', Warehouse], ['Tá»“n kho', '/admin/inventory', ClipboardList],
   ['Lá»‹ch sá»­ kho', '/admin/inventory/transactions', History], ['ÄÆ¡n hÃ ng', '/admin/orders', ShoppingBag], ['KhÃ¡ch hÃ ng', '/admin/customers', Users],
   ['ÄÃ¡nh giÃ¡', '/admin/reviews', BarChart3], ['MÃ£ giáº£m giÃ¡', '/admin/coupons', TicketPercent], ['Import / Export', '/admin/import-export', FileSpreadsheet],
   ['Barcode', '/admin/barcodes', Boxes], ['BÃ¡o cÃ¡o', '/admin/reports', BarChart3],
   ['Ná»™i dung About', '/admin/about', PanelsTopLeft], ['Nội dung sản phẩm', '/admin/catalog-content', PanelsTopLeft], ['Yêu cầu tư vấn', '/admin/consultation-requests', ClipboardList], ['Báº£n tin', '/admin/news', Newspaper], ['Ưu đãi', '/admin/promotions', Gift], ['CÃ i Ä‘áº·t', '/admin/settings', Settings],
+  ['Hướng dẫn', '/admin/guides', BookOpen],
 ] as const
 
 export function AdminLayout() {

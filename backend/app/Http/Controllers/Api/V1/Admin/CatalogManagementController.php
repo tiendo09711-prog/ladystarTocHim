@@ -176,6 +176,34 @@ class CatalogManagementController extends Controller
 
     private function branchData(Request $request, ?Branch $branch = null): array
     {
-        return $request->validate(['name' => ['required', 'string'], 'code' => ['required', 'alpha_dash', Rule::unique('branches')->ignore($branch)], 'phone' => ['nullable', 'string'], 'email' => ['nullable', 'email'], 'province' => ['nullable', 'string'], 'district' => ['nullable', 'string'], 'ward' => ['nullable', 'string'], 'address_line' => ['nullable', 'string'], 'is_default' => ['boolean'], 'is_active' => ['boolean']]);
+        $safeUrl = function (string $attribute, mixed $value, \Closure $fail): void {
+            if (! is_string($value) || $value === '') return;
+            $lower = strtolower($value);
+            $isHttp = str_starts_with($lower, 'http://') || str_starts_with($lower, 'https://');
+            $isRelative = str_starts_with($value, '/') && ! str_starts_with($value, '//');
+            if (! $isHttp && ! $isRelative) $fail('URL không hợp lệ.');
+        };
+
+        return $request->validate([
+            'name' => ['required', 'string'],
+            'code' => ['required', 'alpha_dash', Rule::unique('branches')->ignore($branch)],
+            'phone' => ['nullable', 'string'],
+            'email' => ['nullable', 'email'],
+            'province' => ['nullable', 'string'],
+            'district' => ['nullable', 'string'],
+            'ward' => ['nullable', 'string'],
+            'address_line' => ['nullable', 'string'],
+            'public_description' => ['nullable', 'string', 'max:2000'],
+            'opening_hours' => ['nullable', 'string', 'max:190'],
+            'image_alt' => ['nullable', 'string', 'max:190'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'booking_url' => ['nullable', 'string', 'max:500', $safeUrl],
+            'map_url' => ['nullable', 'string', 'max:500', $safeUrl],
+            'show_on_store_page' => ['boolean'],
+            'public_sort_order' => ['integer', 'min:0', 'max:999'],
+            'is_default' => ['boolean'],
+            'is_active' => ['boolean'],
+        ]);
     }
 }

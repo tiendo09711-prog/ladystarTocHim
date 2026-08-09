@@ -38,6 +38,7 @@ class NewsPageController extends Controller
         $content = NewsPageContent::where('page_key', $pageKey)->first();
 
         $publishedQuery = NewsArticle::published()
+            ->where(fn ($query) => $query->whereNull('category')->orWhereNotIn('category', ['Ưu đãi', 'Hướng dẫn']))
             ->orderByDesc('published_at')
             ->orderBy('sort_order');
 
@@ -63,6 +64,7 @@ class NewsPageController extends Controller
             return $featured;
         }
         $fallback = NewsArticle::published()
+            ->where(fn ($query) => $query->whereNull('category')->orWhereNotIn('category', ['Ưu đãi', 'Hướng dẫn']))
             ->whereNotNull('cover_image_path')
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
@@ -71,7 +73,7 @@ class NewsPageController extends Controller
             return $fallback;
         }
 
-        return NewsArticle::published()->orderByDesc('published_at')->orderBy('sort_order')->first();
+        return NewsArticle::published()->where(fn ($query) => $query->whereNull('category')->orWhereNotIn('category', ['Ưu đãi', 'Hướng dẫn']))->orderByDesc('published_at')->orderBy('sort_order')->first();
     }
 
     private function isPublished(NewsArticle $article): bool
