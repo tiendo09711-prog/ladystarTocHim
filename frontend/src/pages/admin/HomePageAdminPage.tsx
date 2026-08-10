@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, ImagePlus, Loader2, Save, Trash2 } from 'lucide-react'
+import { ExternalLink, Loader2, Save } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { deleteHomeBrandStoryImage, deleteHomeHeroImage, deleteHomeSectionImage, getAdminHomePageContent, updateHomePageContent, uploadHomeBrandStoryImage, uploadHomeHeroImage, uploadHomeSectionImage, type HomeSectionImageSlot } from '../../api/contentApi'
+import { HomeImageCropEditor as HomeImageEditor } from '../../components/admin/HomeImageCropEditor'
 import { LoadingState } from '../../components/common/LoadingState'
 import { defaultHomePageSections } from '../../data/homeContent'
 import type { HomePageContent, HomePageSections } from '../../types'
-import { resolveAssetUrl } from '../../utils/assetUrl'
 
 type SectionKey = keyof HomePageSections
 type FieldConfig = { key: string; label: string; multiline?: boolean }
@@ -41,15 +41,6 @@ function parseList(value: string, columns: string[]) {
     const parts = line.split('|').map((part) => part.trim())
     return Object.fromEntries(columns.map((column, index) => [column, parts[index] ?? '']))
   })
-}
-
-function HomeImageEditor({ title, description, path, alt, fallback, uploading, onAltChange, onUpload, onRemove }: { title: string; description: string; path?: string | null; alt: string; fallback: string; uploading: boolean; onAltChange: (value: string) => void; onUpload: (file?: File) => void; onRemove: () => void }) {
-  return <div className="mt-5 grid gap-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4">
-    <div><h3 className="font-black">Ảnh {title}</h3><p className="muted mt-1 text-sm">{description}</p></div>
-    <img className="max-h-96 w-full rounded-3xl border border-slate-200 bg-rose-50 object-contain" src={resolveAssetUrl(path, fallback)} alt={alt || `Ảnh ${title}`} />
-    <label><span className="label">Alt ảnh {title}</span><input className="input" value={alt} onChange={(event) => onAltChange(event.target.value)} /></label>
-    <div className="flex flex-wrap gap-3"><label className="btn-secondary cursor-pointer"><ImagePlus size={18} />{uploading ? 'Đang tải...' : `Chọn ảnh ${title}`}<input className="hidden" aria-label={`Chọn ảnh ${title}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { onUpload(event.target.files?.[0]); event.target.value = '' }} /></label>{path && <button className="btn-secondary text-red-700" type="button" disabled={uploading} onClick={onRemove}><Trash2 size={17} />Dùng ảnh mặc định</button>}</div>
-  </div>
 }
 
 export function HomePageAdminPage() {

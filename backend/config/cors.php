@@ -1,6 +1,9 @@
 <?php
 
-$frontendOrigins = env('FRONTEND_URLS', env('FRONTEND_URL', 'http://localhost:5173'));
+$frontendOrigins = implode(',', array_filter([
+    env('FRONTEND_URLS', env('FRONTEND_URL', 'http://localhost:5173')),
+    env('FRONTEND_LAN_URLS'),
+]));
 
 return [
 

@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
 import net from 'node:net'
+import { networkInterfaces } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +40,12 @@ function portOpen(port) {
     socket.once('timeout', () => done(false))
     socket.once('error', () => done(false))
   })
+}
+
+function lanIpv4Addresses() {
+  return [...new Set(Object.values(networkInterfaces()).flatMap((networkInterface) => networkInterface ?? [])
+    .filter(({ family, internal }) => family === 'IPv4' && !internal)
+    .map(({ address }) => address))]
 }
 
 async function waitForPort(port, name) {
@@ -83,8 +90,8 @@ async function ensureMySql() {
   await waitForPort(3306, 'MySQL')
 }
 
-function start(command, argumentsList, cwd) {
-  const child = spawn(command, argumentsList, { cwd, stdio: 'inherit', shell: process.platform === 'win32' && command === npm })
+function start(command, argumentsList, cwd, env = process.env) {
+  const child = spawn(command, argumentsList, { cwd, env, stdio: 'inherit', shell: process.platform === 'win32' && command === npm })
   children.push(child)
   return child
 }
@@ -105,14 +112,20 @@ async function main() {
   await ensureMySql()
   await run('php', ['artisan', 'migrate', '--no-interaction'], backend)
 
+  const lanAddresses = lanIpv4Addresses()
+  const lanFrontendOrigins = lanAddresses.map((address) => `http://${address}:5173`).join(',')
+  const lanStatefulDomains = lanAddresses.map((address) => `${address}:5173`).join(',')
+  const backendEnv = { ...process.env, FRONTEND_LAN_URLS: lanFrontendOrigins, SANCTUM_LAN_STATEFUL_DOMAINS: lanStatefulDomains }
+
   const running = []
   if (await portOpen(8000)) log('Backend is already available on http://127.0.0.1:8000.')
-  else running.push(start('php', ['artisan', 'serve', '--host=127.0.0.1', '--port=8000'], backend))
+  else running.push(start('php', ['artisan', 'serve', '--host=0.0.0.0', '--port=8000'], backend, backendEnv))
 
   if (await portOpen(5173)) log('Frontend is already available on http://127.0.0.1:5173.')
-  else running.push(start(npm, ['run', 'dev', '--', '--host', '127.0.0.1'], frontend))
+  else running.push(start(npm, ['run', 'dev', '--', '--host', '0.0.0.0'], frontend))
 
   log('Ready: frontend http://127.0.0.1:5173 | backend http://127.0.0.1:8000')
+  if (lanAddresses.length) log(`LAN: ${lanAddresses.map((address) => `http://${address}:5173`).join(' | ')}`)
   log('Press Ctrl+C to stop frontend and backend. MySQL keeps running.')
   await new Promise((resolve) => {
     process.once('SIGINT', resolve)

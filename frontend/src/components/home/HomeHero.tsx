@@ -18,9 +18,11 @@ export function HomeHero({ content, imagePath, imageAlt }: { content: HomePageSe
           {content.trust_items.map((item) => <li key={item}><Check size={16} />{item}</li>)}
         </ul>
       </div>
-      <div className="home-hero-visual" aria-hidden="true">
-        <img src={resolveAssetUrl(imagePath, '/images/brand/ladystars-hero.svg')} alt={imageAlt ?? ''} />
-        <div className="home-hero-note"><span>{content.note_label}</span><strong>{content.note_value}</strong></div>
+      <div className={`home-hero-visual ${imagePath ? 'has-image' : ''}`} aria-hidden="true">
+        <div className="home-hero-media">
+          <img src={resolveAssetUrl(imagePath, '/images/brand/ladystars-hero.svg')} alt={imageAlt ?? ''} />
+          <div className="home-hero-note"><span>{content.note_label}</span><strong>{content.note_value}</strong></div>
+        </div>
       </div>
     </div>
   </section>
