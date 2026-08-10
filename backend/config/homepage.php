@@ -8,6 +8,8 @@ return [
             'description' => 'Khám phá giải pháp tóc được lựa chọn theo chất liệu, kiểu đế, màu sắc và nhu cầu sử dụng của riêng bạn.',
             'primary_label' => 'Khám phá sản phẩm',
             'primary_url' => '/san-pham',
+            'image_position_x' => 50,
+            'image_position_y' => 50,
             'secondary_label' => 'Nhận tư vấn',
             'secondary_url' => '/lien-he',
             'trust_items' => ['Chất liệu được tuyển chọn', 'Tư vấn theo nhu cầu', 'Chính sách rõ ràng'],

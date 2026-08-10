@@ -83,6 +83,8 @@ test('admin tải ảnh sản phẩm và xóa lại thành công', async ({ page
   const editUrl = page.url()
   const initialImageCount = await page.getByRole('button', { name: 'Xóa', exact: true }).count()
   await page.locator('input[type="file"]').setInputFiles({ name: 'e2e-product.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4xQAAAAASUVORK5CYII=', 'base64') })
+  await expect(page.getByRole('dialog')).toContainText('1:1')
+  await page.getByRole('button', { name: 'Dùng ảnh đã cắt' }).click()
   await page.getByRole('button', { name: 'Lưu sản phẩm' }).click()
   await expect(page).toHaveURL(/admin\/products$/)
   await page.goto(editUrl)

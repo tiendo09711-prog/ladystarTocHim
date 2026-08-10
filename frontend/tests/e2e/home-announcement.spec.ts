@@ -132,8 +132,10 @@ test('admin cập nhật nội dung và các ảnh riêng của trang chủ', as
   await expect(page.getByText('Đã cập nhật ảnh Cảm nhận 1.')).toBeVisible()
   await expect(testimonialDetailTitle).toHaveValue(updatedTestimonialDetailTitle)
   await storyTitle.fill(updatedStoryTitle)
+  const saveResponse = page.waitForResponse((response) => response.url().includes('/api/v1/admin/home-page') && response.request().method() === 'PUT' && response.ok())
   await page.getByRole('button', { name: 'Lưu toàn bộ trang chủ' }).click()
-  await expect(page.getByText('Đã lưu toàn bộ nội dung trang chủ.')).toBeVisible()
+  await saveResponse
+  await expect(page.getByRole('button', { name: 'Lưu toàn bộ trang chủ' })).toBeEnabled()
 
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(updatedTitle)

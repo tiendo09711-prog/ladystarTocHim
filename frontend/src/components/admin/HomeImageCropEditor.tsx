@@ -1,12 +1,13 @@
 import { ImagePlus, Loader2, RotateCcw, Trash2, X } from 'lucide-react'
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { HOME_MEDIA, type HomeMediaKey } from '../../config/homeMedia'
 import { resolveAssetUrl } from '../../utils/assetUrl'
 
-type CropPreset = { width: number; height: number; label: string }
 type CropPosition = { x: number; y: number }
 
 type HomeImageCropEditorProps = {
   title: string
+  mediaKey: HomeMediaKey
   description: string
   path?: string | null
   alt: string
@@ -15,15 +16,9 @@ type HomeImageCropEditorProps = {
   onAltChange: (value: string) => void
   onUpload: (file?: File) => void
   onRemove: () => void
-}
-
-function cropPreset(title: string): CropPreset {
-  if (title === 'Hero') return { width: 1600, height: 900, label: '16:9' }
-  if (title === 'Câu chuyện thương hiệu') return { width: 1200, height: 1200, label: '1:1' }
-  if (title === 'Giải pháp dành cho bạn') return { width: 1200, height: 1000, label: '6:5' }
-  if (title.startsWith('Phong cách')) return { width: 1200, height: 900, label: '4:3' }
-  if (title.startsWith('Bước')) return { width: 1200, height: 600, label: '2:1' }
-  return { width: 1200, height: 500, label: '12:5' }
+  objectPositionX?: number
+  objectPositionY?: number
+  onObjectPositionChange?: (axis: 'x' | 'y', value: number) => void
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
@@ -62,7 +57,8 @@ function canvasBlob(canvas: HTMLCanvasElement, quality: number) {
   })
 }
 
-function ImageCropDialog({ file, title, crop, onCancel, onConfirm }: { file: File; title: string; crop: CropPreset; onCancel: () => void; onConfirm: (file: File) => void }) {
+export function AdminImageCropDialog({ file, title, mediaKey, onCancel, onConfirm }: { file: File; title: string; mediaKey: HomeMediaKey; onCancel: () => void; onConfirm: (file: File) => void }) {
+  const crop = HOME_MEDIA[mediaKey]
   const previewRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; position: CropPosition } | null>(null)
@@ -70,12 +66,14 @@ function ImageCropDialog({ file, title, crop, onCancel, onConfirm }: { file: Fil
   const [zoom, setZoom] = useState(1)
   const [ready, setReady] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file)
     const image = new Image()
     image.onload = () => {
       imageRef.current = image
+      setSourceSize({ width: image.naturalWidth, height: image.naturalHeight })
       setReady(true)
     }
     image.src = objectUrl
@@ -157,6 +155,7 @@ function ImageCropDialog({ file, title, crop, onCancel, onConfirm }: { file: Fil
         {!ready && <div className="home-image-crop-loading"><Loader2 className="animate-spin" size={26} /> Đang chuẩn bị ảnh...</div>}
         <canvas ref={previewRef} width={previewWidth} height={previewHeight} aria-label={`Bản xem trước ảnh ${title} sau khi cắt`} onPointerDown={startDrag} onPointerMove={drag} onPointerUp={stopDrag} onPointerCancel={stopDrag} />
       </div>
+      {ready && (sourceSize.width < crop.width || sourceSize.height < crop.height) && <p className="home-image-resolution-warning">Ảnh có độ phân giải thấp hơn {crop.width} × {crop.height}px và có thể bị mờ trên màn hình lớn.</p>}
       <div className="home-image-crop-controls">
         <label><span>Thu phóng</span><input aria-label={`Thu phóng ảnh ${title}`} type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label>
         <label><span>Ngang</span><input aria-label={`Căn ngang ảnh ${title}`} type="range" min="-1" max="1" step="0.01" value={position.x} onChange={(event) => setPosition((current) => ({ ...current, x: Number(event.target.value) }))} /></label>
@@ -170,15 +169,24 @@ function ImageCropDialog({ file, title, crop, onCancel, onConfirm }: { file: Fil
   </div>
 }
 
-export function HomeImageCropEditor({ title, description, path, alt, fallback, uploading, onAltChange, onUpload, onRemove }: HomeImageCropEditorProps) {
+export function HomeImageCropEditor({ title, mediaKey, description, path, alt, fallback, uploading, onAltChange, onUpload, onRemove, objectPositionX, objectPositionY, onObjectPositionChange }: HomeImageCropEditorProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const crop = cropPreset(title)
+  const [selectionError, setSelectionError] = useState('')
+  const crop = HOME_MEDIA[mediaKey]
+  const previewPositionX = clamp(objectPositionX ?? 50, 0, 100)
+  const previewPositionY = clamp(objectPositionY ?? 50, 0, 100)
 
   return <div className="mt-5 grid gap-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4">
-    <div><h3 className="font-black">Ảnh {title}</h3><p className="muted mt-1 text-sm">{description} Khung chuẩn {crop.label}.</p></div>
-    <div className="home-image-admin-preview" style={{ aspectRatio: `${crop.width} / ${crop.height}` }}><img src={resolveAssetUrl(path, fallback)} alt={alt || `Ảnh ${title}`} /></div>
+    <div><h3 className="font-black">Ảnh {title}</h3><p className="muted mt-1 text-sm">{description} Khung hiển thị: {crop.label}. Bạn có thể tải ảnh với tỷ lệ bất kỳ; ảnh sẽ được cắt theo khung khi hiển thị.</p></div>
+    <div className={`fixed-media-frame home-image-admin-preview is-${mediaKey}`} style={{ '--media-ratio': `${crop.width} / ${crop.height}`, '--media-x': `${previewPositionX}%`, '--media-y': `${previewPositionY}%` } as CSSProperties}><img src={resolveAssetUrl(path, fallback)} alt={alt || `Ảnh ${title}`} onError={(event) => { const fallbackSource = resolveAssetUrl(fallback); if (!event.currentTarget.src.endsWith(fallbackSource)) event.currentTarget.src = fallbackSource }} /></div>
+    {onObjectPositionChange && <div className="home-image-position-controls" aria-label={`Vị trí trọng tâm ảnh ${title}`}>
+      <label><span><strong>Ngang</strong><output>{Math.round(previewPositionX)}%</output></span><input aria-label={`Vị trí ảnh ${title} ngang`} type="range" min="0" max="100" step="1" value={previewPositionX} onChange={(event) => onObjectPositionChange('x', Number(event.target.value))} /></label>
+      <label><span><strong>Dọc</strong><output>{Math.round(previewPositionY)}%</output></span><input aria-label={`Vị trí ảnh ${title} dọc`} type="range" min="0" max="100" step="1" value={previewPositionY} onChange={(event) => onObjectPositionChange('y', Number(event.target.value))} /></label>
+      <button className="btn-secondary" type="button" onClick={() => { onObjectPositionChange('x', 50); onObjectPositionChange('y', 50) }}><RotateCcw size={16} />Căn giữa</button>
+    </div>}
     <label><span className="label">Alt ảnh {title}</span><input className="input" value={alt} onChange={(event) => onAltChange(event.target.value)} /></label>
-    <div className="flex flex-wrap gap-3"><label className="btn-secondary cursor-pointer"><ImagePlus size={18} />{uploading ? 'Đang tải...' : `Chọn và cắt ảnh ${title}`}<input className="hidden" aria-label={`Chọn ảnh ${title}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) setSelectedFile(file); event.target.value = '' }} /></label>{path && <button className="btn-secondary text-red-700" type="button" disabled={uploading} onClick={onRemove}><Trash2 size={17} />Dùng ảnh mặc định</button>}</div>
-    {selectedFile && <ImageCropDialog file={selectedFile} title={title} crop={crop} onCancel={() => setSelectedFile(null)} onConfirm={(file) => { setSelectedFile(null); onUpload(file) }} />}
+    <div className="flex flex-wrap gap-3"><label className="btn-secondary cursor-pointer"><ImagePlus size={18} />{uploading ? 'Đang tải...' : `Chọn và cắt ảnh ${title}`}<input className="hidden" aria-label={`Chọn ảnh ${title}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setSelectionError('Ảnh phải là JPG, PNG hoặc WebP và không quá 5 MB.'); return } setSelectionError(''); setSelectedFile(file) }} /></label>{path && <button className="btn-secondary text-red-700" type="button" disabled={uploading} onClick={onRemove}><Trash2 size={17} />Dùng ảnh mặc định</button>}</div>
+    {selectionError && <p className="text-sm font-semibold text-red-700">{selectionError}</p>}
+    {selectedFile && <AdminImageCropDialog file={selectedFile} title={title} mediaKey={mediaKey} onCancel={() => setSelectedFile(null)} onConfirm={(file) => { setSelectedFile(null); onUpload(file) }} />}
   </div>
 }

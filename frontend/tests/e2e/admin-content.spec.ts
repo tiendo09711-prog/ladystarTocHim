@@ -19,12 +19,36 @@ test('admin quản lý section trang giới thiệu', async ({ page }) => {
   const subtitleField = page.getByLabel('Subtitle')
   const suffix = Date.now().toString().slice(-6)
   const newSubtitle = `Nội dung hero đã cập nhật ${suffix}`
+  const imageBadge = `Badge hero E2E ${suffix}`
+  const trustItem = `Điểm tin cậy E2E ${suffix}`
   await subtitleField.fill(newSubtitle)
+  await heroCard.getByLabel('Nhãn trên ảnh').fill(imageBadge)
+  await heroCard.getByLabel(/Điểm tin cậy/).fill(trustItem)
+  await page.getByRole('button', { name: 'Lưu section' }).click()
+  await expect(page.getByText('Đã lưu section.').first()).toBeVisible()
+
+  await heroCard.getByRole('button', { name: 'Chỉnh sửa' }).click()
+  await page.getByLabel('Subtitle').fill(`${newSubtitle} lần 2`)
   await page.getByRole('button', { name: 'Lưu section' }).click()
   await expect(page.getByText('Đã lưu section.').first()).toBeVisible()
 
   await page.goto('/gioi-thieu')
-  await expect(page.locator('.about-hero-subtitle')).toContainText(suffix)
+  await expect(page.locator('.about-hero-subtitle')).toContainText(`${suffix} lần 2`)
+  await expect(page.getByText(imageBadge)).toBeVisible()
+  await expect(page.getByText(trustItem)).toBeVisible()
+
+  await page.goto('/admin/about')
+  const storyCard = page.locator('article', { hasText: 'Câu chuyện: đồng cảm' }).first()
+  await storyCard.getByRole('button', { name: 'Chỉnh sửa' }).click()
+  await storyCard.getByLabel('Vị trí ảnh').selectOption('image-left')
+  await storyCard.getByLabel(/Nhãn ngắn/).fill('Tự nhiên\nThoải mái')
+  await storyCard.getByRole('button', { name: 'Lưu section' }).click()
+  await expect(page.getByText('Đã lưu section.').first()).toBeVisible()
+
+  await page.goto('/gioi-thieu')
+  const storySection = page.locator('section[aria-labelledby="about-story-empathy"]')
+  await expect(storySection.locator('.about-story-visual')).not.toHaveClass(/about-story-visual-right/)
+  await expect(storySection.getByText('Tự nhiên', { exact: true })).toBeVisible()
 })
 
 test('admin tạo nháp, xuất bản và dọn dẹp bản tin', async ({ page }) => {

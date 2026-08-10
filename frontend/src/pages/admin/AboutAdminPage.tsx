@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
 import { LoadingState } from '../../components/common/LoadingState'
 import { ABOUT_SECTION_ICONS } from '../../data/aboutContent'
-import type { AboutSection, AboutSectionItem, ApiResponse, PageSeo } from '../../types'
+import { buildAboutSectionSettings } from '../../features/admin/aboutSettings'
+import type { AboutSection, AboutSectionItem, AboutSectionType, ApiResponse, PageSeo } from '../../types'
 import { resolveAssetUrl } from '../../utils/assetUrl'
 
 const sectionTypeLabels: Record<string, string> = { hero: 'Hero', rich_text_image: 'Nội dung + ảnh', timeline: 'Timeline', showcase: 'Showcase', cards: 'Thẻ giá trị', goals: 'Mục tiêu', testimonials: 'Testimonial', cta: 'CTA cuối trang' }
@@ -18,21 +19,36 @@ function fieldError(errors: SectionErrors, name: string) {
   return errors[name]?.[0] ? <span className="text-sm font-semibold text-red-700">{errors[name][0]}</span> : null
 }
 
-function ItemsEditor({ items, onChange }: { items: AboutSectionItem[]; onChange: (items: AboutSectionItem[]) => void }) {
+function ItemsEditor({ items, onChange, sectionType }: { items: AboutSectionItem[]; onChange: (items: AboutSectionItem[]) => void; sectionType: AboutSectionType }) {
   const update = (index: number, patch: Partial<AboutSectionItem>) => onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  const isTestimonial = sectionType === 'testimonials'
   return <div className="grid gap-3">
-    {items.map((item, index) => <div key={index} className="grid gap-2 rounded-2xl border border-slate-200 p-3 md:grid-cols-[160px_1fr_1fr_auto]">
-      <label><span className="label">Icon</span><select className="input" value={item.icon ?? 'sparkles'} onChange={(event) => update(index, { icon: event.target.value })}>{ABOUT_SECTION_ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}</select></label>
-      <label><span className="label">Tiêu đề</span><input className="input" value={item.title ?? ''} onChange={(event) => update(index, { title: event.target.value })} /></label>
-      <label><span className="label">Mô tả</span><input className="input" value={item.description ?? ''} onChange={(event) => update(index, { description: event.target.value })} /></label>
-      <button type="button" className="btn-secondary self-end px-3 text-red-700" aria-label={`Xóa mục ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
-      {'quote' in item || item.quote !== undefined ? <>
+    {items.map((item, index) => <div key={index} className="grid gap-2 rounded-2xl border border-slate-200 p-3 md:grid-cols-2">
+      {isTestimonial ? <>
         <label className="md:col-span-2"><span className="label">Chia sẻ</span><textarea className="input" value={item.quote ?? ''} onChange={(event) => update(index, { quote: event.target.value })} /></label>
         <label><span className="label">Tên hiển thị</span><input className="input" value={item.name ?? ''} onChange={(event) => update(index, { name: event.target.value })} /></label>
         <label><span className="label">Vai trò</span><input className="input" value={item.role ?? ''} onChange={(event) => update(index, { role: event.target.value })} /></label>
-      </> : null}
+        <label><span className="label">Đánh giá</span><input className="input" type="number" min="1" max="5" value={item.rating ?? 5} onChange={(event) => update(index, { rating: Number(event.target.value) })} /></label>
+      </> : <>
+        <label><span className="label">Icon</span><select className="input" value={item.icon ?? 'sparkles'} onChange={(event) => update(index, { icon: event.target.value })}>{ABOUT_SECTION_ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}</select></label>
+        <label><span className="label">Tiêu đề</span><input className="input" value={item.title ?? ''} onChange={(event) => update(index, { title: event.target.value })} /></label>
+        <label className="md:col-span-2"><span className="label">Mô tả</span><textarea className="input" value={item.description ?? ''} onChange={(event) => update(index, { description: event.target.value })} /></label>
+      </>}
+      <button type="button" className="btn-secondary justify-self-start px-3 text-red-700" aria-label={`Xóa mục ${index + 1}`} onClick={() => onChange(items.filter((_, i) => i !== index))}><Trash2 size={16} />Xóa mục</button>
     </div>)}
-    <button type="button" className="btn-secondary justify-self-start" onClick={() => onChange([...items, { icon: 'sparkles', title: '', description: '' }])}>Thêm mục</button>
+    <button type="button" className="btn-secondary justify-self-start" onClick={() => onChange([...items, isTestimonial ? { quote: '', name: '', role: '', rating: 5 } : { icon: 'sparkles', title: '', description: '' }])}>Thêm mục</button>
+  </div>
+}
+
+function StepsEditor({ steps, onChange }: { steps: AboutSectionItem[]; onChange: (steps: AboutSectionItem[]) => void }) {
+  const update = (index: number, patch: Partial<AboutSectionItem>) => onChange(steps.map((step, i) => (i === index ? { ...step, ...patch } : step)))
+  return <div className="grid gap-3">
+    {steps.map((step, index) => <div key={index} className="grid gap-2 rounded-2xl border border-slate-200 p-3 md:grid-cols-[160px_1fr_auto]">
+      <label><span className="label">Nhãn bước</span><input className="input" value={step.label ?? ''} onChange={(event) => update(index, { label: event.target.value })} /></label>
+      <label><span className="label">Nội dung bước</span><input className="input" value={step.title ?? ''} onChange={(event) => update(index, { title: event.target.value })} /></label>
+      <button type="button" className="btn-secondary self-end px-3 text-red-700" aria-label={`Xóa bước ${index + 1}`} onClick={() => onChange(steps.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
+    </div>)}
+    <button type="button" className="btn-secondary justify-self-start" onClick={() => onChange([...steps, { label: '', title: '' }])}>Thêm bước</button>
   </div>
 }
 
@@ -40,6 +56,7 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
   const client = useQueryClient()
   const [errors, setErrors] = useState<SectionErrors>({})
   const [items, setItems] = useState<AboutSectionItem[]>(section.settings?.items ?? [])
+  const [steps, setSteps] = useState<AboutSectionItem[]>(section.settings?.steps ?? [])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -71,11 +88,19 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
       cta_url: String(form.get('cta_url') ?? '') || null,
       sort_order: Number(form.get('sort_order') ?? 0),
       is_active: form.get('is_active') === 'on',
-      settings: {
-        secondary_cta_label: String(form.get('secondary_cta_label') ?? '') || undefined,
-        secondary_cta_url: String(form.get('secondary_cta_url') ?? '') || undefined,
-        ...(hasItems ? { items } : {}),
-      },
+      settings: buildAboutSectionSettings(section, {
+        secondaryCtaLabel: String(form.get('secondary_cta_label') ?? ''),
+        secondaryCtaUrl: String(form.get('secondary_cta_url') ?? ''),
+        imageBadge: String(form.get('image_badge') ?? ''),
+        layout: form.get('layout') === 'image-right' ? 'image-right' : 'image-left',
+        quote: String(form.get('quote') ?? ''),
+        captionTitle: String(form.get('caption_title') ?? ''),
+        captionSubtitle: String(form.get('caption_subtitle') ?? ''),
+        trustItems: String(form.get('trust_items') ?? ''),
+        pills: String(form.get('pills') ?? ''),
+        floatingCardTitle: String(form.get('floating_card_title') ?? ''),
+        floatingCardSubtitle: String(form.get('floating_card_subtitle') ?? ''),
+      }, items, steps),
     }
     try {
       if (imageFile) {
@@ -124,7 +149,23 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
       </div>
       {imageFile && <p className="text-sm font-semibold text-slate-600">Ảnh mới sẽ được tải lên khi lưu: {imageFile.name}</p>}
     </div>
-    {hasItems && <div><span className="label">Danh sách mục hiển thị</span><ItemsEditor items={items} onChange={setItems} /></div>}
+    {section.section_type === 'hero' && <div className="grid gap-4 rounded-2xl border border-slate-200 p-4 md:grid-cols-2">
+      <label><span className="label">Nhãn trên ảnh</span><input className="input" name="image_badge" defaultValue={section.settings?.image_badge ?? ''} /></label>
+      <label className="md:col-span-2"><span className="label">Điểm tin cậy (mỗi dòng một mục)</span><textarea className="input min-h-28" name="trust_items" defaultValue={(section.settings?.trust_items ?? []).join('\n')} /></label>
+    </div>}
+    {section.section_type === 'rich_text_image' && <div className="grid gap-4 rounded-2xl border border-slate-200 p-4 md:grid-cols-2">
+      <label><span className="label">Vị trí ảnh</span><select className="input" name="layout" defaultValue={section.settings?.layout ?? 'image-left'}><option value="image-left">Ảnh bên trái</option><option value="image-right">Ảnh bên phải</option></select></label>
+      <label className="md:col-span-2"><span className="label">Trích dẫn nổi bật</span><textarea className="input" name="quote" defaultValue={section.settings?.quote ?? ''} /></label>
+      <label className="md:col-span-2"><span className="label">Nhãn ngắn (mỗi dòng một mục)</span><textarea className="input" name="pills" defaultValue={(section.settings?.pills ?? []).join('\n')} /></label>
+      <label><span className="label">Tiêu đề thẻ nổi</span><input className="input" name="floating_card_title" defaultValue={section.settings?.floating_card?.title ?? ''} /></label>
+      <label><span className="label">Mô tả thẻ nổi</span><input className="input" name="floating_card_subtitle" defaultValue={section.settings?.floating_card?.subtitle ?? ''} /></label>
+      <div className="md:col-span-2"><span className="label">Các bước hiển thị</span><StepsEditor steps={steps} onChange={setSteps} /></div>
+    </div>}
+    {section.section_type === 'showcase' && <div className="grid gap-4 rounded-2xl border border-slate-200 p-4 md:grid-cols-2">
+      <label><span className="label">Tiêu đề chú thích ảnh</span><input className="input" name="caption_title" defaultValue={section.settings?.caption_title ?? ''} /></label>
+      <label><span className="label">Mô tả chú thích ảnh</span><input className="input" name="caption_subtitle" defaultValue={section.settings?.caption_subtitle ?? ''} /></label>
+    </div>}
+    {hasItems && <div><span className="label">Danh sách mục hiển thị</span><ItemsEditor items={items} onChange={setItems} sectionType={section.section_type} /></div>}
     <div className="flex flex-wrap gap-2">
       <button className="btn-primary" disabled={mutation.isPending || uploading}>{mutation.isPending || uploading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}Lưu section</button>
       <a className="btn-secondary" href="/gioi-thieu" target="_blank" rel="noreferrer">Xem trang public <ExternalLink size={16} /></a>

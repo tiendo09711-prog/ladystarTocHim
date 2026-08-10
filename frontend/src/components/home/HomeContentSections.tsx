@@ -1,13 +1,15 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, MessageCircle, MoveUpRight, Sparkles, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { homeMediaStyle } from '../../config/homeMedia'
 import type { HomePageSections } from '../../types'
 import { resolveAssetUrl } from '../../utils/assetUrl'
+import { FixedMediaFrame } from '../common/FixedMediaFrame'
 
 export function BrandStory({ content, imagePath }: { content: HomePageSections['brand_story']; imagePath?: string | null }) {
   return <section className="home-story-section">
     <div className="container-page home-story-grid">
-      <div className="home-story-image"><img src={resolveAssetUrl(imagePath, '/images/brand/ladystars-hero.svg')} alt={content.image_alt} /></div>
+      <FixedMediaFrame mediaKey="brandStory" className="home-story-image" src={imagePath} fallback="/images/brand/ladystars-hero.svg" alt={content.image_alt} positionX={content.image_position_x} positionY={content.image_position_y} />
       <div className="home-story-copy">
         <p className="home-kicker">{content.kicker}</p>
         <h2>{content.title}</h2>
@@ -20,24 +22,27 @@ export function BrandStory({ content, imagePath }: { content: HomePageSections['
 }
 
 export function SolutionsAndStyles({ solutions, styles }: { solutions: HomePageSections['solutions']; styles: HomePageSections['styles'] }) {
+  const solutionCaption = solutions.art_text.trim()
+
   return <>
     <section className="container-page home-section home-solution-grid">
       <div className="home-solution-copy">
         <p className="home-kicker">{solutions.kicker}</p>
         <h2>{solutions.title}</h2>
         <p>{solutions.description}</p>
-        <ul>{solutions.bullets.map((item) => <li key={item}><Check size={18} />{item}</li>)}</ul>
-        <Link to={solutions.cta_url} className="btn-primary">{solutions.cta_label} <ArrowRight size={18} /></Link>
+        <ul className="home-solution-benefits">{solutions.bullets.map((item, index) => <li key={`${item}-${index}`}><span><Check size={14} /></span><strong>{item}</strong></li>)}</ul>
+        <Link to={solutions.cta_url} className="btn-primary home-solution-cta">{solutions.cta_label} <ArrowRight size={18} /></Link>
       </div>
-      <div className={`home-solution-art ${solutions.image_path ? 'has-image' : ''}`}>
-        {solutions.image_path && <img src={resolveAssetUrl(solutions.image_path)} alt={solutions.image_alt} />}
-        {!solutions.image_path && <><span>L</span><span>S</span></>}
-        <p>{solutions.art_text.split('\n').map((line, index) => <Fragment key={line}>{index > 0 && <br />}{line}</Fragment>)}</p>
+      <div className="home-solution-visual">
+        <FixedMediaFrame mediaKey="solution" className={`home-solution-art ${solutions.image_path ? 'has-image' : ''}`} src={solutions.image_path} fallback={solutions.image_path ? '/images/product-placeholder.svg' : undefined} alt={solutions.image_alt} positionX={solutions.image_position_x} positionY={solutions.image_position_y}>
+          {!solutions.image_path && <><span>L</span><span>S</span></>}
+          {solutionCaption && <p>{solutionCaption}</p>}
+        </FixedMediaFrame>
       </div>
     </section>
     <section className="container-page home-section" aria-labelledby="style-inspiration-title">
       <div className="home-section-heading"><p className="home-kicker"><Sparkles size={15} /> {styles.kicker}</p><h2 id="style-inspiration-title">{styles.title}</h2></div>
-      <div className="home-style-grid">{styles.items.map((item, index) => <Link to={item.url} className={`home-style-card home-style-card-${index + 1} ${item.image_path ? 'has-image' : ''}`} key={item.title}>{item.image_path && <img src={resolveAssetUrl(item.image_path)} alt={item.image_alt} />}<span>0{index + 1}</span><div><h3>{item.title}</h3><p>{item.description}</p><strong>Khám phá <MoveUpRight size={17} /></strong></div></Link>)}</div>
+      <div className="home-style-grid">{styles.items.map((item, index) => <Link to={item.url} className={`home-style-card home-style-card-${index + 1} ${item.image_path ? 'has-image' : ''}`} style={homeMediaStyle('inspiration')} key={item.title}>{item.image_path && <FixedMediaFrame mediaKey="inspiration" className="home-style-card-media" src={item.image_path} fallback="/images/product-placeholder.svg" alt={item.image_alt} positionX={item.image_position_x} positionY={item.image_position_y} />}<span>0{index + 1}</span><div className="home-style-card-content"><h3>{item.title}</h3><p>{item.description}</p><strong>Khám phá <MoveUpRight size={17} /></strong></div></Link>)}</div>
     </section>
   </>
 }
@@ -46,7 +51,7 @@ export function ServiceProcess({ content }: { content: HomePageSections['process
   return <section className="home-process-section">
     <div className="container-page">
       <div className="home-section-heading home-section-heading-center"><p className="home-kicker">{content.kicker}</p><h2>{content.title}</h2><p>{content.description}</p></div>
-      <div className="home-process-grid">{content.steps.map((step) => <article className={step.image_path ? 'has-image' : ''} key={`${step.number}-${step.title}`}>{step.image_path && <img src={resolveAssetUrl(step.image_path)} alt={step.image_alt} />}<div><span>{step.number}</span><h3>{step.title}</h3><p>{step.description}</p></div></article>)}</div>
+      <div className="home-process-grid">{content.steps.map((step) => <article className={step.image_path ? 'has-image' : ''} key={`${step.number}-${step.title}`}>{step.image_path && <FixedMediaFrame mediaKey="process" className="home-process-media" src={step.image_path} fallback="/images/product-placeholder.svg" alt={step.image_alt} positionX={step.image_position_x} positionY={step.image_position_y} />}<div className="home-process-content"><span>{step.number}</span><h3>{step.title}</h3><p>{step.description}</p></div></article>)}</div>
       <div className="home-center-action"><Link to={content.cta_url} className="btn-primary">{content.cta_label} <CalendarDays size={18} /></Link></div>
     </div>
   </section>
@@ -78,9 +83,9 @@ export function Testimonials({ content }: { content: HomePageSections['testimoni
 
   return <section className="container-page home-section" aria-labelledby="testimonial-title">
     <div className="home-section-heading home-testimonial-heading"><div><p className="home-kicker">{content.kicker}</p><h2 id="testimonial-title">{content.title}</h2></div><div className="home-carousel-controls"><button type="button" onClick={showPrevious} aria-label="Xem cảm nhận trước"><ChevronLeft size={20} /></button><button type="button" onClick={showNext} aria-label="Xem cảm nhận tiếp theo"><ChevronRight size={20} /></button></div></div>
-    <div className="home-testimonial-grid">{content.items.map((item, index) => <button type="button" className={index === activeIndex ? 'is-active' : ''} key={`${item.quote}-${item.customer}`} onClick={() => setSelectedIndex(index)} aria-label={`Đọc cảm nhận: ${item.detail_title}`}>{item.image_path && <img src={resolveAssetUrl(item.image_path)} alt={item.image_alt} />}<span>“</span><p>{item.quote}</p><strong>{item.customer}</strong><small>{item.label}</small><em>Đọc câu chuyện</em></button>)}</div>
-    <button type="button" className="home-testimonial-mobile" onClick={() => setSelectedIndex(activeIndex)} aria-label={`Đọc cảm nhận: ${activeTestimonial.detail_title}`}>{activeTestimonial.image_path && <img src={resolveAssetUrl(activeTestimonial.image_path)} alt={activeTestimonial.image_alt} />}<span>“</span><p>{activeTestimonial.quote}</p><strong>{activeTestimonial.customer}</strong><small>{activeTestimonial.label}</small><em>Đọc câu chuyện</em></button>
-    {selectedTestimonial && <div className="home-testimonial-dialog-backdrop" role="presentation" onMouseDown={() => setSelectedIndex(null)}><article className="home-testimonial-dialog" role="dialog" aria-modal="true" aria-labelledby="home-testimonial-dialog-title" onMouseDown={(event) => event.stopPropagation()}><button ref={closeButtonRef} type="button" className="home-testimonial-dialog-close" onClick={() => setSelectedIndex(null)} aria-label="Đóng bài cảm nhận"><X size={20} /></button>{selectedTestimonial.image_path && <img src={resolveAssetUrl(selectedTestimonial.image_path)} alt={selectedTestimonial.image_alt} />}<div><p className="home-kicker">{selectedTestimonial.label}</p><h2 id="home-testimonial-dialog-title">{selectedTestimonial.detail_title}</h2><blockquote>“{selectedTestimonial.quote}”</blockquote><p className="home-testimonial-dialog-detail">{selectedTestimonial.detail}</p><strong>{selectedTestimonial.customer}</strong></div></article></div>}
+    <div className="home-testimonial-grid">{content.items.map((item, index) => <button type="button" className={index === activeIndex ? 'is-active' : ''} key={`${item.quote}-${item.customer}`} onClick={() => setSelectedIndex(index)} aria-label={`Đọc cảm nhận: ${item.detail_title}`}>{item.image_path && <FixedMediaFrame mediaKey="testimonial" className="home-testimonial-media" src={item.image_path} fallback="/images/product-placeholder.svg" alt={item.image_alt} positionX={item.image_position_x} positionY={item.image_position_y} />}<span>“</span><p>{item.quote}</p><strong>{item.customer}</strong><small>{item.label}</small><em>Đọc câu chuyện</em></button>)}</div>
+    <button type="button" className="home-testimonial-mobile" onClick={() => setSelectedIndex(activeIndex)} aria-label={`Đọc cảm nhận: ${activeTestimonial.detail_title}`}>{activeTestimonial.image_path && <FixedMediaFrame mediaKey="testimonial" className="home-testimonial-media" src={activeTestimonial.image_path} fallback="/images/product-placeholder.svg" alt={activeTestimonial.image_alt} positionX={activeTestimonial.image_position_x} positionY={activeTestimonial.image_position_y} />}<span>“</span><p>{activeTestimonial.quote}</p><strong>{activeTestimonial.customer}</strong><small>{activeTestimonial.label}</small><em>Đọc câu chuyện</em></button>
+    {selectedTestimonial && <div className="home-testimonial-dialog-backdrop" role="presentation" onMouseDown={() => setSelectedIndex(null)}><article className="home-testimonial-dialog" role="dialog" aria-modal="true" aria-labelledby="home-testimonial-dialog-title" onMouseDown={(event) => event.stopPropagation()}><button ref={closeButtonRef} type="button" className="home-testimonial-dialog-close" onClick={() => setSelectedIndex(null)} aria-label="Đóng bài cảm nhận"><X size={20} /></button>{selectedTestimonial.image_path && <img src={resolveAssetUrl(selectedTestimonial.image_path)} alt={selectedTestimonial.image_alt} style={{ objectPosition: `${selectedTestimonial.image_position_x ?? 50}% ${selectedTestimonial.image_position_y ?? 50}%` }} />}<div><p className="home-kicker">{selectedTestimonial.label}</p><h2 id="home-testimonial-dialog-title">{selectedTestimonial.detail_title}</h2><blockquote>“{selectedTestimonial.quote}”</blockquote><p className="home-testimonial-dialog-detail">{selectedTestimonial.detail}</p><strong>{selectedTestimonial.customer}</strong></div></article></div>}
   </section>
 }
 

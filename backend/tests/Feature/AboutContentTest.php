@@ -44,6 +44,11 @@ class AboutContentTest extends TestCase
         $admin = $this->admin();
         $section = AboutSection::where('section_key', 'commitments')->firstOrFail();
 
+        $this->actingAs($admin)->getJson('/api/v1/admin/about/sections')
+            ->assertOk()
+            ->assertJsonPath('data.0.settings.image_badge', 'Hair system · Toupee · Personal styling')
+            ->assertJsonMissingPath('data.0.settings_json');
+
         $this->actingAs($admin)->putJson('/api/v1/admin/about/sections/'.$section->id, [
             'title' => 'Cam kết đã chỉnh sửa',
             'settings' => ['items' => [['icon' => 'heart', 'title' => 'Mới', 'description' => 'Mô tả mới.']]],

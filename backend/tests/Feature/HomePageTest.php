@@ -30,8 +30,12 @@ class HomePageTest extends TestCase
             ->assertJsonPath('data.sections.hero.title', 'Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn.')
             ->assertJsonPath('data.sections.solutions.image_path', null)
             ->assertJsonPath('data.sections.styles.items.0.image_alt', 'Phong cách tự nhiên hằng ngày')
+            ->assertJsonPath('data.sections.styles.items.0.image_position_x', 50)
+            ->assertJsonPath('data.sections.styles.items.0.image_position_y', 50)
             ->assertJsonPath('data.sections.process.steps.0.image_alt', 'Bước lắng nghe nhu cầu')
+            ->assertJsonPath('data.sections.process.steps.0.image_position_x', 50)
             ->assertJsonPath('data.sections.testimonials.items.0.detail_title', 'Một lựa chọn rõ ràng và an tâm hơn')
+            ->assertJsonPath('data.sections.testimonials.items.0.image_position_y', 50)
             ->assertJsonPath('data.hero_image_path', null)
             ->assertJsonPath('data.brand_story_image_path', null);
     }
@@ -41,6 +45,18 @@ class HomePageTest extends TestCase
         $admin = $this->admin();
         $sections = HomePageContent::defaultSections();
         $sections['hero']['title'] = 'Hero đã cập nhật từ admin';
+        $sections['hero']['image_position_x'] = 36;
+        $sections['hero']['image_position_y'] = 42;
+        $sections['brand_story']['image_position_x'] = 47;
+        $sections['brand_story']['image_position_y'] = 39;
+        $sections['solutions']['image_position_x'] = 61;
+        $sections['solutions']['image_position_y'] = 37;
+        $sections['styles']['items'][0]['image_position_x'] = 58;
+        $sections['styles']['items'][0]['image_position_y'] = 29;
+        $sections['process']['steps'][0]['image_position_x'] = 55;
+        $sections['process']['steps'][0]['image_position_y'] = 41;
+        $sections['testimonials']['items'][0]['image_position_x'] = 46;
+        $sections['testimonials']['items'][0]['image_position_y'] = 35;
 
         $this->actingAs($admin)->putJson('/api/v1/admin/home-page', [
             'announcement_enabled' => true,
@@ -51,7 +67,14 @@ class HomePageTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.announcement_messages.0', 'Thông báo đầu tiên')
             ->assertJsonPath('data.announcement_interval_seconds', 7)
-            ->assertJsonPath('data.sections.hero.title', 'Hero đã cập nhật từ admin');
+            ->assertJsonPath('data.sections.hero.title', 'Hero đã cập nhật từ admin')
+            ->assertJsonPath('data.sections.hero.image_position_x', 36)
+            ->assertJsonPath('data.sections.hero.image_position_y', 42)
+            ->assertJsonPath('data.sections.brand_story.image_position_x', 47)
+            ->assertJsonPath('data.sections.solutions.image_position_y', 37)
+            ->assertJsonPath('data.sections.styles.items.0.image_position_x', 58)
+            ->assertJsonPath('data.sections.process.steps.0.image_position_y', 41)
+            ->assertJsonPath('data.sections.testimonials.items.0.image_position_x', 46);
 
         $this->assertDatabaseHas('home_page_contents', [
             'page_key' => 'home',
@@ -59,6 +82,10 @@ class HomePageTest extends TestCase
         ]);
         $this->assertSame(['Thông báo đầu tiên', 'Thông báo thứ hai'], HomePageContent::current()->announcement_messages);
         $this->assertSame('Hero đã cập nhật từ admin', HomePageContent::current()->sections['hero']['title']);
+        $this->assertSame(36, HomePageContent::current()->sections['hero']['image_position_x']);
+        $this->assertSame(42, HomePageContent::current()->sections['hero']['image_position_y']);
+        $this->assertSame(58, HomePageContent::current()->sections['styles']['items'][0]['image_position_x']);
+        $this->assertSame(35, HomePageContent::current()->sections['testimonials']['items'][0]['image_position_y']);
     }
 
     public function test_admin_can_upload_and_remove_home_page_section_images(): void

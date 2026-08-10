@@ -22,12 +22,12 @@ class AboutManagementController extends Controller
 
     public function index()
     {
-        return $this->success(AboutSection::orderBy('sort_order')->get());
+        return $this->success(AboutSection::orderBy('sort_order')->get()->map(fn (AboutSection $section) => $this->serializeSection($section))->values());
     }
 
     public function show(AboutSection $section)
     {
-        return $this->success($section);
+        return $this->success($this->serializeSection($section));
     }
 
     public function store(AboutSectionRequest $request)
@@ -37,7 +37,7 @@ class AboutManagementController extends Controller
         unset($data['settings']);
         $section = AboutSection::create($data + ['published_at' => now()]);
 
-        return $this->success($section, 'Đã tạo section.', 201);
+        return $this->success($this->serializeSection($section), 'Đã tạo section.', 201);
     }
 
     public function update(AboutSectionRequest $request, AboutSection $section)
@@ -49,7 +49,7 @@ class AboutManagementController extends Controller
         }
         $section->update($data);
 
-        return $this->success($section->fresh(), 'Đã lưu section.');
+        return $this->success($this->serializeSection($section->fresh()), 'Đã lưu section.');
     }
 
     public function reorder(Request $request)
@@ -62,7 +62,9 @@ class AboutManagementController extends Controller
             AboutSection::whereKey($id)->update(['sort_order' => $index + 1]);
         }
 
-        return $this->success(AboutSection::orderBy('sort_order')->get(), 'Đã cập nhật thứ tự section.');
+        $sections = AboutSection::orderBy('sort_order')->get()->map(fn (AboutSection $section) => $this->serializeSection($section))->values();
+
+        return $this->success($sections, 'Đã cập nhật thứ tự section.');
     }
 
     public function status(Request $request, AboutSection $section)
@@ -70,7 +72,7 @@ class AboutManagementController extends Controller
         $data = $request->validate(['is_active' => ['required', 'boolean']]);
         $section->update(['is_active' => $data['is_active']]);
 
-        return $this->success($section->fresh());
+        return $this->success($this->serializeSection($section->fresh()));
     }
 
     public function uploadImage(Request $request, AboutSection $section)
@@ -88,7 +90,7 @@ class AboutManagementController extends Controller
         $section->update([$column => $path] + ($slot === 'primary' && array_key_exists('image_alt', $data) ? ['image_alt' => $data['image_alt']] : []));
         $this->deleteStoredFile($oldPath);
 
-        return $this->success($section->fresh(), 'Tải ảnh thành công.', 201);
+        return $this->success($this->serializeSection($section->fresh()), 'Tải ảnh thành công.', 201);
     }
 
     public function deleteImage(Request $request, AboutSection $section)
@@ -98,7 +100,7 @@ class AboutManagementController extends Controller
         $this->deleteStoredFile($section->{$column});
         $section->update([$column => null]);
 
-        return $this->success($section->fresh(), 'Đã xóa ảnh.');
+        return $this->success($this->serializeSection($section->fresh()), 'Đã xóa ảnh.');
     }
 
     public function seos()
@@ -116,6 +118,15 @@ class AboutManagementController extends Controller
         $seo = PageSeo::updateOrCreate(['page_key' => $pageKey], $data);
 
         return $this->success($seo, 'Đã lưu SEO trang.');
+    }
+
+    private function serializeSection(AboutSection $section): array
+    {
+        $data = $section->toArray();
+        $data['settings'] = $section->settings_json ?? [];
+        unset($data['settings_json']);
+
+        return $data;
     }
 
     private function deleteStoredFile(?string $path): void

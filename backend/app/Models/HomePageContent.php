@@ -61,7 +61,27 @@ class HomePageContent extends Model
             }
         }
 
+        foreach (['hero', 'brand_story', 'solutions'] as $section) {
+            $sections[$section]['image_position_x'] = $this->imagePosition($sections[$section]['image_position_x'] ?? null);
+            $sections[$section]['image_position_y'] = $this->imagePosition($sections[$section]['image_position_y'] ?? null);
+        }
+
+        foreach ([['styles', 'items'], ['process', 'steps'], ['testimonials', 'items']] as [$section, $listKey]) {
+            foreach ($sections[$section][$listKey] as &$item) {
+                $item['image_position_x'] = $this->imagePosition($item['image_position_x'] ?? null);
+                $item['image_position_y'] = $this->imagePosition($item['image_position_y'] ?? null);
+            }
+            unset($item);
+        }
+
         return $sections;
+    }
+
+    private function imagePosition(mixed $value): float|int
+    {
+        if (! is_numeric($value)) return 50;
+
+        return min(100, max(0, $value + 0));
     }
 
     public static function defaultSections(): array

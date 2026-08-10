@@ -96,16 +96,16 @@ export interface ContactPageData { content: ContactPageContent | null; store: Co
 export interface ContactPageAdminData { content: ContactPageContent; seo?: NewsPageSeo | null }
 export interface HomeTextItem { title: string; description: string }
 export interface HomeLinkedItem extends HomeTextItem { url: string }
-export interface HomeImageFields { image_path?: string | null; image_alt: string }
+export interface HomeImageFields { image_path?: string | null; image_alt: string; image_position_x?: number; image_position_y?: number }
 export interface HomeImageLinkedItem extends HomeLinkedItem, HomeImageFields {}
 export interface HomeProcessStep extends HomeTextItem, HomeImageFields { number: string }
 export interface HomeTestimonial extends HomeImageFields { quote: string; customer: string; label: string; detail_title: string; detail: string }
 export interface HomePageSections {
-  hero: { eyebrow: string; title: string; description: string; primary_label: string; primary_url: string; secondary_label: string; secondary_url: string; trust_items: string[]; note_label: string; note_value: string }
+  hero: { eyebrow: string; title: string; description: string; primary_label: string; primary_url: string; secondary_label: string; secondary_url: string; trust_items: string[]; note_label: string; note_value: string; image_position_x?: number; image_position_y?: number }
   consultation: { kicker: string; title: string; description: string; options: string[]; cta_label: string; cta_url: string }
   products: { kicker: string; title: string; description: string; featured_label: string; view_all_label: string; view_all_url: string }
-  brand_story: { kicker: string; title: string; description: string; image_alt: string; values: HomeTextItem[]; cta_label: string; cta_url: string }
-  solutions: { kicker: string; title: string; description: string; bullets: string[]; cta_label: string; cta_url: string; art_text: string; image_path?: string | null; image_alt: string }
+  brand_story: { kicker: string; title: string; description: string; image_alt: string; image_position_x?: number; image_position_y?: number; values: HomeTextItem[]; cta_label: string; cta_url: string }
+  solutions: { kicker: string; title: string; description: string; bullets: string[]; cta_label: string; cta_url: string; art_text: string; image_path?: string | null; image_alt: string; image_position_x?: number; image_position_y?: number }
   styles: { kicker: string; title: string; items: HomeImageLinkedItem[] }
   process: { kicker: string; title: string; description: string; steps: HomeProcessStep[]; cta_label: string; cta_url: string }
   testimonials: { kicker: string; title: string; items: HomeTestimonial[] }

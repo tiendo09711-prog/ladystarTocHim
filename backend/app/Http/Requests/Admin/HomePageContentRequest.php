@@ -68,6 +68,17 @@ class HomePageContentRequest extends FormRequest
             $rules["sections.{$field}.*"] = ['required', 'string', 'max:190'];
         }
 
+        foreach ([
+            'hero.image_position_x', 'hero.image_position_y',
+            'brand_story.image_position_x', 'brand_story.image_position_y',
+            'solutions.image_position_x', 'solutions.image_position_y',
+            'styles.items.*.image_position_x', 'styles.items.*.image_position_y',
+            'process.steps.*.image_position_x', 'process.steps.*.image_position_y',
+            'testimonials.items.*.image_position_x', 'testimonials.items.*.image_position_y',
+        ] as $field) {
+            $rules["sections.{$field}"] = ['sometimes', 'numeric', 'min:0', 'max:100'];
+        }
+
         $rules += [
             'sections.brand_story.values' => ['required', 'array', 'min:1', 'max:8'],
             'sections.brand_story.values.*.title' => ['required', 'string', 'max:120'],
