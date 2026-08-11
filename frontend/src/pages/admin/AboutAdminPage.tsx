@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, ExternalLink, Eye, EyeOff, ImagePlus, Loader2, Save, Trash2, X } from 'lucide-react'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
+import { AdminImageCropDialog } from '../../components/admin/HomeImageCropEditor'
 import { LoadingState } from '../../components/common/LoadingState'
+import { ABOUT_MEDIA, type AboutImageSectionType } from '../../config/aboutMedia'
 import { ABOUT_SECTION_ICONS } from '../../data/aboutContent'
 import { buildAboutSectionSettings } from '../../features/admin/aboutSettings'
 import type { AboutSection, AboutSectionItem, AboutSectionType, ApiResponse, PageSeo } from '../../types'
@@ -59,8 +61,15 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
   const [steps, setSteps] = useState<AboutSectionItem[]>(section.settings?.steps ?? [])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [cropSourceFile, setCropSourceFile] = useState<File | null>(null)
+  const [imageSelectionError, setImageSelectionError] = useState('')
   const [uploading, setUploading] = useState(false)
   const hasItems = listSectionTypes.includes(section.section_type)
+  const imageCrop = ABOUT_MEDIA[section.section_type as AboutImageSectionType]
+
+  useEffect(() => () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+  }, [imagePreview])
 
   const mutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => (await apiClient.put<ApiResponse<AboutSection>>(`/admin/about/sections/${section.id}`, payload)).data,
@@ -70,8 +79,20 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
 
   const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
+    event.target.value = ''
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setImageSelectionError('Ảnh phải là JPG, PNG hoặc WebP và không quá 5 MB.')
+      return
+    }
+    setImageSelectionError('')
+    setCropSourceFile(file)
+  }
+
+  const confirmCrop = (file: File) => {
+    setCropSourceFile(null)
     setImageFile(file)
-    setImagePreview(file ? URL.createObjectURL(file) : null)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
@@ -140,15 +161,18 @@ function SectionForm({ section, onClose }: { section: AboutSection; onClose: () 
       <label><span className="label">Alt text ảnh</span><input className="input" name="image_alt" defaultValue={section.image_alt ?? ''} />{fieldError(errors, 'image_alt')}</label>
       <label className="flex items-end gap-2 pb-2"><input type="checkbox" name="is_active" defaultChecked={section.is_active ?? true} /> Đang hiển thị</label>
     </div>
-    <div className="grid gap-3 rounded-2xl border border-dashed border-slate-300 p-4">
+    {imageCrop && <div className="grid gap-3 rounded-2xl border border-dashed border-slate-300 p-4">
       <span className="label">Ảnh section</span>
+      <p className="muted text-sm">Khung hiển thị: {imageCrop.label}. Ảnh tỷ lệ bất kỳ sẽ được cắt để fill đầy khung, không kéo giãn hay làm đổi kích thước bố cục.</p>
       <div className="flex flex-wrap items-center gap-4">
-        {(imagePreview || section.image_path) && <img src={imagePreview ?? resolveAssetUrl(section.image_path)} alt={section.image_alt ?? 'Ảnh section'} className="h-24 w-36 rounded-xl object-cover" />}
-        <label className="btn-secondary"><ImagePlus size={17} />Chọn ảnh mới<input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} /></label>
+        {(imagePreview || section.image_path) && <div className="about-image-admin-preview" style={{ aspectRatio: `${imageCrop.width} / ${imageCrop.height}` }}><img src={imagePreview ?? resolveAssetUrl(section.image_path)} alt={section.image_alt ?? 'Ảnh section'} /></div>}
+        <label className="btn-secondary"><ImagePlus size={17} />Chọn và cắt ảnh<input className="hidden" aria-label={`Chọn ảnh ${sectionKeyLabels[section.section_key] ?? section.section_key}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} /></label>
         {section.image_path && <button type="button" className="btn-secondary text-red-700" onClick={removeImage}><Trash2 size={16} />Xóa ảnh</button>}
       </div>
-      {imageFile && <p className="text-sm font-semibold text-slate-600">Ảnh mới sẽ được tải lên khi lưu: {imageFile.name}</p>}
-    </div>
+      {imageSelectionError && <p className="text-sm font-semibold text-red-700">{imageSelectionError}</p>}
+      {imageFile && <p className="text-sm font-semibold text-slate-600">Ảnh đã cắt sẽ được tải lên khi lưu: {imageFile.name}</p>}
+      {cropSourceFile && <AdminImageCropDialog file={cropSourceFile} title={sectionKeyLabels[section.section_key] ?? section.section_key} crop={imageCrop} onCancel={() => setCropSourceFile(null)} onConfirm={confirmCrop} />}
+    </div>}
     {section.section_type === 'hero' && <div className="grid gap-4 rounded-2xl border border-slate-200 p-4 md:grid-cols-2">
       <label><span className="label">Nhãn trên ảnh</span><input className="input" name="image_badge" defaultValue={section.settings?.image_badge ?? ''} /></label>
       <label className="md:col-span-2"><span className="label">Điểm tin cậy (mỗi dòng một mục)</span><textarea className="input min-h-28" name="trust_items" defaultValue={(section.settings?.trust_items ?? []).join('\n')} /></label>

@@ -112,6 +112,49 @@ test('admin cắt ảnh Hero đúng tỷ lệ trước khi upload', async ({ pag
   expect(uploadedBody!.includes(Buffer.from('image/webp'))).toBeTruthy()
 })
 
+test('mọi nhóm ảnh Home Page đều mở cùng trình crop đúng tỷ lệ', async ({ page }) => {
+  await mockAdmin(page)
+  await page.goto('/admin/login')
+  await page.getByRole('button', { name: 'Đăng nhập' }).click()
+  await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
+  await page.goto('/admin/home-page')
+
+  const imageBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 800
+    canvas.height = 1200
+    const context = canvas.getContext('2d')!
+    context.fillStyle = '#7f3f52'
+    context.fillRect(0, 0, 800, 600)
+    context.fillStyle = '#efc2cc'
+    context.fillRect(0, 600, 800, 600)
+    return canvas.toDataURL('image/png').split(',')[1]
+  })
+  const imageFile = { name: 'home-section-source.png', mimeType: 'image/png', buffer: Buffer.from(imageBase64, 'base64') }
+  const targets = [
+    { section: 'Nội dung Hero', input: 'Chọn ảnh Hero', dialog: 'Cắt ảnh Hero', ratio: '16:9', badge: 'Cắt ảnh 16:9' },
+    { section: 'Câu chuyện thương hiệu', input: 'Chọn ảnh Câu chuyện thương hiệu', dialog: 'Cắt ảnh Câu chuyện thương hiệu', ratio: '1:1', badge: 'Cắt ảnh 1:1' },
+    { section: 'Giải pháp dành cho bạn', input: 'Chọn ảnh Giải pháp dành cho bạn', dialog: 'Cắt ảnh Giải pháp dành cho bạn', ratio: '6:5', badge: 'Cắt ảnh 6:5' },
+    { section: 'Cảm hứng phong cách', input: 'Chọn ảnh Phong cách 1', dialog: 'Cắt ảnh Phong cách 1', ratio: '4:3', badge: 'Cắt từng ảnh 4:3' },
+    { section: 'Quy trình LADYSTARS', input: 'Chọn ảnh Bước 01', dialog: 'Cắt ảnh Bước 01', ratio: '16:9', badge: 'Cắt từng ảnh 16:9' },
+    { section: 'Cảm nhận khách hàng', input: 'Chọn ảnh Cảm nhận 1', dialog: 'Cắt ảnh Cảm nhận 1', ratio: '16:9', badge: 'Cắt từng ảnh 16:9' },
+  ]
+
+  for (const target of targets) {
+    const details = page.locator('details').filter({ hasText: target.section }).first()
+    if (!(await details.evaluate((element) => (element as HTMLDetailsElement).open))) await details.locator('summary').click()
+    await expect(details.getByText(target.badge, { exact: true })).toBeVisible()
+    await details.getByLabel(target.input, { exact: true }).first().setInputFiles(imageFile)
+    const dialog = page.getByRole('dialog', { name: target.dialog })
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(`tỷ lệ ${target.ratio}`)
+    await page.getByRole('button', { name: 'Đóng trình cắt ảnh' }).click()
+    await expect(dialog).toBeHidden()
+  }
+
+  await page.screenshot({ path: '../artifacts/admin-home-all-crop-sections.png', fullPage: true })
+})
+
 test('admin lưu danh sách lợi ích theo từng dòng', async ({ page }) => {
   let savedPayload: typeof homeContent | null = null
   let serverContent = homeContent

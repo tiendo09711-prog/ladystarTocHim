@@ -1,9 +1,16 @@
 import { ImagePlus, Loader2, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import { HOME_MEDIA, type HomeMediaKey } from '../../config/homeMedia'
+import { HOME_MEDIA, type HomeMediaKey, type ImageCropPreset } from '../../config/homeMedia'
 import { resolveAssetUrl } from '../../utils/assetUrl'
 
 type CropPosition = { x: number; y: number }
+
+type AdminImageCropDialogProps = {
+  file: File
+  title: string
+  onCancel: () => void
+  onConfirm: (file: File) => void
+} & ({ mediaKey: HomeMediaKey; crop?: never } | { mediaKey?: never; crop: ImageCropPreset })
 
 type HomeImageCropEditorProps = {
   title: string
@@ -57,8 +64,9 @@ function canvasBlob(canvas: HTMLCanvasElement, quality: number) {
   })
 }
 
-export function AdminImageCropDialog({ file, title, mediaKey, onCancel, onConfirm }: { file: File; title: string; mediaKey: HomeMediaKey; onCancel: () => void; onConfirm: (file: File) => void }) {
-  const crop = HOME_MEDIA[mediaKey]
+export function AdminImageCropDialog({ file, title, mediaKey, crop: cropPreset, onCancel, onConfirm }: AdminImageCropDialogProps) {
+  const crop = cropPreset ?? (mediaKey ? HOME_MEDIA[mediaKey] : null)
+  if (!crop) throw new Error('Thiếu cấu hình tỷ lệ cắt ảnh.')
   const previewRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; position: CropPosition } | null>(null)

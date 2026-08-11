@@ -1,5 +1,11 @@
 import type { CSSProperties } from 'react'
 
+export type ImageCropPreset = {
+  readonly width: number
+  readonly height: number
+  readonly label: string
+}
+
 export const HOME_MEDIA = {
   hero: { width: 1600, height: 900, label: '16:9' },
   product: { width: 1000, height: 1000, label: '1:1' },
