@@ -56,6 +56,9 @@ class ProductController extends Controller
     {
         return Product::query()->where('status', 'active')->with([
             'category', 'brand', 'images', 'variants' => fn ($query) => $query->where('status', 'active')->with('attributeValues', 'inventories'),
+            'promotions' => fn ($query) => $query->activePromotion()->select([
+                'news_articles.id', 'title', 'slug', 'excerpt', 'promotion_badge', 'promotion_conditions', 'promotion_starts_at', 'promotion_ends_at',
+            ])->orderBy('promotion_ends_at'),
         ])->withAvg(['reviews' => fn ($query) => $query->where('status', 'approved')], 'rating')->withCount(['reviews' => fn ($query) => $query->where('status', 'approved')]);
     }
 

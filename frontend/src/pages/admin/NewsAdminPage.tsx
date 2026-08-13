@@ -62,7 +62,7 @@ export function NewsAdminPage() {
     {query.isLoading ? <LoadingState /> : !query.data?.data.length ? <EmptyState title="Chưa có bản tin" description="Tạo bản tin đầu tiên ở trạng thái nháp, sau đó xuất bản khi sẵn sàng." /> : <>
       <div className="table-wrap"><table className="table"><thead><tr><th>Bài viết</th><th>Slug</th><th>Chuyên mục</th><th>Trạng thái</th><th>Ngày đăng</th><th>Người tạo</th><th>Hành động</th></tr></thead><tbody>
         {query.data.data.map((article) => <tr key={article.id}>
-          <td><div className="flex items-center gap-3">{article.cover_image_path ? <img src={resolveAssetUrl(article.cover_image_path)} alt="" className="h-12 w-16 rounded-xl object-cover" /> : <span className="grid h-12 w-16 place-items-center rounded-xl bg-slate-100 text-slate-400"><Newspaper size={18} /></span>}<strong>{article.title}</strong></div></td>
+          <td><div className="flex items-center gap-3">{article.cover_image_path ? <img src={resolveAssetUrl(article.cover_image_path)} alt="" className="aspect-video w-20 rounded-xl object-cover" /> : <span className="grid aspect-video w-20 place-items-center rounded-xl bg-slate-100 text-slate-400"><Newspaper size={18} /></span>}<strong>{article.title}</strong></div></td>
           <td className="text-sm">{article.slug}</td>
           <td>{article.category ?? '—'}</td>
           <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${article.status === 'published' ? 'bg-emerald-50 text-emerald-800' : article.status === 'archived' ? 'bg-slate-100 text-slate-500' : 'bg-amber-50 text-amber-800'}`}>{statusLabels[article.status]}</span></td>

@@ -42,10 +42,10 @@ export function PromotionsPage() {
         {content.description && <p>{content.description}</p>}
         <div className='promotions-assurance' aria-label='Cam kết ưu đãi'><span><Gift size={17} />Đặc quyền rõ ràng</span><i>•</i><span>Cập nhật thường xuyên</span><i>•</i><span>Tư vấn riêng tư</span></div>
       </header>
-      {query.data?.featured && <FeaturedNewsCard article={query.data.featured} badge={content.featured_badge_label} />}
+      {query.data?.featured && <FeaturedNewsCard article={query.data.featured} badge={content.featured_badge_label} detailBasePath='/uu-dai' />}
       <section className='news-list-section' ref={listHeadingRef} aria-labelledby='promotions-list-heading'>
         <div className='news-list-heading'>{content.list_eyebrow && <p className='news-page-kicker'>{content.list_eyebrow}</p>}<h2 id='promotions-list-heading'>{content.list_title}</h2>{content.list_description && <p>{content.list_description}</p>}</div>
-        {articles.length ? <><div className='news-grid promotions-grid'>{articles.map((article) => <NewsArticleCard article={article} key={article.id} />)}</div>{query.data && query.data.articles.last_page > 1 && <NewsPagination currentPage={query.data.articles.current_page} lastPage={query.data.articles.last_page} onPageChange={changePage} />}</> : <EmptyState title='Chưa có ưu đãi' description='Các chương trình ưu đãi sẽ hiển thị tại đây sau khi được tạo và xuất bản từ trang quản trị.' />}
+        {articles.length ? <><div className='news-grid promotions-grid'>{articles.map((article) => <NewsArticleCard article={article} detailBasePath='/uu-dai' key={article.id} />)}</div>{query.data && query.data.articles.last_page > 1 && <NewsPagination currentPage={query.data.articles.current_page} lastPage={query.data.articles.last_page} onPageChange={changePage} />}</> : <EmptyState title='Chưa có ưu đãi' description='Các chương trình ưu đãi sẽ hiển thị tại đây sau khi được tạo và xuất bản từ trang quản trị.' />}
       </section>
       <NewsPageCta content={content} />
     </>}

@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
     Route::get('guides-page', [GuidePageController::class, 'index']);
     Route::get('guides/{slug}', [GuideController::class, 'show']);
     Route::get('promotions-page', [PromotionPageController::class, 'index']);
+    Route::get('promotions/{slug}', [PromotionPageController::class, 'show']);
     Route::get('home-page', [HomePageController::class, 'show']);
     Route::get('store-page', [StorePageController::class, 'index']);
     Route::get('contact-page', [ContactPageController::class, 'index']);
@@ -237,6 +238,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('promotions', [NewsManagementController::class, 'index']);
             Route::post('promotions', [NewsManagementController::class, 'store']);
+            Route::get('promotions/product-options', [NewsManagementController::class, 'promotionProductOptions']);
             Route::get('promotions/{article}', [NewsManagementController::class, 'show']);
             Route::put('promotions/{article}', [NewsManagementController::class, 'update']);
             Route::delete('promotions/{article}', [NewsManagementController::class, 'destroy']);
@@ -256,10 +258,16 @@ Route::prefix('v1')->group(function () {
             Route::patch('guides/{article}/status', [NewsManagementController::class, 'status']);
             Route::post('guides/{article}/cover-image', [NewsManagementController::class, 'uploadCover']);
             Route::delete('guides/{article}/cover-image', [NewsManagementController::class, 'deleteCover']);
+            Route::post('guides/{article}/content-image', [NewsManagementController::class, 'uploadContentImage']);
+            Route::delete('guides/{article}/content-image', [NewsManagementController::class, 'deleteContentImage']);
+            Route::post('guides/{article}/video', [NewsManagementController::class, 'uploadVideo']);
+            Route::delete('guides/{article}/video', [NewsManagementController::class, 'deleteVideo']);
             Route::get('guides-page', [GuidePageContentManagementController::class, 'show']);
             Route::put('guides-page', [GuidePageContentManagementController::class, 'update']);
             Route::post('guides-page/hero-image', [GuidePageContentManagementController::class, 'uploadHeroImage']);
             Route::delete('guides-page/hero-image', [GuidePageContentManagementController::class, 'deleteHeroImage']);
+            Route::post('guides-page/cta-image', [GuidePageContentManagementController::class, 'uploadCtaImage']);
+            Route::delete('guides-page/cta-image', [GuidePageContentManagementController::class, 'deleteCtaImage']);
         });
     });
 });

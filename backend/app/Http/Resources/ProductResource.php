@@ -63,6 +63,16 @@ class ProductResource extends JsonResource
             }),
             'rating_average' => round((float) ($this->reviews_avg_rating ?? 0), 1),
             'reviews_count' => (int) ($this->reviews_count ?? 0),
+            'promotions' => $this->whenLoaded('promotions', fn () => $this->promotions->map(fn ($promotion) => [
+                'id' => $promotion->id,
+                'title' => $promotion->title,
+                'slug' => $promotion->slug,
+                'excerpt' => $promotion->excerpt,
+                'badge' => $promotion->promotion_badge,
+                'conditions' => $promotion->promotion_conditions,
+                'starts_at' => $promotion->promotion_starts_at,
+                'ends_at' => $promotion->promotion_ends_at,
+            ])),
             'created_at' => $this->created_at,
         ];
     }

@@ -95,6 +95,125 @@ class GuidePageTest extends TestCase
         $this->actingAs($admin)->deleteJson('/api/v1/admin/guides-page/hero-image')->assertOk()->assertJsonPath('data.content.hero_image_path', null);
     }
 
+    public function test_admin_can_manage_guide_content_image_and_public_media_urls(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $admin = $this->admin();
+        $guide = $this->publishedGuide('huong-dan-media');
+
+        $this->actingAs($admin)->putJson('/api/v1/admin/guides/'.$guide->id, [
+            'title' => $guide->title,
+            'slug' => $guide->slug,
+            'content' => $guide->content,
+            'status' => 'published',
+            'content_image_alt' => 'Ảnh minh họa từng bước',
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'video_title' => 'Video hướng dẫn từng bước',
+        ])->assertOk()
+            ->assertJsonPath('data.video_url', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+            ->assertJsonPath('data.video_title', 'Video hướng dẫn từng bước');
+
+        $upload = $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/content-image', [
+            'image' => UploadedFile::fake()->image('content.webp', 1600, 900),
+            'content_image_alt' => 'Ảnh nội dung đã crop',
+        ])->assertCreated()->assertJsonPath('data.content_image_alt', 'Ảnh nội dung đã crop');
+
+        $path = $upload->json('data.content_image_path');
+        Storage::disk('public')->assertExists($path);
+
+        $this->getJson('/api/v1/guides/'.$guide->slug)->assertOk()
+            ->assertJsonPath('data.content_image_path', Storage::disk('public')->url($path))
+            ->assertJsonPath('data.content_image_alt', 'Ảnh nội dung đã crop')
+            ->assertJsonPath('data.video_url', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+            ->assertJsonPath('data.video_title', 'Video hướng dẫn từng bước');
+
+        $this->actingAs($admin)->deleteJson('/api/v1/admin/guides/'.$guide->id.'/content-image')
+            ->assertOk()->assertJsonPath('data.content_image_path', null);
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_admin_can_upload_replace_and_delete_guide_video(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $admin = $this->admin();
+        $guide = $this->publishedGuide('huong-dan-video');
+
+        $firstUpload = $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/video', [
+            'video' => UploadedFile::fake()->create('guide.mp4', 1024, 'video/mp4'),
+        ])->assertCreated();
+        $firstPath = $firstUpload->json('data.video_path');
+        Storage::disk('public')->assertExists($firstPath);
+
+        $secondUpload = $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/video', [
+            'video' => UploadedFile::fake()->create('guide.webm', 1024, 'video/webm'),
+        ])->assertCreated();
+        $secondPath = $secondUpload->json('data.video_path');
+        Storage::disk('public')->assertMissing($firstPath);
+        Storage::disk('public')->assertExists($secondPath);
+
+        $this->getJson('/api/v1/guides/'.$guide->slug)->assertOk()
+            ->assertJsonPath('data.video_path', Storage::disk('public')->url($secondPath));
+
+        $this->actingAs($admin)->deleteJson('/api/v1/admin/guides/'.$guide->id.'/video')
+            ->assertOk()->assertJsonPath('data.video_path', null);
+        Storage::disk('public')->assertMissing($secondPath);
+    }
+
+    public function test_guide_media_validation_rejects_invalid_files_and_urls(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $admin = $this->admin();
+        $guide = $this->publishedGuide('huong-dan-validation');
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/content-image', [
+            'image' => UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('image');
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/video', [
+            'video' => UploadedFile::fake()->create('guide.mov', 100, 'video/quicktime'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('video');
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/guides/'.$guide->id.'/video', [
+            'video' => UploadedFile::fake()->create('guide.mp4', 51201, 'video/mp4'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('video');
+
+        $this->actingAs($admin)->putJson('/api/v1/admin/guides/'.$guide->id, [
+            'title' => $guide->title,
+            'slug' => $guide->slug,
+            'content' => $guide->content,
+            'status' => 'published',
+            'video_url' => 'javascript:alert(1)',
+        ])->assertUnprocessable()->assertJsonValidationErrors('video_url');
+    }
+
+    public function test_admin_can_manage_guide_page_cta_image(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $admin = $this->admin();
+
+        $upload = $this->actingAs($admin)->postJson('/api/v1/admin/guides-page/cta-image', [
+            'image' => UploadedFile::fake()->image('cta.webp', 1200, 900),
+            'cta_image_alt' => 'Ảnh tư vấn cuối trang',
+        ])->assertCreated()
+            ->assertJsonPath('data.content.cta_image_alt', 'Ảnh tư vấn cuối trang');
+
+        $url = $upload->json('data.content.cta_image_path');
+        $path = ltrim(str_replace('/storage/', '', parse_url($url, PHP_URL_PATH)), '/');
+        Storage::disk('public')->assertExists($path);
+
+        $this->getJson('/api/v1/guides-page')->assertOk()
+            ->assertJsonPath('data.content.cta_image_path', $url)
+            ->assertJsonPath('data.content.cta_image_alt', 'Ảnh tư vấn cuối trang');
+
+        $this->actingAs($admin)->deleteJson('/api/v1/admin/guides-page/cta-image')
+            ->assertOk()->assertJsonPath('data.content.cta_image_path', null);
+        Storage::disk('public')->assertMissing($path);
+    }
+
     public function test_guide_admin_routes_require_admin(): void
     {
         $this->seed();

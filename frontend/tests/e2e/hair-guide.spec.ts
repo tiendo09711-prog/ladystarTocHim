@@ -58,6 +58,32 @@ test('Hair Guide shows its public empty state', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Chưa có sản phẩm phù hợp' })).toBeVisible()
 })
 
+test('Hair Guide keeps Hero, product and consultation images in fixed frames', async ({ page }) => {
+  const imagePath = '/e2e/hair-guide-source.svg'
+  await page.route('**/e2e/hair-guide-source.svg', (route) => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="700" height="1400"><rect width="700" height="1400" fill="#d7aab5"/></svg>' }))
+  await mockPublicApi(page, {
+    ...guidePayload,
+    hero_image_path: imagePath,
+    consultation_image_path: imagePath,
+    products: guidePayload.products.map((item) => ({ ...item, product: { ...item.product, images: [{ id: item.product.id, image_path: imagePath, alt_text: item.product.name, is_primary: true }] } })),
+  })
+  await page.goto('/dich-vu-cham-soc')
+  await expect(page.locator('.guide-card-image').first()).toBeVisible()
+  const geometry = await page.evaluate(() => {
+    const ratio = (selector: string) => { const bounds = document.querySelector(selector)!.getBoundingClientRect(); return bounds.width / bounds.height }
+    return {
+      hero: ratio('.guide-hero-visual'),
+      card: ratio('.guide-card-image'),
+      consultation: ratio('.guide-consultation-image'),
+      fits: [...document.querySelectorAll('.guide-hero-visual img, .guide-card-image img, .guide-consultation-image img')].map((image) => getComputedStyle(image).objectFit),
+    }
+  })
+  expect(geometry.hero).toBeCloseTo(6 / 5, 2)
+  expect(geometry.card).toBeCloseTo(1, 2)
+  expect(geometry.consultation).toBeCloseTo(6 / 5, 2)
+  expect(geometry.fits.every((value) => value === 'cover')).toBe(true)
+})
+
 test('Hair Guide admin selector and product picker render without database writes', async ({ page }) => {
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }))
   await page.route('**/api/v1/**', (route) => {

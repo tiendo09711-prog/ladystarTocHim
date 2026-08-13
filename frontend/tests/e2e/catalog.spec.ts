@@ -49,3 +49,29 @@ test('admin saves catalog content and views consultation requests', async ({ pag
   await expect(page.getByRole('heading', { name: 'Yêu cầu tư vấn' })).toBeVisible()
   await expect(page.getByText('Khách Playwright').first()).toBeVisible()
 })
+
+test('catalog và danh mục giữ khung ảnh cố định với mọi tỷ lệ nguồn', async ({ page }) => {
+  const paths = ['/san-pham', '/danh-muc/phu-kien-toc-gia', '/danh-muc/dung-dich-ve-sinh']
+  for (const path of paths) {
+    await page.goto(path)
+    await expect(page.locator('.product-card-image').first()).toBeVisible()
+    await page.screenshot({ path: `../artifacts/catalog-${path.split('/').filter(Boolean).join('-')}.png`, fullPage: true })
+    const geometry = await page.evaluate(() => {
+      const ratio = (element: Element) => { const bounds = element.getBoundingClientRect(); return bounds.width / bounds.height }
+      const heroImage = document.querySelector('main > section.mb-10 > img')
+      const consultation = document.querySelector('#catalog-consultation > div:first-child')
+      return {
+        productRatios: [...document.querySelectorAll('.product-card-image')].map(ratio),
+        productFits: [...document.querySelectorAll('.product-card-image img')].map((image) => getComputedStyle(image).objectFit),
+        heroRatio: heroImage ? ratio(heroImage) : null,
+        heroFit: heroImage ? getComputedStyle(heroImage).objectFit : null,
+        consultationRatio: consultation ? ratio(consultation) : null,
+      }
+    })
+    expect(geometry.productRatios.every((value) => Math.abs(value - 1) < 0.02)).toBe(true)
+    expect(geometry.productFits.every((value) => value === 'cover')).toBe(true)
+    if (geometry.heroRatio) expect(geometry.heroRatio).toBeCloseTo(6 / 5, 2)
+    if (geometry.heroFit) expect(geometry.heroFit).toBe('cover')
+    if (geometry.consultationRatio) expect(geometry.consultationRatio).toBeCloseTo(6 / 5, 2)
+  }
+})

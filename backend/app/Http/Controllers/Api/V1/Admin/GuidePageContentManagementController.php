@@ -77,6 +77,33 @@ class GuidePageContentManagementController extends Controller
         return $this->success($this->payload($content->fresh()), 'Đã xóa ảnh nền trang hướng dẫn.');
     }
 
+    public function uploadCtaImage(Request $request)
+    {
+        $data = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'cta_image_alt' => ['nullable', 'string', 'max:190'],
+        ]);
+        $content = $this->content();
+        $path = $data['image']->storePubliclyAs('guides-page/cta', Str::uuid().'.'.$data['image']->extension(), 'public');
+        $oldPath = $content->cta_image_path;
+        $content->update([
+            'cta_image_path' => $path,
+            'cta_image_alt' => $data['cta_image_alt'] ?? $content->cta_image_alt,
+        ]);
+        $this->deleteLocalAsset($oldPath);
+
+        return $this->success($this->payload($content->fresh()), 'Đã tải ảnh CTA trang hướng dẫn.', 201);
+    }
+
+    public function deleteCtaImage()
+    {
+        $content = $this->content();
+        $this->deleteLocalAsset($content->cta_image_path);
+        $content->update(['cta_image_path' => null]);
+
+        return $this->success($this->payload($content->fresh()), 'Đã xóa ảnh CTA trang hướng dẫn.');
+    }
+
     private function content(): NewsPageContent
     {
         return NewsPageContent::firstOrCreate(['page_key' => self::PAGE_KEY], ['show_cta' => false]);

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, ImagePlus, Loader2, Save, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { deletePromotionsCtaImage, getAdminPromotionsPage, updatePromotionsPageContent, uploadPromotionsCtaImage } from '../../api/contentApi'
+import { AdminImageCropDialog } from '../../components/admin/HomeImageCropEditor'
 import { LoadingState } from '../../components/common/LoadingState'
 import { fallbackPromotionContent } from '../../data/promotionsContent'
 import type { NewsPageContent } from '../../types'
@@ -30,6 +31,8 @@ export function PromotionsPageSettingsAdminPage() {
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [cropSourceFile, setCropSourceFile] = useState<File | null>(null)
+  const [imageError, setImageError] = useState('')
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => { if (query.data) setForm(toFormState(query.data.content, query.data.seo)) }, [query.data])
@@ -39,16 +42,25 @@ export function PromotionsPageSettingsAdminPage() {
   const errorFor = (name: string) => errors[name]?.[0] ? <span className='mt-1 block text-sm font-semibold text-red-700'>{errors[name][0]}</span> : null
   const save = useMutation({ mutationFn: () => updatePromotionsPageContent({ ...form, featured_article_id: form.featured_article_id ? Number(form.featured_article_id) : null, seo: { title: form.seo_title || null, description: form.seo_description || null } }), onError: (error: any) => { setErrors(error.response?.data?.errors ?? {}); toast.error(error.response?.data?.message ?? 'Không thể lưu thiết lập trang ưu đãi.') } })
 
-  const chooseImage = (event: ChangeEvent<HTMLInputElement>) => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview)
-    const file = event.target.files?.[0] ?? null
+  const chooseImage = (file?: File) => {
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setImageError('Ảnh phải là JPG, PNG hoặc WebP và không quá 5 MB.')
+      return
+    }
+    setImageError('')
+    setCropSourceFile(file)
+  }
+
+  const confirmCrop = (file: File) => {
+    setCropSourceFile(null)
     setImageFile(file)
-    setImagePreview(file ? URL.createObjectURL(file) : null)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setErrors({})
-    try { await save.mutateAsync(); if (imageFile) { setUploading(true); await uploadPromotionsCtaImage(imageFile); setImageFile(null); setImagePreview(null) }; await Promise.all([client.invalidateQueries({ queryKey: ['admin-promotions-page'] }), client.invalidateQueries({ queryKey: ['promotions-page'] })]); toast.success('Đã lưu thiết lập trang ưu đãi.') } catch { /* handled */ } finally { setUploading(false) }
+    try { await save.mutateAsync(); if (imageFile) { setUploading(true); await uploadPromotionsCtaImage(imageFile, form.cta_image_alt); setImageFile(null); setImagePreview(null) }; await Promise.all([client.invalidateQueries({ queryKey: ['admin-promotions-page'] }), client.invalidateQueries({ queryKey: ['promotions-page'] })]); toast.success('Đã lưu thiết lập trang ưu đãi.') } catch { /* handled */ } finally { setUploading(false) }
   }
 
   const removeImage = async () => {
@@ -63,7 +75,7 @@ export function PromotionsPageSettingsAdminPage() {
     <form className='grid gap-5' onSubmit={submit}>
       <SettingsSection title='Phần mở đầu'><TextInput label='Eyebrow' value={form.eyebrow} onChange={(value) => setField('eyebrow', value)} /><TextInput label='Tiêu đề trang' value={form.title} onChange={(value) => setField('title', value)} error={errorFor('title')} /><TextArea label='Mô tả' value={form.description} onChange={(value) => setField('description', value)} /><label><span className='label'>Bài ưu đãi nổi bật</span><select className='input' value={form.featured_article_id} onChange={(event) => setField('featured_article_id', event.target.value)}><option value=''>Tự động chọn bài mới nhất</option>{query.data.articles.map((article) => <option key={article.id} value={article.id}>{article.title}</option>)}</select>{selectedArticle && <p className='muted mt-2 text-sm'>Đang chọn: {selectedArticle.title}</p>}{errorFor('featured_article_id')}</label><TextInput label='Nhãn bài nổi bật' value={form.featured_badge_label} onChange={(value) => setField('featured_badge_label', value)} /></SettingsSection>
       <SettingsSection title='Danh sách ưu đãi'><TextInput label='Eyebrow danh sách' value={form.list_eyebrow} onChange={(value) => setField('list_eyebrow', value)} /><TextInput label='Tiêu đề danh sách' value={form.list_title} onChange={(value) => setField('list_title', value)} /><TextArea label='Mô tả danh sách' value={form.list_description} onChange={(value) => setField('list_description', value)} /></SettingsSection>
-      <SettingsSection title='Khối kêu gọi hành động'><label className='flex items-center gap-3 font-semibold'><input type='checkbox' checked={form.show_cta} onChange={(event) => setField('show_cta', event.target.checked)} />Hiển thị CTA</label><TextInput label='Eyebrow CTA' value={form.cta_eyebrow} onChange={(value) => setField('cta_eyebrow', value)} /><TextInput label='Tiêu đề CTA' value={form.cta_title} onChange={(value) => setField('cta_title', value)} /><TextArea label='Mô tả CTA' value={form.cta_description} onChange={(value) => setField('cta_description', value)} /><div className='grid gap-4 md:grid-cols-2'><TextInput label='Nút chính' value={form.cta_primary_label} onChange={(value) => setField('cta_primary_label', value)} /><TextInput label='URL nút chính' value={form.cta_primary_url} onChange={(value) => setField('cta_primary_url', value)} error={errorFor('cta_primary_url')} /><TextInput label='Nút phụ' value={form.cta_secondary_label} onChange={(value) => setField('cta_secondary_label', value)} /><TextInput label='URL nút phụ' value={form.cta_secondary_url} onChange={(value) => setField('cta_secondary_url', value)} error={errorFor('cta_secondary_url')} /></div><TextInput label='Alt ảnh CTA' value={form.cta_image_alt} onChange={(value) => setField('cta_image_alt', value)} />{currentImage && <img className='max-h-72 w-full rounded-2xl object-cover' src={currentImage} alt='' />}<div className='flex flex-wrap gap-2'><label className='btn-secondary cursor-pointer'><ImagePlus size={17} />Chọn ảnh CTA<input className='hidden' type='file' accept='image/jpeg,image/png,image/webp' onChange={chooseImage} /></label>{query.data.content.cta_image_path && <button className='btn-secondary text-red-700' type='button' onClick={removeImage}><Trash2 size={16} />Xóa ảnh</button>}</div></SettingsSection>
+      <SettingsSection title='Khối kêu gọi hành động'><label className='flex items-center gap-3 font-semibold'><input type='checkbox' checked={form.show_cta} onChange={(event) => setField('show_cta', event.target.checked)} />Hiển thị CTA</label><TextInput label='Eyebrow CTA' value={form.cta_eyebrow} onChange={(value) => setField('cta_eyebrow', value)} /><TextInput label='Tiêu đề CTA' value={form.cta_title} onChange={(value) => setField('cta_title', value)} /><TextArea label='Mô tả CTA' value={form.cta_description} onChange={(value) => setField('cta_description', value)} /><div className='grid gap-4 md:grid-cols-2'><TextInput label='Nút chính' value={form.cta_primary_label} onChange={(value) => setField('cta_primary_label', value)} /><TextInput label='URL nút chính' value={form.cta_primary_url} onChange={(value) => setField('cta_primary_url', value)} error={errorFor('cta_primary_url')} /><TextInput label='Nút phụ' value={form.cta_secondary_label} onChange={(value) => setField('cta_secondary_label', value)} /><TextInput label='URL nút phụ' value={form.cta_secondary_url} onChange={(value) => setField('cta_secondary_url', value)} error={errorFor('cta_secondary_url')} /></div><TextInput label='Alt ảnh CTA' value={form.cta_image_alt} onChange={(value) => setField('cta_image_alt', value)} />{currentImage && <div className='fixed-media-frame promotion-admin-cta' style={{ '--media-ratio': '4 / 3' } as React.CSSProperties}><img src={currentImage} alt='' /></div>}<p className='muted text-sm'>Khung CTA cố định 4:3; ảnh sẽ được crop để fill đầy khung và giữ đúng bố cục.</p><div className='flex flex-wrap gap-2'><label className='btn-secondary cursor-pointer'><ImagePlus size={17} />Chọn và cắt ảnh CTA<input className='hidden' aria-label='Chọn ảnh CTA ưu đãi' type='file' accept='image/jpeg,image/png,image/webp' onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; chooseImage(file) }} /></label>{query.data.content.cta_image_path && <button className='btn-secondary text-red-700' type='button' onClick={removeImage}><Trash2 size={16} />Xóa ảnh</button>}</div>{imageError && <p className='text-sm font-semibold text-red-700'>{imageError}</p>}{cropSourceFile && <AdminImageCropDialog file={cropSourceFile} title='CTA ưu đãi' mediaKey='promotionCta' onCancel={() => setCropSourceFile(null)} onConfirm={confirmCrop} />}</SettingsSection>
       <SettingsSection title='SEO'><TextInput label='SEO title' value={form.seo_title} onChange={(value) => setField('seo_title', value)} /><TextArea label='SEO description' value={form.seo_description} onChange={(value) => setField('seo_description', value)} /></SettingsSection>
       <div className='flex justify-end'><button className='btn-primary' disabled={save.isPending || uploading}>{save.isPending || uploading ? <Loader2 className='animate-spin' size={17} /> : <Save size={17} />}Lưu thiết lập</button></div>
     </form>

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\NewsArticleRequest;
 use App\Models\NewsArticle;
+use App\Models\Product;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,12 +21,30 @@ class NewsManagementController extends Controller
     private const PROMOTION_CATEGORY = 'Ưu đãi';
     private const GUIDE_CATEGORY = 'Hướng dẫn';
 
+    public function promotionProductOptions()
+    {
+        $products = Product::where('status', 'active')
+            ->with(['images' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('sort_order')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'base_sku'])
+            ->map(fn (Product $product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'base_sku' => $product->base_sku,
+                'image_path' => $product->images->first()?->image_path,
+            ]);
+
+        return $this->success($products);
+    }
+
     public function index(Request $request)
     {
         $query = NewsArticle::with('author:id,name')->orderByDesc('created_at');
         $category = $this->routeCategory($request);
         if ($category) {
             $query->where('category', $category);
+            if ($category === self::PROMOTION_CATEGORY) $query->withCount('products');
         } else {
             $query->where(fn ($nested) => $nested->whereNull('category')->orWhereNotIn('category', [self::PROMOTION_CATEGORY, self::GUIDE_CATEGORY]));
         }
@@ -45,34 +65,50 @@ class NewsManagementController extends Controller
     public function show(Request $request, NewsArticle $article)
     {
         $this->guardRouteArticle($request, $article);
-        return $this->success($article->load('author:id,name'));
+        return $this->success($article->load('author:id,name', 'products:id,name,slug,base_sku'));
     }
 
     public function store(NewsArticleRequest $request)
     {
-        $data = $this->prepareData($request->validated());
-        if ($category = $this->routeCategory($request)) $data['category'] = $category;
-        $article = NewsArticle::create($data + ['author_id' => $request->user()->id]);
-        $this->guardPublishable($article);
+        $article = DB::transaction(function () use ($request) {
+            $data = $this->prepareData($request->validated());
+            $category = $this->routeCategory($request);
+            if ($category) $data['category'] = $category;
+            $productIds = $data['product_ids'] ?? [];
+            unset($data['product_ids']);
+            $article = NewsArticle::create($data + ['author_id' => $request->user()->id]);
+            if ($category === self::PROMOTION_CATEGORY) $article->products()->sync($productIds);
+            $this->guardPublishable($article);
 
-        return $this->success($article->fresh(), 'Đã tạo bản tin.', 201);
+            return $article;
+        });
+
+        return $this->success($article->fresh()->load('products:id,name,slug,base_sku'), 'Đã tạo bản tin.', 201);
     }
 
     public function update(NewsArticleRequest $request, NewsArticle $article)
     {
         $this->guardRouteArticle($request, $article);
-        $data = $this->prepareData($request->validated());
-        if ($category = $this->routeCategory($request)) $data['category'] = $category;
-        $article->update($data);
-        $this->guardPublishable($article->fresh());
+        DB::transaction(function () use ($request, $article) {
+            $data = $this->prepareData($request->validated());
+            $category = $this->routeCategory($request);
+            if ($category) $data['category'] = $category;
+            $productIds = $data['product_ids'] ?? [];
+            unset($data['product_ids']);
+            $article->update($data);
+            if ($category === self::PROMOTION_CATEGORY) $article->products()->sync($productIds);
+            $this->guardPublishable($article->fresh());
+        });
 
-        return $this->success($article->fresh(), 'Đã lưu bản tin.');
+        return $this->success($article->fresh()->load('products:id,name,slug,base_sku'), 'Đã lưu bản tin.');
     }
 
     public function destroy(Request $request, NewsArticle $article)
     {
         $this->guardRouteArticle($request, $article);
-        $this->removeCoverFile($article);
+        $this->removeStoredFile($article->cover_image_path);
+        $this->removeStoredFile($article->content_image_path);
+        $this->removeStoredFile($article->video_path);
         $article->delete();
 
         return $this->success(null, 'Đã xóa bản tin.');
@@ -112,22 +148,63 @@ class NewsManagementController extends Controller
     public function deleteCover(Request $request, NewsArticle $article)
     {
         $this->guardRouteArticle($request, $article);
-        $this->removeCoverFile($article);
+        $this->removeStoredFile($article->cover_image_path);
         $article->update(['cover_image_path' => null]);
 
         return $this->success($article->fresh(), 'Đã xóa ảnh bìa.');
     }
 
-    private function removeCoverFile(NewsArticle $article): void
+    public function uploadContentImage(Request $request, NewsArticle $article)
     {
-        if ($article->cover_image_path && ! str_starts_with($article->cover_image_path, '/') && ! preg_match('/^https?:\/\//', $article->cover_image_path)) {
-            Storage::disk('public')->delete($article->cover_image_path);
-        }
+        $this->guardGuideRoute($request, $article);
+        $data = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'content_image_alt' => ['nullable', 'string', 'max:190'],
+        ]);
+        $path = $data['image']->storePubliclyAs('guides/'.$article->id.'/content', Str::uuid().'.'.$data['image']->extension(), 'public');
+        $this->removeStoredFile($article->content_image_path);
+        $article->update(['content_image_path' => $path] + (array_key_exists('content_image_alt', $data) ? ['content_image_alt' => $data['content_image_alt']] : []));
+
+        return $this->success($article->fresh(), 'Tải ảnh nội dung thành công.', 201);
+    }
+
+    public function deleteContentImage(Request $request, NewsArticle $article)
+    {
+        $this->guardGuideRoute($request, $article);
+        $this->removeStoredFile($article->content_image_path);
+        $article->update(['content_image_path' => null]);
+
+        return $this->success($article->fresh(), 'Đã xóa ảnh nội dung.');
+    }
+
+    public function uploadVideo(Request $request, NewsArticle $article)
+    {
+        $this->guardGuideRoute($request, $article);
+        $data = $request->validate(['video' => ['required', 'file', 'mimes:mp4,webm', 'max:51200']]);
+        $path = $data['video']->storePubliclyAs('guides/'.$article->id.'/video', Str::uuid().'.'.$data['video']->extension(), 'public');
+        $this->removeStoredFile($article->video_path);
+        $article->update(['video_path' => $path]);
+
+        return $this->success($article->fresh(), 'Tải video hướng dẫn thành công.', 201);
+    }
+
+    public function deleteVideo(Request $request, NewsArticle $article)
+    {
+        $this->guardGuideRoute($request, $article);
+        $this->removeStoredFile($article->video_path);
+        $article->update(['video_path' => null]);
+
+        return $this->success($article->fresh(), 'Đã xóa video hướng dẫn.');
+    }
+
+    private function removeStoredFile(?string $path): void
+    {
+        if ($path && ! str_starts_with($path, '/') && ! preg_match('/^https?:\/\//', $path)) Storage::disk('public')->delete($path);
     }
 
     private function prepareData(array $data): array
     {
-        foreach (['excerpt', 'content', 'seo_title', 'seo_description', 'title', 'category'] as $field) {
+        foreach (['excerpt', 'content', 'seo_title', 'seo_description', 'title', 'category', 'promotion_badge', 'promotion_conditions', 'content_image_alt', 'video_url', 'video_title'] as $field) {
             if (array_key_exists($field, $data) && is_string($data[$field])) {
                 $data[$field] = trim(strip_tags($data[$field])) ?: null;
             }
@@ -144,6 +221,14 @@ class NewsManagementController extends Controller
         if ($article->status === 'published' && (! $article->title || ! $article->slug || ! $article->content)) {
             throw ValidationException::withMessages(['content' => ['Bài viết cần đủ tiêu đề, slug và nội dung trước khi xuất bản.']]);
         }
+        if ($article->status === 'published' && $article->category === self::PROMOTION_CATEGORY) {
+            if (! $article->promotion_conditions) {
+                throw ValidationException::withMessages(['promotion_conditions' => ['Ưu đãi cần có điều kiện áp dụng trước khi xuất bản.']]);
+            }
+            if (! $article->products()->where('status', 'active')->exists()) {
+                throw ValidationException::withMessages(['product_ids' => ['Ưu đãi cần áp dụng cho ít nhất một sản phẩm đang hoạt động.']]);
+            }
+        }
     }
 
     private function routeCategory(Request $request): ?string
@@ -159,5 +244,10 @@ class NewsManagementController extends Controller
         $category = $this->routeCategory($request);
         if ($category) abort_unless($article->category === $category, 404);
         else abort_if(in_array($article->category, [self::PROMOTION_CATEGORY, self::GUIDE_CATEGORY], true), 404);
+    }
+
+    private function guardGuideRoute(Request $request, NewsArticle $article): void
+    {
+        abort_unless($request->is('api/v1/admin/guides*') && $article->category === self::GUIDE_CATEGORY, 404);
     }
 }

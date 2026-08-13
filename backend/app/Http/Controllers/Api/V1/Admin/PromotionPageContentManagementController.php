@@ -94,7 +94,7 @@ class PromotionPageContentManagementController extends Controller
         return [
             'content' => $this->contentPayload($content),
             'seo' => PageSeo::where('page_key', self::SEO_KEY)->first(['title', 'description', 'og_image_path']),
-            'articles' => NewsArticle::published()->where('category', self::CATEGORY)->orderByDesc('published_at')->orderBy('sort_order')->get(['id', 'title', 'slug', 'cover_image_path', 'cover_image_alt', 'category', 'published_at', 'status'])->map(fn (NewsArticle $article) => $this->articleSummary($article)),
+            'articles' => NewsArticle::activePromotion()->orderByDesc('published_at')->orderBy('sort_order')->get(['id', 'title', 'slug', 'cover_image_path', 'cover_image_alt', 'category', 'published_at', 'status'])->map(fn (NewsArticle $article) => $this->articleSummary($article)),
         ];
     }
 
@@ -141,9 +141,7 @@ class PromotionPageContentManagementController extends Controller
 
     private function isPublishedPromotion(NewsArticle $article): bool
     {
-        return $article->category === self::CATEGORY
-            && $article->status === 'published'
-            && ($article->published_at === null || $article->published_at <= now());
+        return NewsArticle::activePromotion()->whereKey($article->id)->exists();
     }
 
     private function deleteLocalAsset(?string $path): void

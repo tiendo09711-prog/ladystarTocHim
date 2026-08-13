@@ -179,22 +179,31 @@ export function AdminImageCropDialog({ file, title, mediaKey, crop: cropPreset, 
 
 export function HomeImageCropEditor({ title, mediaKey, description, path, alt, fallback, uploading, onAltChange, onUpload, onRemove, objectPositionX, objectPositionY, onObjectPositionChange }: HomeImageCropEditorProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [croppedPreview, setCroppedPreview] = useState<string | null>(null)
   const [selectionError, setSelectionError] = useState('')
   const crop = HOME_MEDIA[mediaKey]
   const previewPositionX = clamp(objectPositionX ?? 50, 0, 100)
   const previewPositionY = clamp(objectPositionY ?? 50, 0, 100)
 
+  useEffect(() => () => {
+    if (croppedPreview) URL.revokeObjectURL(croppedPreview)
+  }, [croppedPreview])
+
+  useEffect(() => {
+    setCroppedPreview(null)
+  }, [path])
+
   return <div className="mt-5 grid gap-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4">
     <div><h3 className="font-black">Ảnh {title}</h3><p className="muted mt-1 text-sm">{description} Khung hiển thị: {crop.label}. Bạn có thể tải ảnh với tỷ lệ bất kỳ; ảnh sẽ được cắt theo khung khi hiển thị.</p></div>
-    <div className={`fixed-media-frame home-image-admin-preview is-${mediaKey}`} style={{ '--media-ratio': `${crop.width} / ${crop.height}`, '--media-x': `${previewPositionX}%`, '--media-y': `${previewPositionY}%` } as CSSProperties}><img src={resolveAssetUrl(path, fallback)} alt={alt || `Ảnh ${title}`} onError={(event) => { const fallbackSource = resolveAssetUrl(fallback); if (!event.currentTarget.src.endsWith(fallbackSource)) event.currentTarget.src = fallbackSource }} /></div>
+    <div className={`fixed-media-frame home-image-admin-preview is-${mediaKey}`} style={{ '--media-ratio': `${crop.width} / ${crop.height}`, '--media-x': `${previewPositionX}%`, '--media-y': `${previewPositionY}%` } as CSSProperties}><img src={croppedPreview ?? resolveAssetUrl(path, fallback)} alt={alt || `Ảnh ${title}`} onError={(event) => { const fallbackSource = resolveAssetUrl(fallback); if (!event.currentTarget.src.endsWith(fallbackSource)) event.currentTarget.src = fallbackSource }} /></div>
     {onObjectPositionChange && <div className="home-image-position-controls" aria-label={`Vị trí trọng tâm ảnh ${title}`}>
       <label><span><strong>Ngang</strong><output>{Math.round(previewPositionX)}%</output></span><input aria-label={`Vị trí ảnh ${title} ngang`} type="range" min="0" max="100" step="1" value={previewPositionX} onChange={(event) => onObjectPositionChange('x', Number(event.target.value))} /></label>
       <label><span><strong>Dọc</strong><output>{Math.round(previewPositionY)}%</output></span><input aria-label={`Vị trí ảnh ${title} dọc`} type="range" min="0" max="100" step="1" value={previewPositionY} onChange={(event) => onObjectPositionChange('y', Number(event.target.value))} /></label>
       <button className="btn-secondary" type="button" onClick={() => { onObjectPositionChange('x', 50); onObjectPositionChange('y', 50) }}><RotateCcw size={16} />Căn giữa</button>
     </div>}
     <label><span className="label">Alt ảnh {title}</span><input className="input" value={alt} onChange={(event) => onAltChange(event.target.value)} /></label>
-    <div className="flex flex-wrap gap-3"><label className="btn-secondary cursor-pointer"><ImagePlus size={18} />{uploading ? 'Đang tải...' : `Chọn và cắt ảnh ${title}`}<input className="hidden" aria-label={`Chọn ảnh ${title}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setSelectionError('Ảnh phải là JPG, PNG hoặc WebP và không quá 5 MB.'); return } setSelectionError(''); setSelectedFile(file) }} /></label>{path && <button className="btn-secondary text-red-700" type="button" disabled={uploading} onClick={onRemove}><Trash2 size={17} />Dùng ảnh mặc định</button>}</div>
+    <div className="flex flex-wrap gap-3"><label className="btn-secondary cursor-pointer"><ImagePlus size={18} />{uploading ? 'Đang tải...' : `Chọn và cắt ảnh ${title}`}<input className="hidden" aria-label={`Chọn ảnh ${title}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setSelectionError('Ảnh phải là JPG, PNG hoặc WebP và không quá 5 MB.'); return } setSelectionError(''); setSelectedFile(file) }} /></label>{(path || croppedPreview) && <button className="btn-secondary text-red-700" type="button" disabled={uploading} onClick={() => { const shouldRemoveStoredImage = Boolean(path); setCroppedPreview(null); onUpload(undefined); if (shouldRemoveStoredImage) onRemove() }}><Trash2 size={17} />{path ? 'Dùng ảnh mặc định' : 'Bỏ ảnh đã chọn'}</button>}</div>
     {selectionError && <p className="text-sm font-semibold text-red-700">{selectionError}</p>}
-    {selectedFile && <AdminImageCropDialog file={selectedFile} title={title} mediaKey={mediaKey} onCancel={() => setSelectedFile(null)} onConfirm={(file) => { setSelectedFile(null); onUpload(file) }} />}
+    {selectedFile && <AdminImageCropDialog file={selectedFile} title={title} mediaKey={mediaKey} onCancel={() => setSelectedFile(null)} onConfirm={(file) => { setSelectedFile(null); setCroppedPreview(URL.createObjectURL(file)); onUpload(file) }} />}
   </div>
 }

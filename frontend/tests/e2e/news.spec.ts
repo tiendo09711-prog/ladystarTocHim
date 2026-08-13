@@ -63,10 +63,46 @@ test('lưới bản tin đáp ứng desktop, tablet, mobile và pagination', asy
   await expect(page.locator('.news-grid')).toHaveCSS('grid-template-columns', /[\d.]+px/)
   const featured = await page.locator('.news-featured-card').boundingBox()
   expect(featured).not.toBeNull()
-  expect(Math.abs((featured?.width ?? 0) - (featured?.height ?? 0))).toBeLessThan(8)
+  expect((featured?.width ?? 0) / (featured?.height ?? 1)).toBeCloseTo(16 / 9, 1)
   await page.getByRole('button', { name: '2' }).click()
   await expect(page).toHaveURL(/\?page=2/)
   await expect(page.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(0)
+})
+
+test('ảnh ngang dọc vuông không thay đổi tỷ lệ khung bản tin', async ({ page }) => {
+  let activeImagePath = '/e2e/news-source-1600x900.svg'
+  await page.route('**/e2e/news-source-*.svg', (route) => {
+    const match = route.request().url().match(/news-source-(\d+)x(\d+)\.svg/)
+    const width = Number(match?.[1] ?? 1600)
+    const height = Number(match?.[2] ?? 900)
+    route.fulfill({ contentType: 'image/svg+xml', body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#d7aab5"/><circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 4}" fill="#6f3f4d"/></svg>` })
+  })
+  await page.route('**/api/v1/news-page**', (route) => route.fulfill({ json: { success: true, data: { content: { eyebrow: 'TIN TỨC', title: 'Bản tin LADYSTARS', description: 'Mô tả', featured_badge_label: 'Nổi bật', list_title: 'Mới nhất', show_cta: true, cta_title: 'CTA', cta_image_path: activeImagePath, cta_image_alt: 'CTA' }, seo: { title: 'Bản tin LADYSTARS' }, featured: { id: 1, title: 'Nổi bật', slug: 'noi-bat', cover_image_path: activeImagePath }, articles: { current_page: 1, data: [{ id: 2, title: 'Bài viết', slug: 'bai-viet', cover_image_path: activeImagePath }], last_page: 1, per_page: 9, total: 1 } } } }))
+  await page.route('**/api/v1/news/noi-bat', (route) => route.fulfill({ json: { success: true, data: { id: 1, title: 'Nổi bật', slug: 'noi-bat', content: 'Nội dung chi tiết.', cover_image_path: activeImagePath, status: 'published' } } }))
+
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport)
+    for (const [width, height] of [[1600, 900], [900, 1600], [1000, 1000], [2400, 800], [800, 2400]]) {
+      activeImagePath = `/e2e/news-source-${width}x${height}.svg`
+      await page.goto('/tin-tuc')
+      await expect(page.locator('.news-cta-image')).toBeVisible()
+      const listingGeometry = await page.evaluate(() => {
+        const ratio = (selector: string) => { const bounds = document.querySelector(selector)!.getBoundingClientRect(); return bounds.width / bounds.height }
+        return { featured: ratio('.news-featured-card'), card: ratio('.news-article-image-wrap'), cta: ratio('.news-cta-image'), objectFits: [...document.querySelectorAll('.news-featured-image, .news-article-image, .news-cta-image')].map((image) => getComputedStyle(image).objectFit) }
+      })
+      expect(listingGeometry.featured).toBeCloseTo(16 / 9, 2)
+      expect(listingGeometry.card).toBeCloseTo(16 / 9, 2)
+      expect(listingGeometry.cta).toBeCloseTo(4 / 3, 2)
+      expect(listingGeometry.objectFits.every((value) => value === 'cover')).toBe(true)
+      if (width === 1600 && height === 900) await page.screenshot({ path: `../artifacts/news-page-${viewport.width}.png`, fullPage: true })
+
+      await page.goto('/tin-tuc/noi-bat')
+      const detailGeometry = await page.locator('.news-detail-cover').evaluate((element) => { const bounds = element.getBoundingClientRect(); return { ratio: bounds.width / bounds.height, objectFit: getComputedStyle(element).objectFit } })
+      expect(detailGeometry.ratio).toBeCloseTo(16 / 9, 2)
+      expect(detailGeometry.objectFit).toBe('cover')
+      if (width === 1600 && height === 900) await page.screenshot({ path: `../artifacts/news-detail-${viewport.width}.png`, fullPage: true })
+    }
+  }
 })

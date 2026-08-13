@@ -22,6 +22,8 @@ class GuideController extends Controller
             ->firstOrFail();
 
         $article->cover_image_path = $this->assetUrl($article->cover_image_path);
+        $article->content_image_path = $this->assetUrl($article->content_image_path);
+        $article->video_path = $this->assetUrl($article->video_path);
 
         return $this->success($article);
     }

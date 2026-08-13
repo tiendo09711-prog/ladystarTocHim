@@ -40,12 +40,11 @@ class PromotionPageController extends Controller
     {
         $content = NewsPageContent::where('page_key', self::PAGE_KEY)->first();
         $featured = $this->resolveFeatured($content);
-        $articles = NewsArticle::published()
-            ->where('category', self::CATEGORY)
+        $articles = NewsArticle::activePromotion()
             ->when($featured, fn ($query) => $query->where('id', '!=', $featured->id))
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
-            ->paginate(9, ['id', 'title', 'slug', 'excerpt', 'cover_image_path', 'cover_image_alt', 'category', 'published_at']);
+            ->paginate(9, ['id', 'title', 'slug', 'excerpt', 'cover_image_path', 'cover_image_alt', 'category', 'published_at', 'promotion_badge', 'promotion_conditions', 'promotion_starts_at', 'promotion_ends_at']);
 
         $seo = PageSeo::where('page_key', self::SEO_KEY)->first(['title', 'description', 'og_image_path']);
 
@@ -57,6 +56,28 @@ class PromotionPageController extends Controller
         ]);
     }
 
+    public function show(string $slug)
+    {
+        $article = NewsArticle::activePromotion()
+            ->with(['author:id,name', 'products' => fn ($query) => $query->where('status', 'active')->with('images', 'variants.inventories')])
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $payload = $article->toArray();
+        $payload['products'] = $article->products->map(fn ($product) => [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'base_sku' => $product->base_sku,
+            'short_description' => $product->short_description,
+            'image_path' => $this->assetUrl($product->images->sortByDesc('is_primary')->first()?->image_path),
+            'price_min' => (float) ($product->variants->min(fn ($variant) => $variant->currentPrice()) ?? 0),
+            'available_stock' => (int) $product->variants->sum(fn ($variant) => $variant->availableStock()),
+        ])->values();
+
+        return $this->success($payload);
+    }
+
     private function resolveFeatured(?NewsPageContent $content): ?NewsArticle
     {
         $featured = $content?->featuredArticle;
@@ -64,8 +85,7 @@ class PromotionPageController extends Controller
             return $featured;
         }
 
-        return NewsArticle::published()
-            ->where('category', self::CATEGORY)
+        return NewsArticle::activePromotion()
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
             ->first();
@@ -99,15 +119,17 @@ class PromotionPageController extends Controller
             'cover_image_alt' => $article->cover_image_alt,
             'category' => $article->category,
             'published_at' => $article->published_at,
+            'promotion_badge' => $article->promotion_badge,
+            'promotion_conditions' => $article->promotion_conditions,
+            'promotion_starts_at' => $article->promotion_starts_at,
+            'promotion_ends_at' => $article->promotion_ends_at,
             'has_cover' => filled($article->cover_image_path),
         ];
     }
 
     private function isPublishedPromotion(NewsArticle $article): bool
     {
-        return $article->category === self::CATEGORY
-            && $article->status === 'published'
-            && ($article->published_at === null || $article->published_at <= now());
+        return NewsArticle::activePromotion()->whereKey($article->id)->exists();
     }
 
     private function assetUrl(?string $path): ?string

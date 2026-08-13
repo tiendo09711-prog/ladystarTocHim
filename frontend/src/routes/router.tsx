@@ -9,6 +9,7 @@ import { CheckoutPage } from '../pages/store/CheckoutPage'
 import { ContentPage, OrderSuccessPage } from '../pages/store/ContentPage'
 import { AboutPage } from '../pages/store/AboutPage'
 import { NewsDetailPage } from '../pages/store/NewsDetailPage'
+import { PromotionDetailPage } from '../pages/store/PromotionDetailPage'
 import { NewsPage } from '../pages/store/NewsPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from '../pages/store/AuthPages'
 import { HomePage } from '../pages/store/HomePage'
@@ -87,7 +88,7 @@ export const router = createBrowserRouter([
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },
     { path: 'huong-dan/:slug', element: <GuideDetailPage /> },
-    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContactPage /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
+    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'uu-dai/:slug', element: <PromotionDetailPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContactPage /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { element: <UserProtectedRoute />, children: [{ path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },

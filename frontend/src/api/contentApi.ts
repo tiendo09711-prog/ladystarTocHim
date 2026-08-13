@@ -68,6 +68,10 @@ export async function getPromotionsPage(params?: { page?: number }) {
   return (await apiClient.get<ApiResponse<NewsPageData>>('/promotions-page', { params })).data.data
 }
 
+export async function getPromotionArticle(slug: string) {
+  return (await apiClient.get<ApiResponse<NewsArticle>>(`/promotions/${slug}`)).data.data
+}
+
 export async function getGuidesPage(params?: { page?: number }) {
   return (await apiClient.get<ApiResponse<NewsPageData>>('/guides-page', { params })).data.data
 }
@@ -111,15 +115,41 @@ export async function deleteGuidesHeroImage() {
   return (await apiClient.delete<ApiResponse<NewsPageAdminData>>('/admin/guides-page/hero-image')).data.data
 }
 
-export async function uploadNewsCtaImage(image: File) {
+export async function uploadGuidesCtaImage(image: File, alt?: string) {
   const data = new FormData()
   data.append('image', image)
+  if (alt) data.append('cta_image_alt', alt)
+  return (await apiClient.post<ApiResponse<NewsPageAdminData>>('/admin/guides-page/cta-image', data)).data.data
+}
+
+export async function deleteGuidesCtaImage() {
+  return (await apiClient.delete<ApiResponse<NewsPageAdminData>>('/admin/guides-page/cta-image')).data.data
+}
+
+export async function uploadGuideContentImage(articleId: number, image: File, alt?: string) {
+  const data = new FormData()
+  data.append('image', image)
+  if (alt) data.append('content_image_alt', alt)
+  return (await apiClient.post<ApiResponse<NewsArticle>>(`/admin/guides/${articleId}/content-image`, data)).data.data
+}
+
+export async function uploadGuideVideo(articleId: number, video: File) {
+  const data = new FormData()
+  data.append('video', video)
+  return (await apiClient.post<ApiResponse<NewsArticle>>(`/admin/guides/${articleId}/video`, data)).data.data
+}
+
+export async function uploadNewsCtaImage(image: File, alt?: string) {
+  const data = new FormData()
+  data.append('image', image)
+  if (alt) data.append('cta_image_alt', alt)
   return (await apiClient.post<ApiResponse<{ cta_image_path: string; cta_image_alt: string }>>('/admin/news-page/cta-image', data)).data.data
 }
 
-export async function uploadPromotionsCtaImage(image: File) {
+export async function uploadPromotionsCtaImage(image: File, alt?: string) {
   const data = new FormData()
   data.append('image', image)
+  if (alt) data.append('cta_image_alt', alt)
   return (await apiClient.post<ApiResponse<{ cta_image_path: string; cta_image_alt: string }>>('/admin/promotions-page/cta-image', data)).data.data
 }
 
