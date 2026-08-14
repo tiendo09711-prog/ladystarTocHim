@@ -12,6 +12,8 @@ for (const args of [['artisan', 'migrate', '--force'], ...(!hasDatabase ? [['art
   const result = spawnSync('php', args, { cwd: backend, env: environment, stdio: 'inherit' })
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
+const serviceSeed = spawnSync('php', ['artisan', 'db:seed', '--class=ServiceSeeder', '--force'], { cwd: backend, env: environment, stdio: 'inherit' })
+if (serviceSeed.status !== 0) process.exit(serviceSeed.status ?? 1)
 
 const server = spawn('php', ['artisan', 'serve', '--host=127.0.0.1', '--port=8011'], { cwd: backend, env: environment, stdio: 'inherit' })
 const stop = () => server.kill()

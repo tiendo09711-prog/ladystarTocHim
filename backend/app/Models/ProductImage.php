@@ -12,4 +12,9 @@ class ProductImage extends Model
     {
         return ['is_primary' => 'boolean'];
     }
+
+    public function variant()
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
 }

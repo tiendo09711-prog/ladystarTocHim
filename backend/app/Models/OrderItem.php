@@ -8,6 +8,11 @@ class OrderItem extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return ['variant_snapshot' => 'array'];
+    }
+
     public function product()
     {
         return $this->belongsTo(Product::class);

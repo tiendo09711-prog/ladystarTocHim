@@ -10,6 +10,8 @@ use App\Models\Category;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -67,7 +69,7 @@ class CatalogManagementController extends Controller
 
     public function attributes()
     {
-        return $this->success(Attribute::with('values')->get());
+        return $this->success(Attribute::with('values')->orderBy('sort_order')->orderBy('id')->get());
     }
 
     public function storeAttribute(Request $request)
@@ -86,6 +88,9 @@ class CatalogManagementController extends Controller
 
     public function deleteAttribute(Attribute $attribute)
     {
+        if ($attribute->values()->whereHas('variants')->exists()) {
+            throw ValidationException::withMessages(['attribute' => 'Không thể xóa thuộc tính đang được sử dụng bởi biến thể.']);
+        }
         $attribute->delete();
 
         return $this->success(null, 'Đã xóa thuộc tính.');
@@ -109,9 +114,40 @@ class CatalogManagementController extends Controller
     public function deleteAttributeValue(Attribute $attribute, AttributeValue $value)
     {
         abort_unless($value->attribute_id === $attribute->id, 404);
+        if ($value->variants()->exists()) {
+            throw ValidationException::withMessages(['value' => 'Không thể xóa giá trị thuộc tính đang được sử dụng bởi biến thể.']);
+        }
+        $this->deleteStoredImage($value->image_path);
         $value->delete();
 
         return $this->success(null);
+    }
+
+    public function uploadAttributeValueImage(Request $request, Attribute $attribute, AttributeValue $value)
+    {
+        abort_unless($value->attribute_id === $attribute->id, 404);
+        $image = $request->validate(['image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']])['image'];
+        $path = $image->storePubliclyAs('attributes/'.$attribute->id, Str::uuid().'.'.$image->extension(), 'public');
+        $oldPath = $value->image_path;
+        try {
+            $value->update(['image_path' => $path]);
+        } catch (\Throwable $error) {
+            Storage::disk('public')->delete($path);
+            throw $error;
+        }
+        $this->deleteStoredImage($oldPath);
+
+        return $this->success($value->refresh(), 'Tải ảnh option thành công.');
+    }
+
+    public function deleteAttributeValueImage(Attribute $attribute, AttributeValue $value)
+    {
+        abort_unless($value->attribute_id === $attribute->id, 404);
+        $oldPath = $value->image_path;
+        $value->update(['image_path' => null]);
+        $this->deleteStoredImage($oldPath);
+
+        return $this->success($value->refresh());
     }
 
     public function branches()
@@ -166,12 +202,19 @@ class CatalogManagementController extends Controller
 
     private function attributeData(Request $request, ?Attribute $attribute = null): array
     {
-        return $request->validate(['name' => ['required', 'string'], 'code' => ['required', 'alpha_dash', Rule::unique('attributes')->ignore($attribute)], 'type' => ['required', Rule::in(['select', 'color', 'text'])], 'is_filterable' => ['boolean'], 'is_variant_attribute' => ['boolean'], 'is_active' => ['boolean']]);
+        return $request->validate(['name' => ['required', 'string'], 'code' => ['required', 'alpha_dash', Rule::unique('attributes')->ignore($attribute)], 'type' => ['required', Rule::in(['select', 'color', 'text'])], 'display_style' => ['nullable', Rule::in(['buttons', 'image_swatches', 'image_cards'])], 'sort_order' => ['integer', 'min:0'], 'is_filterable' => ['boolean'], 'is_variant_attribute' => ['boolean'], 'is_active' => ['boolean']]);
     }
 
     private function attributeValueData(Request $request, Attribute $attribute, ?AttributeValue $value = null): array
     {
-        return $request->validate(['value' => ['required', 'string', Rule::unique('attribute_values')->where('attribute_id', $attribute->id)->ignore($value)], 'display_value' => ['required', 'string'], 'color_code' => ['nullable', 'string', 'max:20'], 'sort_order' => ['integer', 'min:0'], 'is_active' => ['boolean']]);
+        return $request->validate(['value' => ['required', 'string', Rule::unique('attribute_values')->where('attribute_id', $attribute->id)->ignore($value)], 'display_value' => ['required', 'string'], 'option_code' => ['nullable', 'string', 'max:80'], 'description' => ['nullable', 'string', 'max:2000'], 'color_code' => ['nullable', 'string', 'max:20'], 'image_alt' => ['nullable', 'string', 'max:190'], 'sort_order' => ['integer', 'min:0'], 'is_active' => ['boolean']]);
+    }
+
+    private function deleteStoredImage(?string $path): void
+    {
+        if ($path && ! str_starts_with($path, '/') && ! str_starts_with($path, 'http')) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function branchData(Request $request, ?Branch $branch = null): array

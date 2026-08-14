@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Store;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductDetailResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\Attribute;
@@ -26,9 +27,12 @@ class ProductController extends Controller
 
     public function show(string $slug)
     {
-        $product = $this->baseQuery()->where('slug', $slug)->firstOrFail();
+        $product = $this->baseQuery()
+            ->with(['reviews' => fn ($query) => $query->where('status', 'approved')->with('user:id,name')->latest()])
+            ->where('slug', $slug)
+            ->firstOrFail();
 
-        return $this->success(new ProductResource($product));
+        return $this->success(new ProductDetailResource($product));
     }
 
     public function featured(Request $request)
@@ -55,11 +59,13 @@ class ProductController extends Controller
     private function baseQuery(): Builder
     {
         return Product::query()->where('status', 'active')->with([
-            'category', 'brand', 'images', 'variants' => fn ($query) => $query->where('status', 'active')->with('attributeValues', 'inventories'),
+            'category', 'brand', 'images', 'variants' => fn ($query) => $query->where('status', 'active')->with('attributeValues.attribute', 'inventories'),
             'promotions' => fn ($query) => $query->activePromotion()->select([
                 'news_articles.id', 'title', 'slug', 'excerpt', 'promotion_badge', 'promotion_conditions', 'promotion_starts_at', 'promotion_ends_at',
             ])->orderBy('promotion_ends_at'),
-        ])->withAvg(['reviews' => fn ($query) => $query->where('status', 'approved')], 'rating')->withCount(['reviews' => fn ($query) => $query->where('status', 'approved')]);
+        ])->withAvg(['reviews' => fn ($query) => $query->where('status', 'approved')], 'rating')
+            ->withCount(['reviews' => fn ($query) => $query->where('status', 'approved')])
+            ->withSum(['orderItems as sold_count' => fn ($query) => $query->whereHas('order', fn ($order) => $order->where('order_status', 'completed'))], 'quantity');
     }
 
     private function applyFilters(Builder $query, Request $request): void

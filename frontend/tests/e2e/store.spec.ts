@@ -54,12 +54,12 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
   await page.getByRole('link', { name: 'Tóc giả nam', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await page.locator('article').first().getByRole('link').first().click()
-  await expect(page.getByRole('button', { name: /Thêm vào giỏ/ })).toBeVisible()
-  await page.getByRole('button', { name: /Thêm vào giỏ/ }).click()
-  await expect(page.getByText('Đã thêm sản phẩm vào giỏ hàng.')).toBeVisible()
-  await page.getByRole('link', { name: /Giỏ hàng/ }).first().click()
-  await expect(page.getByRole('heading', { name: 'Giỏ hàng' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Tiến hành thanh toán' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'ĐẶT MUA NGAY' })).toBeVisible({ timeout: 15_000 })
+  for (const group of await page.locator('.product-option-group').all()) await group.locator('button:not([disabled])').first().click()
+  await page.getByRole('button', { name: 'ĐẶT MUA NGAY' }).click()
+  await expect(page.getByText('Thêm vào giỏ hàng thành công!')).toBeVisible()
+  await expect(page).toHaveURL('/thanh-toan')
+  await expect(page.getByRole('heading', { name: 'Thanh toán', exact: true })).toBeVisible()
 })
 
 test('admin đăng nhập và xem dashboard', async ({ page }) => {

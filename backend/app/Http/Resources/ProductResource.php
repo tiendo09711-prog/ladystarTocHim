@@ -31,6 +31,7 @@ class ProductResource extends JsonResource
             'brand' => $this->whenLoaded('brand'),
             'images' => $this->whenLoaded('images', fn () => $this->images->sortByDesc('is_primary')->values()->map(fn ($image) => [
                 'id' => $image->id,
+                'product_variant_id' => $image->product_variant_id,
                 'image_path' => str_starts_with($image->image_path, '/') || str_starts_with($image->image_path, 'http') ? $image->image_path : Storage::disk('public')->url($image->image_path),
                 'alt_text' => $image->alt_text,
                 'is_primary' => $image->is_primary,
@@ -49,8 +50,11 @@ class ProductResource extends JsonResource
                 'stock' => $variant->availableStock(),
                 'attributes' => $variant->relationLoaded('attributeValues') ? $variant->attributeValues->map(fn ($value) => [
                     'attribute_id' => $value->pivot->attribute_id,
+                    'attribute_code' => $value->relationLoaded('attribute') ? $value->attribute->code : null,
+                    'attribute_name' => $value->relationLoaded('attribute') ? $value->attribute->name : null,
                     'value_id' => $value->id,
                     'value' => $value->display_value,
+                    'option_code' => $value->option_code,
                 ]) : [],
             ])),
             'price_min' => $this->whenLoaded('variants', fn () => (float) ($this->variants->min(fn ($variant) => $variant->currentPrice()) ?? 0)),
@@ -63,6 +67,7 @@ class ProductResource extends JsonResource
             }),
             'rating_average' => round((float) ($this->reviews_avg_rating ?? 0), 1),
             'reviews_count' => (int) ($this->reviews_count ?? 0),
+            'sold_count' => (int) ($this->sold_count ?? 0),
             'promotions' => $this->whenLoaded('promotions', fn () => $this->promotions->map(fn ($promotion) => [
                 'id' => $promotion->id,
                 'title' => $promotion->title,

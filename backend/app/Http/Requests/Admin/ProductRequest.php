@@ -54,32 +54,35 @@ class ProductRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator) {
+            $signatures = [];
+            $attributeSets = [];
             foreach ($this->input('variants', []) as $index => $variant) {
                 $skuQuery = ProductVariant::withTrashed()->where('sku', $variant['sku'] ?? '');
-                if (! empty($variant['id'])) {
-                    $skuQuery->whereKeyNot($variant['id']);
-                }
-                if ($skuQuery->exists()) {
-                    $validator->errors()->add("variants.$index.sku", 'SKU biến thể đã tồn tại.');
-                }
+                if (! empty($variant['id'])) $skuQuery->whereKeyNot($variant['id']);
+                if ($skuQuery->exists()) $validator->errors()->add('variants.'.$index.'.sku', 'SKU biến thể đã tồn tại.');
 
                 if (! empty($variant['barcode'])) {
                     $barcodeQuery = ProductVariant::withTrashed()->where('barcode', $variant['barcode']);
-                    if (! empty($variant['id'])) {
-                        $barcodeQuery->whereKeyNot($variant['id']);
-                    }
-                    if ($barcodeQuery->exists()) {
-                        $validator->errors()->add("variants.$index.barcode", 'Barcode đã tồn tại.');
-                    }
+                    if (! empty($variant['id'])) $barcodeQuery->whereKeyNot($variant['id']);
+                    if ($barcodeQuery->exists()) $validator->errors()->add('variants.'.$index.'.barcode', 'Barcode đã tồn tại.');
                 }
 
                 $valueIds = $variant['attribute_value_ids'] ?? [];
-                if ($valueIds) {
-                    $attributeIds = AttributeValue::whereKey($valueIds)->pluck('attribute_id');
-                    if ($attributeIds->count() !== $attributeIds->unique()->count()) {
-                        $validator->errors()->add("variants.$index.attribute_value_ids", 'Mỗi thuộc tính chỉ được chọn một giá trị.');
-                    }
+                $attributeIds = AttributeValue::whereKey($valueIds)->pluck('attribute_id');
+                if ($attributeIds->count() !== count($valueIds) || $attributeIds->count() !== $attributeIds->unique()->count()) {
+                    $validator->errors()->add('variants.'.$index.'.attribute_value_ids', 'Mỗi thuộc tính chỉ được chọn một giá trị hợp lệ.');
                 }
+
+                $signature = collect($valueIds)->map(fn ($id) => (int) $id)->sort()->implode('|') ?: 'none';
+                if (isset($signatures[$signature])) {
+                    $validator->errors()->add('variants.'.$index.'.attribute_value_ids', 'Tổ hợp thuộc tính biến thể đã tồn tại trong sản phẩm.');
+                }
+                $signatures[$signature] = $index;
+                $attributeSets[] = $attributeIds->isNotEmpty() ? $attributeIds->unique()->sort()->implode('|') : 'none';
+            }
+
+            if (collect($attributeSets)->unique()->count() > 1) {
+                $validator->errors()->add('variants', 'Các biến thể hoạt động phải dùng cùng nhóm thuộc tính.');
             }
         }];
     }

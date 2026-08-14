@@ -1,27 +1,27 @@
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, LoaderCircle, Phone, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { getStorePage, submitConsultation } from '../../api/contentApi'
+import type { Service } from '../../types'
 import './ConsultationDialog.css'
 
 const heroImage = '/images/brand/ladystars-hero.svg'
-const focusableSelector = 'button:not([disabled]), a[href], input:not([disabled])'
+const focusableSelector = 'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled])'
 
 function phoneHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, '')}`
 }
 
-export function ConsultationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ConsultationDialog({ open, onClose, productId, service, context, hotline: hotlineOverride }: { open: boolean; onClose: () => void; productId?: number; service?: Service | null; context?: string; hotline?: string | null }) {
   const location = useLocation()
-  const navigate = useNavigate()
-  const storePage = useQuery({ queryKey: ['store-page'], queryFn: getStorePage, enabled: open })
+  const storePage = useQuery({ queryKey: ['store-page'], queryFn: getStorePage, enabled: open && !hotlineOverride })
   const dialogRef = useRef<HTMLDivElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
-  const hotline = storePage.data?.branches.find((branch) => branch.is_default)?.phone ?? storePage.data?.branches[0]?.phone
+  const hotline = hotlineOverride ?? storePage.data?.branches.find((branch) => branch.is_default)?.phone ?? storePage.data?.branches[0]?.phone
 
   const closeDialog = () => {
     setSubmitted(false)
@@ -72,6 +72,9 @@ export function ConsultationDialog({ open, onClose }: { open: boolean; onClose: 
         name: String(form.get('name') ?? '').trim(),
         phone: String(form.get('phone') ?? '').trim(),
         source_page: location.pathname,
+        product_id: productId,
+        service_id: service?.id,
+        message: String(form.get('message') ?? '').trim() || context || undefined,
       })
       formElement.reset()
       setSubmitted(true)
@@ -80,11 +83,6 @@ export function ConsultationDialog({ open, onClose }: { open: boolean; onClose: 
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const returnHome = () => {
-    navigate('/')
-    closeDialog()
   }
 
   if (!open) return null
@@ -96,18 +94,19 @@ export function ConsultationDialog({ open, onClose }: { open: boolean; onClose: 
         <span><CheckCircle2 size={38} /></span>
         <h2 id='consultation-dialog-title'>Xác nhận đăng ký thành công!</h2>
         <p>Cảm ơn bạn đã để lại thông tin. LADYSTARS sẽ liên hệ lại trong thời gian sớm nhất.</p>
-        <button className='btn-primary' type='button' onClick={returnHome}>Trở về trang chủ</button>
+        <button className='btn-primary' type='button' onClick={closeDialog}>Hoàn tất</button>
       </div> : <>
         <div className='consultation-dialog-media'>
-          <img src={heroImage} alt='Minh họa phong cách tóc LADYSTARS' />
+          <img src={service?.image_path || heroImage} alt={service?.image_alt || service?.name || 'Minh họa phong cách tóc LADYSTARS'} />
         </div>
         <div className='consultation-dialog-content'>
           <p className='consultation-dialog-eyebrow'>LADYSTARS CARE</p>
-          <h2 id='consultation-dialog-title'>Tư vấn miễn phí giải pháp tóc phù hợp với bạn</h2>
-          <p>Để lại thông tin, đội ngũ LADYSTARS sẽ chủ động liên hệ và hỗ trợ bạn.</p>
+          <h2 id='consultation-dialog-title'>{service ? 'Đặt lịch dịch vụ' : 'Tư vấn miễn phí giải pháp tóc phù hợp với bạn'}</h2>
+          <p>{service ? <><strong>{service.name}</strong><br />Để lại thông tin, LADYSTARS sẽ liên hệ xác nhận lịch phù hợp.</> : 'Để lại thông tin, đội ngũ LADYSTARS sẽ chủ động liên hệ và hỗ trợ bạn.'}</p>
           <form onSubmit={submit}>
             <label><span>Họ và tên</span><input ref={nameInputRef} name='name' required maxLength={120} autoComplete='name' placeholder='Nhập họ và tên' /></label>
             <label><span>Số điện thoại</span><input name='phone' required minLength={8} maxLength={30} inputMode='tel' autoComplete='tel' placeholder='Nhập số điện thoại' /></label>
+            <label><span>Nhu cầu / ghi chú</span><textarea name='message' maxLength={2000} placeholder='Thông tin bạn muốn LADYSTARS lưu ý' /></label>
             {error && <p className='consultation-dialog-error' role='alert'>{error}</p>}
             <button className='consultation-dialog-submit' type='submit' disabled={submitting}>{submitting ? <><LoaderCircle className='is-spinning' size={18} />Đang gửi...</> : 'Đặt lịch'}</button>
           </form>

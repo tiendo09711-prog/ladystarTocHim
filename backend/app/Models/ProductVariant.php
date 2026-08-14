@@ -26,6 +26,11 @@ class ProductVariant extends Model
         return $this->belongsToMany(AttributeValue::class, 'product_variant_attribute_values')->withPivot('attribute_id');
     }
 
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
     public function inventories()
     {
         return $this->hasMany(Inventory::class);

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductManagementController extends Controller
 {
@@ -29,7 +30,7 @@ class ProductManagementController extends Controller
 
     public function show(Product $product)
     {
-        return $this->success(new ProductResource($product->load('category', 'brand', 'images', 'variants.attributeValues', 'variants.inventories')));
+        return $this->success(new ProductResource($product->load('category', 'brand', 'images', 'variants.attributeValues.attribute', 'variants.inventories')));
     }
 
     public function store(ProductRequest $request)
@@ -91,12 +92,13 @@ class ProductManagementController extends Controller
 
     public function uploadImages(Request $request, Product $product)
     {
-        $data = $request->validate(['images' => ['required', 'array', 'max:10'], 'images.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
+        $data = $request->validate(['images' => ['required', 'array', 'max:10'], 'images.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'], 'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id']]);
+        $this->assertVariantBelongsToProduct($product, $data['product_variant_id'] ?? null);
         abort_if($product->images()->count() + count($data['images']) > 10, 422, 'Mỗi sản phẩm chỉ được tối đa 10 ảnh.');
         $created = [];
         foreach ($data['images'] as $index => $image) {
             $path = $image->storePubliclyAs('products/'.$product->id, Str::uuid().'.'.$image->extension(), 'public');
-            $created[] = $product->images()->create(['image_path' => $path, 'alt_text' => $product->name, 'sort_order' => $product->images()->count() + $index, 'is_primary' => ! $product->images()->exists()]);
+            $created[] = $product->images()->create(['product_variant_id' => $data['product_variant_id'] ?? null, 'image_path' => $path, 'alt_text' => $product->name, 'sort_order' => $product->images()->count() + $index, 'is_primary' => ! $product->images()->exists()]);
         }
 
         return $this->success($created, 'Tải ảnh thành công.', 201);
@@ -131,7 +133,9 @@ class ProductManagementController extends Controller
     public function updateImage(Request $request, Product $product, ProductImage $image)
     {
         abort_unless($image->product_id === $product->id, 404);
-        $image->update($request->validate(['alt_text' => ['nullable', 'string', 'max:190']]));
+        $data = $request->validate(['alt_text' => ['nullable', 'string', 'max:190'], 'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id']]);
+        $this->assertVariantBelongsToProduct($product, $data['product_variant_id'] ?? null);
+        $image->update($data);
 
         return $this->success($image->refresh());
     }
@@ -153,8 +157,13 @@ class ProductManagementController extends Controller
         $data = $this->variantData($request);
         $attributeValueIds = $data['attribute_value_ids'] ?? [];
         unset($data['attribute_value_ids']);
-        $variant = $product->variants()->create($data);
-        $this->syncVariantAttributes($variant, $attributeValueIds);
+        $variant = DB::transaction(function () use ($product, $data, $attributeValueIds) {
+            $variant = $product->variants()->create($data);
+            $this->syncVariantAttributes($variant, $attributeValueIds);
+            $this->assertUniqueCombination($product, $attributeValueIds, $variant);
+
+            return $variant;
+        });
 
         return $this->success($variant, 'Tạo biến thể thành công.', 201);
     }
@@ -165,8 +174,11 @@ class ProductManagementController extends Controller
         $data = $this->variantData($request, $variant);
         $attributeValueIds = $data['attribute_value_ids'] ?? [];
         unset($data['attribute_value_ids']);
-        $variant->update($data);
-        $this->syncVariantAttributes($variant, $attributeValueIds);
+        DB::transaction(function () use ($variant, $product, $data, $attributeValueIds) {
+            $variant->update($data);
+            $this->syncVariantAttributes($variant, $attributeValueIds);
+            $this->assertUniqueCombination($product, $attributeValueIds, $variant);
+        });
 
         return $this->success($variant);
     }
@@ -188,5 +200,23 @@ class ProductManagementController extends Controller
     {
         $values = AttributeValue::whereKey($attributeValueIds)->get();
         $variant->attributeValues()->sync($values->mapWithKeys(fn ($value) => [$value->id => ['attribute_id' => $value->attribute_id]])->all());
+    }
+
+    private function assertUniqueCombination(Product $product, array $attributeValueIds, ProductVariant $variant): void
+    {
+        $signature = collect($attributeValueIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $duplicate = $product->variants()->whereKeyNot($variant->id)->with('attributeValues:id')->get()->contains(function ($candidate) use ($signature) {
+            return $candidate->attributeValues->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all() === $signature;
+        });
+        if ($duplicate) {
+            throw ValidationException::withMessages(['attribute_value_ids' => 'Tổ hợp thuộc tính biến thể đã tồn tại trong sản phẩm.']);
+        }
+    }
+
+    private function assertVariantBelongsToProduct(Product $product, ?int $variantId): void
+    {
+        if ($variantId && ! $product->variants()->whereKey($variantId)->exists()) {
+            throw ValidationException::withMessages(['product_variant_id' => 'Biến thể ảnh không thuộc sản phẩm hiện tại.']);
+        }
     }
 }

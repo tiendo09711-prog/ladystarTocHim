@@ -38,9 +38,11 @@ class DatabaseSeeder extends Seeder
         ];
         $attributes = collect();
         foreach ($attributeData as $code => [$name, $values]) {
-            $attribute = Attribute::updateOrCreate(['code' => $code], ['name' => $name, 'type' => $code === 'color' ? 'color' : 'select', 'is_filterable' => true, 'is_variant_attribute' => true, 'is_active' => true]);
+            $displayStyles = ['base_size' => 'buttons', 'color' => 'image_swatches', 'base_type' => 'image_cards'];
+            $sortOrders = ['base_size' => 10, 'color' => 20, 'base_type' => 30];
+            $attribute = Attribute::updateOrCreate(['code' => $code], ['name' => $name, 'type' => $code === 'color' ? 'color' : 'select', 'display_style' => $displayStyles[$code] ?? 'buttons', 'sort_order' => $sortOrders[$code] ?? 90, 'is_filterable' => true, 'is_variant_attribute' => true, 'is_active' => true]);
             foreach ($values as $index => $value) {
-                $attribute->values()->updateOrCreate(['value' => Str::slug($value)], ['display_value' => $value, 'sort_order' => $index, 'is_active' => true]);
+                $attribute->values()->updateOrCreate(['value' => Str::slug($value)], ['display_value' => $value, 'option_code' => strtoupper(substr(Str::slug($value, ''), 0, 4)), 'description' => $code === 'base_type' ? 'Thông tin chi tiết về '.$value.'.' : null, 'color_code' => $code === 'color' ? ['#171717', '#30251f', '#563d2c', '#8a8178'][$index] : null, 'sort_order' => $index, 'is_active' => true]);
             }
             $attributes[$code] = $attribute->load('values');
         }
@@ -71,8 +73,10 @@ class DatabaseSeeder extends Seeder
                 ]);
                 $color = $attributes['color']->values[($index + $variantIndex) % $attributes['color']->values->count()];
                 $size = $attributes['base_size']->values[($index + $variantIndex) % $attributes['base_size']->values->count()];
+                $base = $attributes['base_type']->values[($index + $variantIndex) % $attributes['base_type']->values->count()];
                 DB::table('product_variant_attribute_values')->updateOrInsert(['product_variant_id' => $variant->id, 'attribute_id' => $attributes['color']->id], ['attribute_value_id' => $color->id]);
                 DB::table('product_variant_attribute_values')->updateOrInsert(['product_variant_id' => $variant->id, 'attribute_id' => $attributes['base_size']->id], ['attribute_value_id' => $size->id]);
+                DB::table('product_variant_attribute_values')->updateOrInsert(['product_variant_id' => $variant->id, 'attribute_id' => $attributes['base_type']->id], ['attribute_value_id' => $base->id]);
                 Inventory::updateOrCreate(['branch_id' => $branch->id, 'product_variant_id' => $variant->id], ['quantity_on_hand' => 8 + (($index + $variantIndex) % 14), 'quantity_reserved' => 0, 'reorder_level' => 4]);
             }
             $products->push($product);

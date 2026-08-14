@@ -60,9 +60,36 @@ class CartController extends Controller
 
     private function cartData(Request $request): array
     {
-        $cart = $request->user()->cart()->with('items.variant.product.images', 'items.variant.inventories')->first();
+        $cart = $request->user()->cart()->with('items.variant.product.images', 'items.variant.attributeValues.attribute', 'items.variant.inventories')->first();
         $items = $cart?->items ?? collect();
 
-        return ['items' => $items, 'subtotal' => $items->sum(fn ($item) => $item->variant->currentPrice() * $item->quantity), 'count' => $items->sum('quantity')];
+        return [
+            'items' => $items->map(fn ($item) => [
+                'id' => $item->id,
+                'product_variant_id' => $item->product_variant_id,
+                'quantity' => (int) $item->quantity,
+                'unit_price' => $item->variant->currentPrice(),
+                'variant' => [
+                    'id' => $item->variant->id,
+                    'sku' => $item->variant->sku,
+                    'price' => (float) $item->variant->price,
+                    'sale_price' => $item->variant->sale_price !== null ? (float) $item->variant->sale_price : null,
+                    'current_price' => $item->variant->currentPrice(),
+                    'status' => $item->variant->status,
+                    'stock' => $item->variant->availableStock(),
+                    'attributes' => $item->variant->attributeValues->map(fn ($value) => [
+                        'attribute_id' => $value->attribute_id,
+                        'attribute_code' => $value->attribute->code,
+                        'attribute_name' => $value->attribute->name,
+                        'value_id' => $value->id,
+                        'value' => $value->display_value,
+                        'option_code' => $value->option_code,
+                    ])->values(),
+                    'product' => $item->variant->product,
+                ],
+            ])->values(),
+            'subtotal' => $items->sum(fn ($item) => $item->variant->currentPrice() * $item->quantity),
+            'count' => $items->sum('quantity'),
+        ];
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\NewsManagementController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\Admin\ProductManagementController;
+use App\Http\Controllers\Api\V1\Admin\ServiceManagementController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Store\AboutController;
 use App\Http\Controllers\Api\V1\Store\CatalogController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\V1\Store\NewsController;
 use App\Http\Controllers\Api\V1\Store\NewsPageController;
 use App\Http\Controllers\Api\V1\Store\GuideController;
 use App\Http\Controllers\Api\V1\Store\GuidePageController;
+use App\Http\Controllers\Api\V1\Store\GuestCheckoutController;
 use App\Http\Controllers\Api\V1\Store\HomePageController;
 use App\Http\Controllers\Api\V1\Admin\NewsPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\GuidePageContentManagementController;
@@ -60,6 +62,8 @@ Route::prefix('v1')->group(function () {
     Route::get('products/sale', [ProductController::class, 'sale']);
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/{slug}', [ProductController::class, 'show']);
+    Route::post('guest-checkout/preview', [GuestCheckoutController::class, 'preview'])->middleware('throttle:20,1');
+    Route::post('guest-checkout/place-order', [GuestCheckoutController::class, 'place'])->middleware('throttle:10,1');
 
     Route::get('about', [AboutController::class, 'index']);
     Route::get('seo/{pageKey}', [AboutController::class, 'seo']);
@@ -120,6 +124,14 @@ Route::prefix('v1')->group(function () {
             Route::delete('catalog/content/{pageKey}/images', [CatalogContentManagementController::class, 'deleteImage']);
             Route::get('consultation-requests', [ConsultationManagementController::class, 'index']);
             Route::patch('consultation-requests/{consultationRequest}/status', [ConsultationManagementController::class, 'updateStatus']);
+            Route::get('services', [ServiceManagementController::class, 'index']);
+            Route::post('services', [ServiceManagementController::class, 'store']);
+            Route::get('services/{service}', [ServiceManagementController::class, 'show']);
+            Route::put('services/{service}', [ServiceManagementController::class, 'update']);
+            Route::patch('services/{service}/status', [ServiceManagementController::class, 'status']);
+            Route::post('services/{service}/image', [ServiceManagementController::class, 'uploadImage']);
+            Route::delete('services/{service}/image', [ServiceManagementController::class, 'deleteImage']);
+            Route::delete('services/{service}', [ServiceManagementController::class, 'destroy']);
             Route::post('categories', [CatalogManagementController::class, 'storeCategory']);
             Route::patch('categories/reorder', [CatalogManagementController::class, 'reorderCategories']);
             Route::get('categories/{category}', [CatalogManagementController::class, 'showCategory']);
@@ -149,6 +161,8 @@ Route::prefix('v1')->group(function () {
             Route::post('attributes/{attribute}/values', [CatalogManagementController::class, 'storeAttributeValue']);
             Route::put('attributes/{attribute}/values/{value}', [CatalogManagementController::class, 'updateAttributeValue']);
             Route::delete('attributes/{attribute}/values/{value}', [CatalogManagementController::class, 'deleteAttributeValue']);
+            Route::post('attributes/{attribute}/values/{value}/image', [CatalogManagementController::class, 'uploadAttributeValueImage']);
+            Route::delete('attributes/{attribute}/values/{value}/image', [CatalogManagementController::class, 'deleteAttributeValueImage']);
             Route::get('branches', [CatalogManagementController::class, 'branches']);
             Route::post('branches', [CatalogManagementController::class, 'storeBranch']);
             Route::put('branches/{branch}', [CatalogManagementController::class, 'updateBranch']);

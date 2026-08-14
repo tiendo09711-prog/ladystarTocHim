@@ -110,7 +110,8 @@ body.consultation-dialog-open { overflow: hidden; }
 .consultation-dialog-content form { display: grid; gap: 14px; margin-top: 26px; }
 .consultation-dialog-content label { display: grid; gap: 7px; }
 .consultation-dialog-content label span { color: var(--color-text); font-size: 13px; font-weight: 750; }
-.consultation-dialog-content input {
+.consultation-dialog-content input,
+.consultation-dialog-content textarea {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: 14px;
@@ -120,8 +121,11 @@ body.consultation-dialog-open { overflow: hidden; }
   outline: 0;
   transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
 }
-.consultation-dialog-content input:focus { border-color: var(--color-brand); background: white; box-shadow: 0 0 0 3px rgba(155, 95, 109, .12); }
-.consultation-dialog-content input::placeholder { color: #9a8d91; }
+.consultation-dialog-content textarea { min-height: 92px; resize: vertical; }
+.consultation-dialog-content input:focus,
+.consultation-dialog-content textarea:focus { border-color: var(--color-brand); background: white; box-shadow: 0 0 0 3px rgba(155, 95, 109, .12); }
+.consultation-dialog-content input::placeholder,
+.consultation-dialog-content textarea::placeholder { color: #9a8d91; }
 
 .consultation-dialog-submit {
   display: inline-flex;

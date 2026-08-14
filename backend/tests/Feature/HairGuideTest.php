@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CatalogPageContent;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\StoreSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,18 +23,11 @@ class HairGuideTest extends TestCase
             ->assertJsonPath('data.title', 'Dịch vụ chăm sóc tóc phù hợp với bạn');
     }
 
-    public function test_public_hair_guide_returns_selected_active_products_in_saved_order(): void
+    public function test_public_hair_guide_returns_active_services_in_saved_order(): void
     {
         $this->seed();
-        $products = Product::where('status', 'active')->orderBy('id')->take(3)->get();
-        $content = CatalogPageContent::where('page_key', 'hair-guide')->firstOrFail();
-        $content->update(['settings_json' => array_merge($content->settings_json, [
-            'guide_products' => [
-                ['product_id' => $products[2]->id, 'badge' => 'Third', 'note' => 'Third note'],
-                ['product_id' => $products[0]->id, 'badge' => 'First', 'note' => 'First note'],
-                ['product_id' => $products[1]->id, 'badge' => 'Second', 'note' => 'Second note'],
-            ],
-        ])]);
+        $first = Service::create(['name' => 'Second service', 'slug' => 'second-service', 'price' => 200000, 'sort_order' => 20, 'status' => 'active']);
+        $second = Service::create(['name' => 'First service', 'slug' => 'first-service', 'price' => 100000, 'sort_order' => 10, 'status' => 'active']);
         StoreSetting::current()->update(['support_phone' => '0909000000']);
 
         $this->getJson('/api/v1/hair-guide')
@@ -41,29 +35,21 @@ class HairGuideTest extends TestCase
             ->assertJsonPath('data.page_key', 'hair-guide')
             ->assertJsonPath('data.title', 'Dịch vụ chăm sóc tóc phù hợp với bạn')
             ->assertJsonPath('data.seo.title', 'Dịch vụ chăm sóc tóc | LADYSTARS')
-            ->assertJsonPath('data.products.0.product.id', $products[2]->id)
-            ->assertJsonPath('data.products.1.product.id', $products[0]->id)
-            ->assertJsonPath('data.products.2.badge', 'Second')
+            ->assertJsonPath('data.services.0.id', $second->id)
+            ->assertJsonPath('data.services.1.id', $first->id)
+            ->assertJsonMissingPath('data.products')
             ->assertJsonPath('data.contact.support_phone', '0909000000');
     }
 
-    public function test_public_hair_guide_skips_inactive_products_and_keeps_contact_safe(): void
+    public function test_public_hair_guide_skips_inactive_services_and_keeps_contact_safe(): void
     {
-        $this->seed();
-        $products = Product::where('status', 'active')->orderBy('id')->take(2)->get();
-        $products[1]->update(['status' => 'inactive']);
-        $content = CatalogPageContent::where('page_key', 'hair-guide')->firstOrFail();
-        $content->update(['settings_json' => array_merge($content->settings_json, [
-            'guide_products' => [
-                ['product_id' => $products[0]->id],
-                ['product_id' => $products[1]->id],
-            ],
-        ])]);
+        $active = Service::create(['name' => 'Active', 'slug' => 'active', 'price' => 100000, 'sort_order' => 10, 'status' => 'active']);
+        Service::create(['name' => 'Inactive', 'slug' => 'inactive', 'price' => 100000, 'sort_order' => 20, 'status' => 'inactive']);
 
         $this->getJson('/api/v1/hair-guide')
             ->assertOk()
-            ->assertJsonCount(1, 'data.products')
-            ->assertJsonPath('data.products.0.product.id', $products[0]->id)
+            ->assertJsonCount(1, 'data.services')
+            ->assertJsonPath('data.services.0.id', $active->id)
             ->assertJsonMissingPath('data.contact.store_name');
     }
 
@@ -98,19 +84,19 @@ class HairGuideTest extends TestCase
         Storage::disk('public')->assertMissing($path);
     }
 
-    public function test_consultation_request_keeps_hair_guide_product_context(): void
+    public function test_consultation_request_keeps_service_context_from_server(): void
     {
-        $this->seed();
-        $product = Product::where('status', 'active')->firstOrFail();
+        $service = Service::create(['name' => 'Vệ sinh tóc giả', 'slug' => 've-sinh-toc-gia', 'price' => 100000, 'sort_order' => 10, 'status' => 'active']);
 
         $this->postJson('/api/v1/consultation-requests', [
             'name' => 'Guide Customer',
             'phone' => '0900000000',
-            'product_id' => $product->id,
+            'service_id' => $service->id,
+            'service_name' => 'Tên giả mạo',
             'source_page' => '/dich-vu-cham-soc',
         ])->assertCreated();
 
-        $this->assertDatabaseHas('consultation_requests', ['product_id' => $product->id, 'source_page' => '/dich-vu-cham-soc']);
+        $this->assertDatabaseHas('consultation_requests', ['service_id' => $service->id, 'service_name' => $service->name, 'source_page' => '/dich-vu-cham-soc']);
     }
 
     private function payload(array $guideProducts): array

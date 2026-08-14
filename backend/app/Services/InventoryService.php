@@ -25,7 +25,7 @@ class InventoryService
         return $inventory->refresh();
     }
 
-    public function reserve(Inventory $inventory, int $quantity, int $userId): void
+    public function reserve(Inventory $inventory, int $quantity, ?int $userId = null): void
     {
         if (($inventory->quantity_on_hand - $inventory->quantity_reserved) < $quantity) {
             throw ValidationException::withMessages(['stock' => 'Sản phẩm không đủ tồn kho khả dụng.']);

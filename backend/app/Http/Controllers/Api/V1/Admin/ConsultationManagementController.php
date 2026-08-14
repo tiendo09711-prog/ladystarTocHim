@@ -14,7 +14,7 @@ class ConsultationManagementController extends Controller
 
     public function index(Request $request)
     {
-        return $this->success(ConsultationRequest::with(['product:id,name,slug', 'category:id,name,slug', 'branch:id,name'])
+        return $this->success(ConsultationRequest::with(['product:id,name,slug', 'category:id,name,slug', 'service:id,name,slug', 'branch:id,name'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->latest()->paginate(min($request->integer('per_page', 20), 100)));
     }

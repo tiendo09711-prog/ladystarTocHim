@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Store;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ProductResource;
+use App\Http\Resources\ServiceResource;
 use App\Models\CatalogPageContent;
 use App\Models\Category;
 use App\Models\PageSeo;
-use App\Models\Product;
+use App\Models\Service;
 use App\Models\StoreSetting;
 use App\Support\ApiResponse;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
 class CatalogContentController extends Controller
@@ -35,20 +34,7 @@ class CatalogContentController extends Controller
     {
         $content = CatalogPageContent::where('page_key', 'hair-guide')->where('is_active', true)->first();
         $payload = $this->payload($content, 'hair-guide');
-        $guideItems = collect($content?->settings_json['guide_products'] ?? []);
-        $productIds = $guideItems->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
-        $products = $this->guideProducts($productIds)->keyBy('id');
-
-        $payload['products'] = $guideItems->map(function (array $item) use ($products) {
-            $product = $products->get((int) ($item['product_id'] ?? 0));
-            if (! $product) return null;
-
-            return [
-                'product' => (new ProductResource($product))->resolve(),
-                'badge' => $item['badge'] ?? null,
-                'note' => $item['note'] ?? null,
-            ];
-        })->filter()->values()->all();
+        $payload['services'] = ServiceResource::collection(Service::active()->orderBy('sort_order')->orderBy('id')->get())->resolve();
         $settings = StoreSetting::query()->first(['support_phone', 'support_email']);
         $payload['contact'] = [
             'support_phone' => $settings?->support_phone,
@@ -90,22 +76,4 @@ class CatalogContentController extends Controller
         return str_starts_with($path, '/') || str_starts_with($path, 'http') ? $path : Storage::disk('public')->url($path);
     }
 
-    private function guideProducts(array $productIds)
-    {
-        if (! $productIds) return collect();
-
-        return Product::query()
-            ->whereIn('id', $productIds)
-            ->where('status', 'active')
-            ->whereHas('variants', fn (Builder $query) => $query->where('status', 'active'))
-            ->with([
-                'category',
-                'brand',
-                'images',
-                'variants' => fn ($query) => $query->where('status', 'active')->with('attributeValues', 'inventories'),
-            ])
-            ->withAvg(['reviews' => fn (Builder $query) => $query->where('status', 'approved')], 'rating')
-            ->withCount(['reviews' => fn (Builder $query) => $query->where('status', 'approved')])
-            ->get();
-    }
 }

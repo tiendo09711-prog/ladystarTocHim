@@ -1,42 +1,86 @@
-import { CalendarDays, Gift, Heart, Minus, Plus, ShieldCheck, ShoppingBag, Star } from 'lucide-react'
+import { Heart, Minus, Plus, RotateCcw, ShoppingBag, Star } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getProduct } from '../../api/storeApi'
-import { LoadingState } from '../../components/common/LoadingState'
+import { apiClient } from '../../api/apiClient'
+import { getProduct, getProducts } from '../../api/storeApi'
+import { ConsultationDialog } from '../../components/store/ConsultationDialog'
+import { ProductDetailSections } from '../../components/products/ProductDetailSections'
+import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
+import { ProductGallery } from '../../components/products/ProductGallery'
+import { ProductOptionGroup } from '../../components/products/ProductOptionGroup'
+import { resolveProductVariant, type SelectedOptions } from '../../features/products/variantSelection'
+import { useAuth } from '../../stores/AuthContext'
 import { useCart } from '../../stores/CartContext'
 import { formatPrice } from '../../utils/format'
-import { selectProductVariant } from '../../features/products/variantSelection'
-import { useAuth } from '../../stores/AuthContext'
-import { apiClient } from '../../api/apiClient'
+import './ProductPage.css'
 
 export function ProductPage() {
   const { slug = '' } = useParams()
-  const query = useQuery({ queryKey: ['product', slug], queryFn: () => getProduct(slug) })
-  const [variantId, setVariantId] = useState<number | null>(null)
-  const [quantity, setQuantity] = useState(1)
+  const navigate = useNavigate()
   const { addItem } = useCart()
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const query = useQuery({ queryKey: ['product', slug], queryFn: () => getProduct(slug) })
   const product = query.data
-  useEffect(() => { if (product?.variants[0]) setVariantId(product.variants[0].id) }, [product])
-  if (query.isLoading || !product) return <div className="container-page py-10"><LoadingState /></div>
-  const variant = selectProductVariant(product.variants, variantId)
-  const image = product.images[0]?.image_path || '/images/product-placeholder.svg'
-  const add = async (buyNow = false) => { if (!variant) return; await addItem(product, variant, quantity); toast.success('Đã thêm sản phẩm vào giỏ hàng.'); if (buyNow) navigate('/gio-hang') }
-  const addWishlist = async () => { if (!user) { navigate('/dang-nhap', { state: { from: `/san-pham/${product.slug}` } }); return } await apiClient.post(`/account/wishlist/${product.id}`); toast.success('Đã thêm vào danh sách yêu thích.') }
+  const relatedQuery = useQuery({ queryKey: ['related-products', product?.id], enabled: Boolean(product?.category?.slug), queryFn: () => getProducts({ category: product?.category?.slug, per_page: 8 }) })
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({})
+  const [quantity, setQuantity] = useState(1)
+  const [missingOptionId, setMissingOptionId] = useState<number | null>(null)
+  const [consultationOpen, setConsultationOpen] = useState(false)
 
-  return <div className="container-page py-10"><div className="mb-6 text-sm text-slate-500"><Link to="/">Trang chủ</Link> / <Link to="/san-pham">Sản phẩm</Link> / {product.name}</div>
-    <div className="grid gap-8 lg:grid-cols-2"><div className="card overflow-hidden bg-[#edf1ec]"><img src={image} alt={product.name} className="aspect-square w-full object-cover" /></div><div>
-<div className="text-sm font-bold uppercase tracking-wide text-emerald-700">{product.brand?.name ?? 'LADYSTARS'}</div><h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{product.name}</h1><div className="mt-3 flex items-center gap-3 text-sm"><span className="flex items-center gap-1 font-bold text-amber-600"><Star size={17} fill="currentColor" />{product.rating_average || 'Mới'}</span><span className="text-slate-500">{product.reviews_count} đánh giá</span><span className="text-slate-500">SKU: {variant?.sku ?? product.base_sku}</span></div>
-      <div className="mt-6 flex items-center gap-3"><span className="price text-3xl">{formatPrice(variant?.current_price ?? 0)}</span>{variant?.sale_price && <span className="text-lg text-slate-400 line-through">{formatPrice(variant.price)}</span>}</div><p className="mt-4 leading-7 text-slate-600">{product.short_description}</p>
-      {Boolean(product.promotions?.length) && <section className='product-promotions' aria-labelledby='product-promotions-heading'><div className='product-promotions-heading'><span><Gift size={19} /></span><div><h2 id='product-promotions-heading'>Ưu đãi áp dụng cho sản phẩm</h2><p>Chọn chương trình phù hợp và kiểm tra điều kiện trước khi mua.</p></div></div><div className='product-promotions-list'>{product.promotions!.map((promotion) => <Link to={`/uu-dai/${promotion.slug}`} className='product-promotion-card' key={promotion.id}><div><strong>{promotion.badge || 'Ưu đãi LADYSTARS'}</strong><h3>{promotion.title}</h3>{promotion.conditions && <p>{promotion.conditions}</p>}</div>{promotion.ends_at && <span><CalendarDays size={15} />Đến {new Intl.DateTimeFormat('vi-VN').format(new Date(promotion.ends_at))}</span>}</Link>)}</div></section>}
-      <div className="mt-6"><div className="label">Chọn biến thể</div><div className="flex flex-wrap gap-2">{product.variants.map((item) => <button key={item.id} onClick={() => { setVariantId(item.id); setQuantity(1) }} className={item.id === variant?.id ? 'btn-primary' : 'btn-secondary'} disabled={item.stock < 1}>{item.attributes.map((attr) => attr.value).join(' · ') || item.sku}</button>)}</div></div>
-      <div className="mt-5 flex items-center gap-3"><div className="flex items-center rounded-xl border bg-white"><button className="p-3" onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus size={18} /></button><span className="min-w-10 text-center font-bold">{quantity}</span><button className="p-3" onClick={() => setQuantity(Math.min(variant?.stock ?? 1, quantity + 1))}><Plus size={18} /></button></div><span className="text-sm text-slate-500">{variant?.stock ? `Còn ${variant.stock} sản phẩm` : 'Tạm hết hàng'}</span></div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2"><button className="btn-primary" onClick={() => add(false)} disabled={!variant?.stock}><ShoppingBag size={19} />Thêm vào giỏ</button><button className="btn-secondary" onClick={() => add(true)} disabled={!variant?.stock}>Mua ngay</button></div><button className="mt-3 flex items-center gap-2 font-bold text-emerald-800" onClick={addWishlist}><Heart size={19} />Thêm vào yêu thích</button>
-      <div className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900"><div className="flex items-center gap-2 font-bold"><ShieldCheck size={18} />Thông tin mua hàng</div><p className="mt-1">Sản phẩm được kiểm tra trước khi giao. Hỗ trợ tư vấn lựa chọn và đổi trả theo chính sách.</p></div>
-    </div></div>
-    <div className="mt-10 grid gap-6 lg:grid-cols-3"><section className="card p-6 lg:col-span-2"><h2 className="text-xl font-black">Mô tả sản phẩm</h2><p className="mt-4 whitespace-pre-line leading-8 text-slate-600">{product.description}</p><h3 className="mt-7 font-black">Hướng dẫn sử dụng</h3><p className="mt-2 leading-7 text-slate-600">{product.usage_instructions}</p><h3 className="mt-7 font-black">Hướng dẫn bảo quản</h3><p className="mt-2 leading-7 text-slate-600">{product.care_instructions}</p></section><aside className="card h-fit p-6"><h2 className="text-xl font-black">Thông số</h2><dl className="mt-4 grid gap-3 text-sm">{[['Chất liệu', product.material], ['Loại đế', product.base_type], ['Xuất xứ', product.origin], ['Tuổi thọ ước tính', product.estimated_lifespan], ['Bảo hành', product.warranty_information]].map(([label, value]) => <div key={label} className="border-b pb-3"><dt className="text-slate-500">{label}</dt><dd className="mt-1 font-bold">{value || 'Đang cập nhật'}</dd></div>)}</dl></aside></div>
+  useEffect(() => { setSelectedOptions({}); setQuantity(1); setMissingOptionId(null) }, [product?.id])
+  const optionGroups = product?.variant_options ?? []
+  const requiredIds = optionGroups.map((option) => option.id)
+  const selectedVariant = product ? resolveProductVariant(product.variants, selectedOptions, requiredIds) : null
+  useEffect(() => setQuantity(1), [selectedVariant?.id])
+  const related = useMemo(() => (relatedQuery.data?.data ?? []).filter((item) => item.id !== product?.id).slice(0, 8), [relatedQuery.data, product?.id])
+
+  if (query.isLoading) return <div className='container-page product-detail-page'><ProductDetailSkeleton /></div>
+  if (!product) return <div className='container-page py-16 text-center'>Không tìm thấy sản phẩm.</div>
+
+  const chooseOption = (attributeId: number, valueId: number) => {
+    setSelectedOptions((current) => ({ ...current, [attributeId]: valueId }))
+    setMissingOptionId(null)
+  }
+  const reset = () => { setSelectedOptions({}); setQuantity(1); setMissingOptionId(null) }
+  const buyNow = async () => {
+    const missing = optionGroups.find((option) => !selectedOptions[option.id])
+    if (missing) {
+      setMissingOptionId(missing.id)
+      document.querySelector('[data-option-group=' + String(missing.id) + ']')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    if (!selectedVariant) { toast.error('Tổ hợp lựa chọn không hợp lệ. Vui lòng chọn lại.'); return }
+    if (selectedVariant.stock < 1) { toast.error('Biến thể này đã hết hàng.'); return }
+    await addItem(product, selectedVariant, quantity)
+    toast.success('Thêm vào giỏ hàng thành công!')
+    navigate('/thanh-toan')
+  }
+  const addWishlist = async () => {
+    if (!user) { navigate('/dang-nhap', { state: { from: '/san-pham/' + product.slug } }); return }
+    await apiClient.post('/account/wishlist/' + product.id)
+    toast.success('Đã thêm vào danh sách yêu thích.')
+  }
+  const priceLabel = selectedVariant ? formatPrice(selectedVariant.current_price) : product.price_min === product.price_max ? formatPrice(product.price_min ?? 0) : 'Từ ' + formatPrice(product.price_min ?? 0)
+
+  return <div className='container-page product-detail-page'>
+    <div className='product-breadcrumb'><Link to='/'>Trang chủ</Link><span>/</span><Link to='/san-pham'>Sản phẩm</Link><span>/</span><span>{product.name}</span></div>
+    <div className='product-detail-top'>
+      <ProductGallery images={product.images} productName={product.name} variantId={selectedVariant?.id ?? null} />
+      <section className='product-configurator'>
+        <div className='product-rating-row'><span><Star size={17} fill='currentColor' />{product.rating_average || 'Mới'}</span><span>ĐÃ BÁN {product.sold_count ?? 0}</span><span>{product.reviews_count} Đánh giá</span></div>
+        <h1>{product.name}</h1>
+        <div className='product-sku'>{selectedVariant ? 'SKU: ' + selectedVariant.sku : 'MÃ SẢN PHẨM: ' + product.base_sku}</div>
+        <div className='product-price-row'><strong>{priceLabel}</strong>{selectedVariant?.sale_price && <del>{formatPrice(selectedVariant.price)}</del>}</div>
+        {product.short_description && <p className='product-summary'>{product.short_description}</p>}
+        <button type='button' className='product-reset' onClick={reset}><RotateCcw size={16} />Chọn lại</button>
+        <div className='product-option-groups'>{optionGroups.map((option) => <ProductOptionGroup key={option.id} option={option} variants={product.variants} selection={selectedOptions} error={missingOptionId === option.id} onSelect={chooseOption} />)}</div>
+        <div className='product-quantity-row'><span>Số lượng</span><div><button type='button' aria-label='Giảm số lượng' onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus size={17} /></button><strong>{quantity}</strong><button type='button' aria-label='Tăng số lượng' disabled={!selectedVariant || quantity >= selectedVariant.stock} onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 1, quantity + 1))}><Plus size={17} /></button></div><small>{selectedVariant ? selectedVariant.stock > 0 ? 'Còn ' + selectedVariant.stock + ' sản phẩm' : 'Hết hàng' : 'Chọn đủ cấu hình để xem tồn kho'}</small></div>
+        <div className='product-cta-row'><button type='button' className='btn-primary' onClick={buyNow}><ShoppingBag size={18} />ĐẶT MUA NGAY</button><button type='button' className='btn-secondary' onClick={() => setConsultationOpen(true)}>ĐẶT LỊCH TƯ VẤN</button><button type='button' className='product-wishlist' onClick={addWishlist} aria-label='Thêm vào yêu thích'><Heart size={20} /></button></div>
+      </section>
+    </div>
+    <ProductDetailSections product={product} related={related} onConsult={() => setConsultationOpen(true)} />
+    <ConsultationDialog open={consultationOpen} onClose={() => setConsultationOpen(false)} productId={product.id} context={selectedVariant?.attributes.map((item) => (item.attribute_name || '') + ': ' + item.value).join(' · ')} />
   </div>
 }
