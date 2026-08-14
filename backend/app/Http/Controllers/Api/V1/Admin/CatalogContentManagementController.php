@@ -64,7 +64,8 @@ class CatalogContentManagementController extends Controller
         $field = $data['slot'] === 'hero' ? 'hero_image_path' : 'consultation_image_path';
         $oldPath = $content->{$field};
         $path = $data['image']->storePubliclyAs('catalog/'.$pageKey, Str::uuid().'.'.$data['image']->extension(), 'public');
-        $content->update([$field => $path]);
+        $content->setAttribute($field, $path);
+        $content->save();
         $this->deleteLocalAsset($oldPath);
 
         return $this->success([$field => Storage::disk('public')->url($path)], 'Đã tải ảnh catalog.', 201);

@@ -58,20 +58,29 @@ test('catalog và danh mục giữ khung ảnh cố định với mọi tỷ l�
     await page.screenshot({ path: `../artifacts/catalog-${path.split('/').filter(Boolean).join('-')}.png`, fullPage: true })
     const geometry = await page.evaluate(() => {
       const ratio = (element: Element) => { const bounds = element.getBoundingClientRect(); return bounds.width / bounds.height }
-      const heroImage = document.querySelector('main > section.mb-10 > img')
+      const hero = document.querySelector('main > section.mb-10')
+      const heroImage = hero?.querySelector('img')
       const consultation = document.querySelector('#catalog-consultation > div:first-child')
       return {
         productRatios: [...document.querySelectorAll('.product-card-image')].map(ratio),
         productFits: [...document.querySelectorAll('.product-card-image img')].map((image) => getComputedStyle(image).objectFit),
-        heroRatio: heroImage ? ratio(heroImage) : null,
+        heroCoverage: hero && heroImage ? {
+          widthDelta: Math.abs(hero.getBoundingClientRect().width - heroImage.getBoundingClientRect().width),
+          heightDelta: Math.abs(hero.getBoundingClientRect().height - heroImage.getBoundingClientRect().height),
+        } : null,
         heroFit: heroImage ? getComputedStyle(heroImage).objectFit : null,
+        heroPosition: heroImage ? getComputedStyle(heroImage).position : null,
         consultationRatio: consultation ? ratio(consultation) : null,
       }
     })
     expect(geometry.productRatios.every((value) => Math.abs(value - 1) < 0.02)).toBe(true)
     expect(geometry.productFits.every((value) => value === 'cover')).toBe(true)
-    if (geometry.heroRatio) expect(geometry.heroRatio).toBeCloseTo(6 / 5, 2)
+    if (geometry.heroCoverage) {
+      expect(geometry.heroCoverage.widthDelta).toBeLessThan(1)
+      expect(geometry.heroCoverage.heightDelta).toBeLessThan(1)
+    }
     if (geometry.heroFit) expect(geometry.heroFit).toBe('cover')
+    if (geometry.heroPosition) expect(geometry.heroPosition).toBe('absolute')
     if (geometry.consultationRatio) expect(geometry.consultationRatio).toBeCloseTo(6 / 5, 2)
   }
 })

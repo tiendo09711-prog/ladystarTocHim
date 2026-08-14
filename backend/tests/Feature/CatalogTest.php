@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
 use App\Models\Attribute;
+use App\Models\CatalogPageContent;
+use App\Models\Category;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -56,5 +58,24 @@ class CatalogTest extends TestCase
         Storage::disk('public')->assertExists($path);
         $this->actingAs($admin)->deleteJson('/api/v1/admin/catalog/content/products/images', ['slot' => 'hero'])->assertOk();
         Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_admin_upload_creates_missing_catalog_content_record(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $category = Category::where('slug', 'phu-kien-toc-gia')->firstOrFail();
+        $pageKey = 'category-'.$category->id;
+        CatalogPageContent::where('page_key', $pageKey)->delete();
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/catalog/content/'.$pageKey.'/images', [
+            'slot' => 'hero',
+            'image' => UploadedFile::fake()->image('hero.jpg', 1200, 1000),
+        ])->assertCreated();
+
+        $content = CatalogPageContent::where('page_key', $pageKey)->firstOrFail();
+        $this->assertSame($category->id, $content->category_id);
+        Storage::disk('public')->assertExists($content->hero_image_path);
     }
 }

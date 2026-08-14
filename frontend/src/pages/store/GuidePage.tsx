@@ -41,7 +41,9 @@ export function GuidePage() {
 }
 
 function GuideBody({ data, listRef, changePage }: { data: NewsPageData; listRef: RefObject<HTMLElement | null>; changePage: (page: number) => void }) {
-  const { content, featured, articles } = data
+  const content = data.content ?? ({} as NewsPageData['content'])
+  const featured = data.featured ?? null
+  const articles = data.articles ?? { data: [], current_page: 1, last_page: 1, per_page: 9, total: 0 }
   return <>
     <header className={`guide-journal-hero ${content.hero_image_path ? 'has-image' : ''}`} style={content.hero_image_path ? { backgroundImage: `url(${resolveAssetUrl(content.hero_image_path)})` } : undefined}>
       <span className='guide-journal-hero-scrim' aria-hidden='true' />
