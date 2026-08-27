@@ -1,90 +1,69 @@
 import {
-  BarChart3,
-  BookOpen,
-  Boxes,
+  ChevronDown,
   ChevronLeft,
-  ClipboardList,
-  FileSpreadsheet,
-  Gift,
-  History,
-  House,
-  LayoutDashboard,
   LogOut,
-  MapPin,
   Menu,
-  MessageCircle,
-  Newspaper,
-  Package,
-  PanelsTopLeft,
-  Settings,
-  Scissors,
-  ShoppingBag,
-  Tags,
-  TicketPercent,
-  Users,
-  Warehouse,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { adminDashboardItem, adminNavigationGroups, getActiveAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
 import { useAuth } from '../stores/AuthContext'
-
-const menu = [
-  ['Trang chủ', '/admin/home-page', House],
-  ['Trang hệ thống cửa hàng', '/admin/store-page', MapPin],
-  ['Trang liên hệ', '/admin/contact-page', MessageCircle],
-  ['Dashboard', '/admin/dashboard', LayoutDashboard],
-  ['Sản phẩm', '/admin/products', Package],
-  ['Danh mục', '/admin/categories', Tags],
-  ['Thuộc tính', '/admin/attributes', Boxes],
-  ['Chi nhánh', '/admin/branches', Warehouse],
-  ['Tồn kho', '/admin/inventory', ClipboardList],
-  ['Lịch sử kho', '/admin/inventory/transactions', History],
-  ['Đơn hàng', '/admin/orders', ShoppingBag],
-  ['Khách hàng', '/admin/customers', Users],
-  ['Đánh giá', '/admin/reviews', BarChart3],
-  ['Mã giảm giá', '/admin/coupons', TicketPercent],
-  ['Import / Export', '/admin/import-export', FileSpreadsheet],
-  ['Barcode', '/admin/barcodes', Boxes],
-  ['Báo cáo', '/admin/reports', BarChart3],
-  ['Nội dung About', '/admin/about', PanelsTopLeft],
-  ['Nội dung sản phẩm', '/admin/catalog-content', PanelsTopLeft],
-  ['Dịch vụ', '/admin/services', Scissors],
-  ['Yêu cầu tư vấn', '/admin/consultation-requests', ClipboardList],
-  ['Bản tin', '/admin/news', Newspaper],
-  ['Ưu đãi', '/admin/promotions', Gift],
-  ['Cài đặt', '/admin/settings', Settings],
-  ['Hướng dẫn', '/admin/guides', BookOpen],
-] as const
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+  const activeNavigation = getActiveAdminNavigation(location.pathname)
+  const activeGroupId = activeNavigation?.groupId
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(activeGroupId ? [activeGroupId] : []))
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!activeGroupId) return
+    setExpandedGroups((current) => current.has(activeGroupId) ? current : new Set([...current, activeGroupId]))
+  }, [activeGroupId])
 
   const signOut = async () => {
     await logout()
     navigate('/admin/login')
   }
 
-  const navigation = (
-    <nav className="grid gap-1">
-      {menu.map(([label, to, Icon]) => (
-        <NavLink
-          key={to}
-          to={to}
-          title={label}
-          onClick={() => setMobileOpen(false)}
-          className={({ isActive }) => ['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold', isActive ? 'bg-white' : 'text-emerald-50 hover:bg-white/10'].join(' ')}
-          style={({ isActive }) => ({ color: isActive ? '#4b2e1f' : undefined })}
-        >
-          <Icon size={19} />
-          <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
-        </NavLink>
-      ))}
-    </nav>
-  )
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
+  }
+
+  const navigationLink = (item: AdminNavigationItem, nested = false) => {
+    const Icon = item.icon
+    const isActive = activeNavigation?.item.id === item.id
+
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        title={item.label}
+        aria-label={item.label}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={() => setMobileOpen(false)}
+        className={[
+          'flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold transition-colors',
+          nested ? 'pl-4 pr-3' : 'px-3',
+          nested && collapsed ? 'lg:px-3' : '',
+          isActive ? 'bg-white shadow-sm' : 'text-emerald-50 hover:bg-white/10',
+        ].join(' ')}
+        style={{ color: isActive ? '#4b2e1f' : undefined }}
+      >
+        <Icon className="shrink-0" size={19} />
+        <span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span>
+      </Link>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
@@ -95,19 +74,51 @@ export function AdminLayout() {
           onClick={() => setMobileOpen(false)}
         />
       )}
-      <aside className={[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-64', 'fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-[#193b2d] p-3 text-white transition-all lg:translate-x-0'].join(' ')}>
+      <aside className={[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-72', 'fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[#193b2d] p-3 text-white transition-all lg:translate-x-0'].join(' ')}>
         <div className="mb-5 flex items-center justify-between px-2 py-3">
           <span className={[collapsed ? 'lg:hidden' : '', 'text-xl font-black'].join(' ')}>LADYSTARS</span>
-          <button className="hidden lg:block" onClick={() => setCollapsed(!collapsed)} aria-label="Thu gọn sidebar">
+          <button className="hidden lg:block" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}>
             <ChevronLeft className={collapsed ? 'rotate-180' : ''} />
           </button>
           <button className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Đóng menu">
             <X />
           </button>
         </div>
-        {navigation}
+        <nav className="grid min-h-0 flex-1 content-start gap-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-1" aria-label="Điều hướng quản trị">
+          {navigationLink(adminDashboardItem)}
+          {adminNavigationGroups.map((group) => {
+            const GroupIcon = group.icon
+            const expanded = expandedGroups.has(group.id)
+            const containsActiveItem = activeGroupId === group.id
+            const contentId = `admin-nav-group-${group.id}`
+
+            return (
+              <div className={group.separated ? 'mt-3 border-t border-white/15 pt-3' : 'mt-2'} key={group.id}>
+                <button
+                  type="button"
+                  className={[
+                    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-colors hover:bg-white/10',
+                    containsActiveItem ? 'bg-white/10 text-white' : 'text-emerald-100',
+                  ].join(' ')}
+                  title={group.label}
+                  aria-label={group.label}
+                  aria-expanded={expanded}
+                  aria-controls={contentId}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <GroupIcon className="shrink-0" size={18} />
+                  <span className={[collapsed ? 'lg:hidden' : '', 'min-w-0 flex-1 truncate'].join(' ')}>{group.label}</span>
+                  <ChevronDown className={[collapsed ? 'lg:hidden' : '', expanded ? 'rotate-180' : '', 'shrink-0 transition-transform'].join(' ')} size={17} aria-hidden="true" />
+                </button>
+                <div className={['mt-1 ml-4 grid gap-1 border-l border-white/15 pl-2', collapsed ? 'lg:ml-0 lg:border-l-0 lg:pl-0' : ''].join(' ')} id={contentId} hidden={!expanded}>
+                  {group.items.map((item) => navigationLink(item, true))}
+                </div>
+              </div>
+            )
+          })}
+        </nav>
       </aside>
-      <div className={[collapsed ? 'lg:ml-20' : 'lg:ml-64', 'min-w-0 flex-1 transition-all'].join(' ')}>
+      <div className={[collapsed ? 'lg:ml-20' : 'lg:ml-72', 'min-w-0 flex-1 transition-all'].join(' ')}>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-5">
           <div className="flex items-center gap-3">
             <button className="btn-secondary px-3 lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Mở menu quản trị">

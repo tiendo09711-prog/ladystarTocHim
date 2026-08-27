@@ -11,40 +11,55 @@ async function loginAdmin(page: import('@playwright/test').Page) {
 test('layout admin hiển thị đầy đủ tiếng Việt', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await loginAdmin(page)
-  const sidebarText = await page.locator('aside nav').innerText()
-  const labels = [
-    'Sản phẩm',
-    'Danh mục',
-    'Thuộc tính',
-    'Chi nhánh',
-    'Tồn kho',
-    'Lịch sử kho',
-    'Đơn hàng',
-    'Khách hàng',
-    'Đánh giá',
-    'Mã giảm giá',
-    'Báo cáo',
-    'Nội dung About',
-    'Bản tin',
-    'Cài đặt',
-  ]
+  const sidebar = page.getByRole('navigation', { name: 'Điều hướng quản trị' })
+  const groupLabels = ['Bán hàng', 'Sản phẩm & Kho', 'Marketing', 'Khách hàng & phản hồi', 'Nội dung website', 'Báo cáo', 'Hệ thống']
 
-  for (const label of labels) expect(sidebarText).toContain(label)
+  for (const label of groupLabels) await expect(sidebar.getByRole('button', { name: label, exact: true })).toBeVisible()
   await expect(page.getByText('Khu vực quản trị')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible()
-  expect(sidebarText).not.toMatch(/[\u0080-\u009f\u00ba\u00bb\ufffd]|Ã.|Ä.|Æ./u)
+  expect(await sidebar.innerText()).not.toMatch(/[\u0080-\u009f\u00ba\u00bb\ufffd]|Ã.|Ä.|Æ./u)
+
+  const adminSidebar = page.locator('aside')
+  await expect(adminSidebar).toHaveCSS('width', '288px')
+  await page.getByRole('button', { name: 'Thu gọn sidebar' }).click()
+  await expect(adminSidebar).toHaveCSS('width', '80px')
+  await page.getByRole('button', { name: 'Mở rộng sidebar' }).click()
+  await expect(adminSidebar).toHaveCSS('width', '288px')
 
   const dashboardLink = page.getByRole('link', { name: 'Dashboard', exact: true })
   await expect(dashboardLink).toHaveCSS('background-color', 'rgb(255, 255, 255)')
   await expect(dashboardLink).toHaveCSS('color', 'rgb(75, 46, 31)')
 
+  const productsGroup = sidebar.getByRole('button', { name: 'Sản phẩm & Kho', exact: true })
+  await expect(productsGroup).toHaveAttribute('aria-expanded', 'false')
+  await productsGroup.click()
+  await expect(productsGroup).toHaveAttribute('aria-expanded', 'true')
   await page.getByRole('link', { name: 'Sản phẩm', exact: true }).click()
+  await expect(page).toHaveURL(/admin\/products$/)
+  await expect(productsGroup).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toHaveCSS('color', 'rgb(75, 46, 31)')
+
+  await page.goto('/admin/inventory/transactions')
+  await expect(productsGroup).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('link', { name: 'Lịch sử kho', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('link', { name: 'Tồn kho', exact: true })).not.toHaveAttribute('aria-current', 'page')
+
+  await page.goto('/admin/products/1/edit')
+  await expect(productsGroup).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toHaveAttribute('aria-current', 'page')
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Mở menu quản trị' }).click()
   await expect(page.getByRole('link', { name: 'Sản phẩm', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Đóng menu', exact: true })).toBeVisible()
+  await sidebar.getByRole('button', { name: 'Hệ thống', exact: true }).click()
+  await sidebar.getByRole('link', { name: 'Cài đặt', exact: true }).scrollIntoViewIfNeeded()
+  await expect(sidebar.getByRole('link', { name: 'Cài đặt', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Đóng menu', exact: true }).click()
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.getByRole('button', { name: 'Đăng xuất' }).click()
+  await expect(page).toHaveURL(/admin\/login$/)
 })
 
 test('admin quản lý thuộc tính, coupon và cấu hình', async ({ page }) => {
