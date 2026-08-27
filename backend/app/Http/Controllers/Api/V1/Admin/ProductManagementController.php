@@ -104,6 +104,30 @@ class ProductManagementController extends Controller
         return $this->success($created, 'Tải ảnh thành công.', 201);
     }
 
+    public function uploadVideo(Request $request, Product $product)
+    {
+        $video = $request->validate(['video' => ['required', 'file', 'mimes:mp4,webm', 'max:51200']])['video'];
+        $path = $video->storePubliclyAs('products/'.$product->id.'/video', Str::uuid().'.'.$video->extension(), 'public');
+        $oldPath = $product->video_path;
+        try {
+            $product->update(['video_path' => $path]);
+        } catch (\Throwable $error) {
+            Storage::disk('public')->delete($path);
+            throw $error;
+        }
+        $this->removeStoredFile($oldPath);
+
+        return $this->success(new ProductResource($product->refresh()), 'Tải video sản phẩm thành công.', 201);
+    }
+
+    public function deleteVideo(Product $product)
+    {
+        $this->removeStoredFile($product->video_path);
+        $product->update(['video_path' => null]);
+
+        return $this->success(new ProductResource($product->refresh()), 'Đã xóa video sản phẩm.');
+    }
+
     public function deleteImage(Product $product, ProductImage $image)
     {
         abort_unless($image->product_id === $product->id, 404);
@@ -210,6 +234,13 @@ class ProductManagementController extends Controller
         });
         if ($duplicate) {
             throw ValidationException::withMessages(['attribute_value_ids' => 'Tổ hợp thuộc tính biến thể đã tồn tại trong sản phẩm.']);
+        }
+    }
+
+    private function removeStoredFile(?string $path): void
+    {
+        if ($path && ! str_starts_with($path, '/') && ! preg_match('/^https?:\/\//', $path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 

@@ -146,6 +146,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('products/{product}', [ProductManagementController::class, 'destroy']);
             Route::patch('products/{product}/status', [ProductManagementController::class, 'status']);
             Route::post('products/{product}/images', [ProductManagementController::class, 'uploadImages']);
+            Route::post('products/{product}/video', [ProductManagementController::class, 'uploadVideo']);
+            Route::delete('products/{product}/video', [ProductManagementController::class, 'deleteVideo']);
             Route::patch('products/{product}/images/reorder', [ProductManagementController::class, 'reorderImages']);
             Route::delete('products/{product}/images/{image}', [ProductManagementController::class, 'deleteImage']);
             Route::patch('products/{product}/images/{image}', [ProductManagementController::class, 'updateImage']);

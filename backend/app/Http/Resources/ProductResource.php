@@ -24,6 +24,7 @@ class ProductResource extends JsonResource
             'usage_instructions' => $this->usage_instructions,
             'care_instructions' => $this->care_instructions,
             'warranty_information' => $this->warranty_information,
+            'video_path' => $this->video_path ? (str_starts_with($this->video_path, '/') || str_starts_with($this->video_path, 'http') ? $this->video_path : Storage::disk('public')->url($this->video_path)) : null,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
             'is_new' => $this->is_new,

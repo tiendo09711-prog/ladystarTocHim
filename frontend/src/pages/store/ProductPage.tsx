@@ -67,7 +67,7 @@ export function ProductPage() {
   return <div className='container-page product-detail-page'>
     <div className='product-breadcrumb'><Link to='/'>Trang chủ</Link><span>/</span><Link to='/san-pham'>Sản phẩm</Link><span>/</span><span>{product.name}</span></div>
     <div className='product-detail-top'>
-      <ProductGallery images={product.images} productName={product.name} variantId={selectedVariant?.id ?? null} />
+      <ProductGallery images={product.images} productName={product.name} variantId={selectedVariant?.id ?? null} videoPath={product.video_path} />
       <section className='product-configurator'>
         <div className='product-rating-row'><span><Star size={17} fill='currentColor' />{product.rating_average || 'Mới'}</span><span>ĐÃ BÁN {product.sold_count ?? 0}</span><span>{product.reviews_count} Đánh giá</span></div>
         <h1>{product.name}</h1>

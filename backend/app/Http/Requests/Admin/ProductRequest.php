@@ -47,7 +47,7 @@ class ProductRequest extends FormRequest
             'variants.*.weight' => ['nullable', 'numeric', 'min:0'],
             'variants.*.status' => ['required', Rule::in(['active', 'inactive'])],
             'variants.*.attribute_value_ids' => ['sometimes', 'array'],
-            'variants.*.attribute_value_ids.*' => ['integer', 'distinct', 'exists:attribute_values,id'],
+            'variants.*.attribute_value_ids.*' => ['integer', 'exists:attribute_values,id'],
         ];
     }
 

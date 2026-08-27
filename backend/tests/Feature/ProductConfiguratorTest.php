@@ -44,4 +44,25 @@ class ProductConfiguratorTest extends TestCase
 
         $this->actingAs($admin)->postJson('/api/v1/admin/products', $payload)->assertUnprocessable()->assertJsonValidationErrors('variants.1.attribute_value_ids');
     }
+
+    public function test_admin_allows_attribute_values_to_repeat_across_distinct_combinations(): void
+    {
+        $this->seed();
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $attributes = Attribute::whereIn('code', ['color', 'base_size'])->with('values')->get()->keyBy('code');
+        $color = $attributes['color']->values->firstOrFail();
+        $sizes = $attributes['base_size']->values->take(2)->values();
+
+        $payload = [
+            'name' => 'Shared Attribute Test', 'slug' => 'shared-attribute-test', 'base_sku' => 'SAT-001',
+            'category_id' => Category::value('id'), 'description' => 'Test', 'status' => 'draft',
+            'is_featured' => false, 'is_new' => false,
+            'variants' => [
+                ['sku' => 'SAT-001-A', 'price' => 0, 'status' => 'active', 'attribute_value_ids' => [$color->id, $sizes[0]->id]],
+                ['sku' => 'SAT-001-B', 'price' => 0, 'status' => 'active', 'attribute_value_ids' => [$color->id, $sizes[1]->id]],
+            ],
+        ];
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/products', $payload)->assertCreated();
+    }
 }
