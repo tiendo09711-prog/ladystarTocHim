@@ -20,7 +20,9 @@ class OrderController extends Controller
 
     public function show(Request $request, string $orderNumber)
     {
-        return $this->success($request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.review')->firstOrFail());
+        $order = $request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.review', 'statusHistories', 'payment', 'shipment')->firstOrFail();
+
+        return $this->success($order->makeHidden('admin_note'));
     }
 
     public function cancel(Request $request, string $orderNumber, OrderLifecycleService $orderLifecycleService)
@@ -29,7 +31,7 @@ class OrderController extends Controller
         if ($order->order_status !== OrderStatus::Pending->value) {
             throw ValidationException::withMessages(['order' => 'Chỉ có thể hủy đơn đang chờ xác nhận.']);
         }
-        $order = $orderLifecycleService->cancel($order, $request->user()->id, [OrderStatus::Pending]);
+        $order = $orderLifecycleService->cancel($order, $request->user()->id, [OrderStatus::Pending], 'Khách hàng hủy đơn.');
 
         return $this->success($order, 'Đã hủy đơn hàng.');
     }

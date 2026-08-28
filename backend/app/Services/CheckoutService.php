@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
-    public function __construct(private InventoryService $inventoryService) {}
+    public function __construct(private InventoryService $inventoryService, private PaymentService $paymentService) {}
 
     public function preview(User $user, ?string $couponCode = null): array
     {
@@ -97,8 +97,12 @@ class CheckoutService
 
     private function createOrder(array $summary, array $payload, ?User $user): Order
     {
+        $settings = StoreSetting::current();
+        if (($payload['payment_method'] ?? 'cod') === 'bank_transfer' && ! $settings->bank_transfer_enabled) {
+            throw ValidationException::withMessages(['payment_method' => 'Chuyển khoản ngân hàng hiện không khả dụng.']);
+        }
         $order = Order::create(array_merge(Arr::except($payload, ['items', 'coupon_code']), [
-            'order_number' => StoreSetting::current()->order_prefix.now()->format('ymd').strtoupper(Str::random(6)),
+            'order_number' => $settings->order_prefix.now()->format('ymd').strtoupper(Str::random(6)),
             'user_id' => $user?->id,
             'branch_id' => $summary['branch']->id,
             'subtotal' => $summary['subtotal'],
@@ -114,8 +118,16 @@ class CheckoutService
             $this->createOrderItem($order, $summary['branch'], $line, $user);
         }
         $this->recordCouponUsage($order, $payload, $summary, $user);
+        $order->statusHistories()->create([
+            'from_status' => null,
+            'to_status' => 'pending',
+            'changed_by' => $user?->id,
+            'note' => 'Đơn hàng được tạo.',
+            'created_at' => now(),
+        ]);
+        $this->paymentService->createForOrder($order);
 
-        return $order->load('items');
+        return $order->load('items', 'payment', 'statusHistories');
     }
 
     private function createOrderItem(Order $order, Branch $branch, array $line, ?User $user): void

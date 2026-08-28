@@ -8,5 +8,9 @@
 - Engagement: `wishlists` unique user + product; `reviews` unique order item.
 - Promotion: `coupons`, `coupon_usages`.
 - Store configuration: `store_settings` lưu thông tin liên hệ, phí giao hàng, ngưỡng miễn phí, ngưỡng tồn kho và tiền tố mã đơn.
+- Order lifecycle: `order_status_histories` lưu `from_status`, `to_status`, actor, note và thời điểm; không sửa/xóa để dựng lại timeline giả.
+- Payment: `payments` unique theo `order_id`, lưu method/provider/amount/status, mã giao dịch, người xác nhận và `paid_at`.
+- Shipping: `shipments` unique theo `order_id`, lưu carrier, tracking number/URL, phí thực tế và các mốc shipped/delivered.
+- Bank transfer: `store_settings` có cờ bật/tắt, thông tin tài khoản công khai, hướng dẫn và đường dẫn ảnh QR local; không lưu credential/API key.
 
 Sản phẩm dùng soft delete. Danh mục có sản phẩm bị chặn xóa. Order item dùng foreign key restrict để giữ lịch sử.

@@ -17,9 +17,12 @@ use App\Models\StoreSetting;
 use App\Models\User;
 use App\Services\InventoryService;
 use App\Services\OrderLifecycleService;
+use App\Services\PaymentService;
+use App\Services\ShipmentService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +31,12 @@ class OperationsController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private InventoryService $inventoryService, private OrderLifecycleService $orderLifecycleService) {}
+    public function __construct(
+        private InventoryService $inventoryService,
+        private OrderLifecycleService $orderLifecycleService,
+        private PaymentService $paymentService,
+        private ShipmentService $shipmentService,
+    ) {}
 
     public function inventory(Request $request)
     {
@@ -81,12 +89,17 @@ class OperationsController extends Controller
 
     public function showOrder(Order $order)
     {
-        return $this->success($order->load('user', 'branch', 'items.product.images'));
+        return $this->success($order->load('user', 'branch', 'items.product.images', 'statusHistories', 'payment', 'shipment'));
     }
 
     public function paymentStatus(Request $request, Order $order)
     {
-        $order->update($request->validate(['payment_status' => ['required', Rule::in(['unpaid', 'paid', 'refunded'])]]));
+        $data = $request->validate([
+            'payment_status' => ['required', Rule::in(['unpaid', 'paid', 'refunded'])],
+            'transaction_code' => ['nullable', 'string', 'max:190'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $order = $this->paymentService->updateStatus($order, $data['payment_status'], $request->user()->id, $data['transaction_code'] ?? null, $data['note'] ?? null);
 
         return $this->success($order);
     }
@@ -100,8 +113,12 @@ class OperationsController extends Controller
 
     public function orderStatus(Request $request, Order $order)
     {
-        $status = $request->validate(['order_status' => ['required', Rule::in(['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'])]])['order_status'];
-        $order = $this->orderLifecycleService->transition($order, OrderStatus::from($status), $request->user()->id);
+        $data = $request->validate([
+            'order_status' => ['required', Rule::in(['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'])],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $note = $data['note'] ?? ($data['order_status'] === 'cancelled' ? 'Quản trị viên hủy đơn.' : null);
+        $order = $this->orderLifecycleService->transition($order, OrderStatus::from($data['order_status']), $request->user()->id, null, $note);
 
         return $this->success($order, 'Cập nhật trạng thái đơn hàng thành công.');
     }
@@ -111,6 +128,26 @@ class OperationsController extends Controller
         $request->merge(['order_status' => 'cancelled']);
 
         return $this->orderStatus($request, $order);
+    }
+
+    public function saveShipment(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'carrier' => ['required', 'string', 'max:190'],
+            'tracking_number' => ['nullable', 'string', 'max:190'],
+            'shipping_fee_actual' => ['nullable', 'numeric', 'min:0'],
+            'tracking_url' => ['nullable', 'url:http,https', 'max:1000'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return $this->success($this->shipmentService->save($order, $data, $request->user()->id), 'Đã lưu thông tin vận chuyển.');
+    }
+
+    public function shipmentStatus(Request $request, Order $order)
+    {
+        $status = $request->validate(['status' => ['required', Rule::in(['shipped', 'delivered'])]])['status'];
+
+        return $this->success($this->shipmentService->updateStatus($order, $status, $request->user()->id), 'Đã cập nhật trạng thái vận chuyển.');
     }
 
     public function customers(Request $request)
@@ -235,11 +272,42 @@ class OperationsController extends Controller
             'free_shipping_from' => ['required', 'numeric', 'min:0'],
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'order_prefix' => ['required', 'alpha_num', 'max:12'],
+            'bank_transfer_enabled' => ['sometimes', 'boolean'],
+            'bank_name' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_account_name' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_account_number' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'bank_branch' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_transfer_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
         $settings = StoreSetting::current();
         $settings->update($data);
 
         return $this->success($settings->refresh(), 'Đã lưu cấu hình cửa hàng.');
+    }
+
+    public function uploadBankQr(Request $request)
+    {
+        $image = $request->validate(['image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']])['image'];
+        $path = $image->storePubliclyAs('settings/bank-transfer', Str::uuid().'.'.$image->extension(), 'public');
+        $settings = StoreSetting::current();
+        $oldPath = $settings->bank_qr_path;
+        $settings->update(['bank_qr_path' => $path]);
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $this->success($settings->refresh(), 'Đã cập nhật ảnh QR.');
+    }
+
+    public function deleteBankQr()
+    {
+        $settings = StoreSetting::current();
+        if ($settings->bank_qr_path) {
+            Storage::disk('public')->delete($settings->bank_qr_path);
+            $settings->update(['bank_qr_path' => null]);
+        }
+
+        return $this->success($settings->refresh(), 'Đã xóa ảnh QR.');
     }
 
     public function export(string $resource)

@@ -34,6 +34,8 @@ use App\Http\Controllers\Api\V1\Store\PromotionPageController;
 use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\StorePageManagementController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
+use App\Http\Controllers\Api\V1\Store\OrderTrackingController;
+use App\Http\Controllers\Api\V1\Store\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Store\StorePageController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +67,8 @@ Route::prefix('v1')->group(function () {
     Route::get('products/{slug}', [ProductController::class, 'show']);
     Route::post('guest-checkout/preview', [GuestCheckoutController::class, 'preview'])->middleware('throttle:20,1');
     Route::post('guest-checkout/place-order', [GuestCheckoutController::class, 'place'])->middleware('throttle:10,1');
+    Route::get('payment-methods', [PaymentMethodController::class, 'index']);
+    Route::post('orders/track', [OrderTrackingController::class, 'track'])->middleware('throttle:6,1');
 
     Route::get('about', [AboutController::class, 'index']);
     Route::get('seo/{pageKey}', [AboutController::class, 'seo']);
@@ -187,6 +191,8 @@ Route::prefix('v1')->group(function () {
             Route::patch('orders/{order}/payment-status', [OperationsController::class, 'paymentStatus']);
             Route::post('orders/{order}/cancel', [OperationsController::class, 'cancelOrder']);
             Route::post('orders/{order}/notes', [OperationsController::class, 'notes']);
+            Route::put('orders/{order}/shipment', [OperationsController::class, 'saveShipment']);
+            Route::patch('orders/{order}/shipment/status', [OperationsController::class, 'shipmentStatus']);
             Route::get('customers', [OperationsController::class, 'customers']);
             Route::get('customers/{user}', [OperationsController::class, 'showCustomer']);
             Route::patch('customers/{user}/status', [OperationsController::class, 'customerStatus']);
@@ -203,6 +209,8 @@ Route::prefix('v1')->group(function () {
             Route::post('barcodes/{variant}/generate', [OperationsController::class, 'generateBarcode']);
             Route::get('settings', [OperationsController::class, 'settings']);
             Route::put('settings', [OperationsController::class, 'updateSettings']);
+            Route::post('settings/bank-qr', [OperationsController::class, 'uploadBankQr']);
+            Route::delete('settings/bank-qr', [OperationsController::class, 'deleteBankQr']);
 
             Route::get('home-page', [HomePageManagementController::class, 'show']);
             Route::put('home-page', [HomePageManagementController::class, 'update']);

@@ -14,14 +14,14 @@ class OrderLifecycleService
 {
     public function __construct(private InventoryService $inventoryService) {}
 
-    public function cancel(Order $order, ?int $actorId = null, array $allowedStatuses = [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing]): Order
+    public function cancel(Order $order, ?int $actorId = null, array $allowedStatuses = [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing], ?string $note = null): Order
     {
-        return $this->transition($order, OrderStatus::Cancelled, $actorId, $allowedStatuses);
+        return $this->transition($order, OrderStatus::Cancelled, $actorId, $allowedStatuses, $note);
     }
 
-    public function transition(Order $order, OrderStatus $targetStatus, ?int $actorId = null, ?array $allowedStatuses = null): Order
+    public function transition(Order $order, OrderStatus $targetStatus, ?int $actorId = null, ?array $allowedStatuses = null, ?string $note = null): Order
     {
-        return DB::transaction(function () use ($order, $targetStatus, $actorId, $allowedStatuses) {
+        return DB::transaction(function () use ($order, $targetStatus, $actorId, $allowedStatuses, $note) {
             $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->getKey());
             $currentStatus = OrderStatus::tryFrom($lockedOrder->order_status);
 
@@ -55,8 +55,15 @@ class OrderLifecycleService
             }
 
             $lockedOrder->update($updates);
+            $lockedOrder->statusHistories()->create([
+                'from_status' => $currentStatus->value,
+                'to_status' => $targetStatus->value,
+                'changed_by' => $actorId,
+                'note' => $note,
+                'created_at' => now(),
+            ]);
 
-            return $lockedOrder->refresh()->load('items');
+            return $lockedOrder->refresh()->load('items', 'payment', 'shipment', 'statusHistories');
         });
     }
 

@@ -26,7 +26,7 @@ class ExpirePendingOrders extends Command
             ->chunkById(100, function ($orders) use ($orderLifecycleService, &$expired) {
                 foreach ($orders as $order) {
                     try {
-                        $result = $orderLifecycleService->cancel($order, null, [OrderStatus::Pending]);
+                        $result = $orderLifecycleService->cancel($order, null, [OrderStatus::Pending], 'Tự động hủy do hết thời gian giữ hàng.');
                         if ($result->order_status === OrderStatus::Cancelled->value) {
                             $expired++;
                         }

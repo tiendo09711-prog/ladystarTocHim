@@ -27,6 +27,12 @@ php artisan storage:link
 php artisan serve
 ```
 
+Trong terminal khác, chạy scheduler để tự động hết hạn đơn đang chờ:
+
+```bash
+php artisan schedule:work
+```
+
 Tạo database trước khi migrate:
 
 ```sql
@@ -47,6 +53,8 @@ npm install
 copy .env.example .env
 npm run dev
 ```
+
+Lệnh root này khởi động MySQL local (khi cần), Laravel API, Laravel Scheduler và React Vite; `Ctrl+C` dừng toàn bộ tiến trình ứng dụng con.
 
 Frontend mặc định ở `http://localhost:5173`.
 

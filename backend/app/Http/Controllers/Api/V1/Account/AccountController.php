@@ -137,7 +137,7 @@ class AccountController extends Controller
     public function updateReview(Request $request, int $id)
     {
         $review = Review::where('user_id', $request->user()->id)->findOrFail($id);
-        $review->update(array_merge($request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'title' => ['nullable', 'string'], 'content' => ['nullable', 'string']]), ['status' => 'pending']));
+        $review->update(array_merge($request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'title' => ['nullable', 'string', 'max:190'], 'content' => ['nullable', 'string', 'max:3000']]), ['status' => 'pending']));
 
         return $this->success($review, 'Đã cập nhật đánh giá.');
     }

@@ -11,6 +11,7 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { CartPage } from '../pages/store/CartPage'
 import { CheckoutPage } from '../pages/store/CheckoutPage'
 import { ContentPage, OrderSuccessPage } from '../pages/store/ContentPage'
+import { OrderTrackingPage } from '../pages/store/OrderTrackingPage'
 import { AboutPage } from '../pages/store/AboutPage'
 import { NewsDetailPage } from '../pages/store/NewsDetailPage'
 import { PromotionDetailPage } from '../pages/store/PromotionDetailPage'
@@ -96,7 +97,7 @@ export const router = createBrowserRouter([
     { path: 'huong-dan/:slug', element: <GuideDetailPage /> },
     { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'uu-dai/:slug', element: <PromotionDetailPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContactPage /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
-    { path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> },
+    { path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tra-cuu-don-hang', element: <OrderTrackingPage /> },
     { element: <UserProtectedRoute />, children: [{ path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'bao-mat', element: <SecurityPage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },
     ] }] },

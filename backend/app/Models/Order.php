@@ -27,4 +27,19 @@ class Order extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
 }

@@ -121,12 +121,14 @@ async function main() {
   if (await portOpen(8000)) log('Backend is already available on http://127.0.0.1:8000.')
   else running.push(start('php', ['artisan', 'serve', '--host=0.0.0.0', '--port=8000'], backend, backendEnv))
 
+  running.push(start('php', ['artisan', 'schedule:work'], backend, backendEnv))
+
   if (await portOpen(5173)) log('Frontend is already available on http://127.0.0.1:5173.')
   else running.push(start(npm, ['run', 'dev', '--', '--host', '0.0.0.0'], frontend))
 
-  log('Ready: frontend http://127.0.0.1:5173 | backend http://127.0.0.1:8000')
+  log('Ready: frontend http://127.0.0.1:5173 | backend http://127.0.0.1:8000 | scheduler active')
   if (lanAddresses.length) log(`LAN: ${lanAddresses.map((address) => `http://${address}:5173`).join(' | ')}`)
-  log('Press Ctrl+C to stop frontend and backend. MySQL keeps running.')
+  log('Press Ctrl+C to stop frontend, backend, and scheduler. MySQL keeps running.')
   await new Promise((resolve) => {
     process.once('SIGINT', resolve)
     process.once('SIGTERM', resolve)

@@ -14,6 +14,7 @@ class StoreSetting extends Model
             'shipping_fee' => 'decimal:2',
             'free_shipping_from' => 'decimal:2',
             'low_stock_threshold' => 'integer',
+            'bank_transfer_enabled' => 'boolean',
         ];
     }
 
@@ -26,6 +27,7 @@ class StoreSetting extends Model
             'free_shipping_from' => 1000000,
             'low_stock_threshold' => 3,
             'order_prefix' => 'NH',
+            'bank_transfer_enabled' => true,
         ]);
     }
 }
