@@ -10,7 +10,7 @@ class Order extends Model
 
     protected function casts(): array
     {
-        return ['subtotal' => 'decimal:2', 'discount_amount' => 'decimal:2', 'shipping_fee' => 'decimal:2', 'total_amount' => 'decimal:2', 'cancelled_at' => 'datetime', 'completed_at' => 'datetime'];
+        return ['subtotal' => 'decimal:2', 'discount_amount' => 'decimal:2', 'shipping_fee' => 'decimal:2', 'total_amount' => 'decimal:2', 'cancelled_at' => 'datetime', 'completed_at' => 'datetime', 'expires_at' => 'datetime'];
     }
 
     public function items()

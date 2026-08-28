@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\Order;
@@ -43,7 +44,9 @@ class DashboardController extends Controller
 
     public function topProducts()
     {
-        return $this->success(OrderItem::select('product_id', 'product_name', DB::raw('sum(quantity) as quantity'), DB::raw('sum(line_total) as revenue'))->groupBy('product_id', 'product_name')->orderByDesc('quantity')->limit(10)->get());
+        return $this->success(OrderItem::select('product_id', 'product_name', DB::raw('sum(quantity) as quantity'), DB::raw('sum(line_total) as revenue'))
+            ->whereHas('order', fn ($query) => $query->where('order_status', OrderStatus::Completed->value))
+            ->groupBy('product_id', 'product_name')->orderByDesc('quantity')->limit(10)->get());
     }
 
     public function lowStock()

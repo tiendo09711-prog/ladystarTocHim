@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\Inventory;
 use App\Models\InventoryTransaction;
+use App\Models\Order;
+use App\Models\StoreSetting;
 use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
-    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null): Inventory
+    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null, ?Order $order = null): Inventory
     {
         $before = $inventory->quantity_on_hand;
         $after = $before + $quantity;
@@ -19,13 +21,14 @@ class InventoryService
         InventoryTransaction::create([
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
             'type' => $type, 'quantity' => $quantity, 'quantity_before' => $before, 'quantity_after' => $after,
+            'reference_type' => $order ? Order::class : null, 'reference_id' => $order?->id,
             'note' => $note, 'performed_by' => $performedBy,
         ]);
 
         return $inventory->refresh();
     }
 
-    public function reserve(Inventory $inventory, int $quantity, ?int $userId = null): void
+    public function reserve(Inventory $inventory, int $quantity, ?int $userId = null, ?Order $order = null): void
     {
         if (($inventory->quantity_on_hand - $inventory->quantity_reserved) < $quantity) {
             throw ValidationException::withMessages(['stock' => 'Sản phẩm không đủ tồn kho khả dụng.']);
@@ -34,7 +37,41 @@ class InventoryService
         InventoryTransaction::create([
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
             'type' => 'sale_reserve', 'quantity' => $quantity, 'quantity_before' => $inventory->quantity_on_hand,
-            'quantity_after' => $inventory->quantity_on_hand, 'performed_by' => $userId,
+            'quantity_after' => $inventory->quantity_on_hand, 'reference_type' => $order ? Order::class : null,
+            'reference_id' => $order?->id, 'performed_by' => $userId,
         ]);
+    }
+
+    public function firstOrCreate(int $branchId, int $variantId): Inventory
+    {
+        return Inventory::firstOrCreate(
+            ['branch_id' => $branchId, 'product_variant_id' => $variantId],
+            $this->initialValues(),
+        );
+    }
+
+    public function create(int $branchId, int $variantId, int $quantityOnHand = 0): Inventory
+    {
+        return Inventory::create([
+            'branch_id' => $branchId,
+            'product_variant_id' => $variantId,
+            ...$this->initialValues($quantityOnHand),
+        ]);
+    }
+
+    public function defaultReorderLevel(): int
+    {
+        $threshold = StoreSetting::current()->low_stock_threshold;
+
+        return is_numeric($threshold) && (int) $threshold >= 0 ? (int) $threshold : 3;
+    }
+
+    private function initialValues(int $quantityOnHand = 0): array
+    {
+        return [
+            'quantity_on_hand' => $quantityOnHand,
+            'quantity_reserved' => 0,
+            'reorder_level' => $this->defaultReorderLevel(),
+        ];
     }
 }

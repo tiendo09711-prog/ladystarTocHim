@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Category;
@@ -15,6 +16,7 @@ use App\Models\Review;
 use App\Models\StoreSetting;
 use App\Models\User;
 use App\Services\InventoryService;
+use App\Services\OrderLifecycleService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,7 @@ class OperationsController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private InventoryService $inventoryService) {}
+    public function __construct(private InventoryService $inventoryService, private OrderLifecycleService $orderLifecycleService) {}
 
     public function inventory(Request $request)
     {
@@ -49,7 +51,7 @@ class OperationsController extends Controller
     public function adjustInventory(Request $request)
     {
         $data = $request->validate(['branch_id' => ['required', 'exists:branches,id'], 'product_variant_id' => ['required', 'exists:product_variants,id'], 'quantity' => ['required', 'integer', 'not_in:0'], 'type' => ['required', Rule::in(['import', 'adjustment', 'return'])], 'note' => ['nullable', 'string']]);
-        $inventory = Inventory::firstOrCreate(['branch_id' => $data['branch_id'], 'product_variant_id' => $data['product_variant_id']], ['quantity_on_hand' => 0, 'quantity_reserved' => 0, 'reorder_level' => 3]);
+        $inventory = $this->inventoryService->firstOrCreate($data['branch_id'], $data['product_variant_id']);
 
         return $this->success($this->inventoryService->adjust($inventory, $data['quantity'], $data['type'], $request->user()->id, $data['note'] ?? null), 'Điều chỉnh kho thành công.');
     }
@@ -59,7 +61,7 @@ class OperationsController extends Controller
         $data = $request->validate(['from_branch_id' => ['required', 'different:to_branch_id', 'exists:branches,id'], 'to_branch_id' => ['required', 'exists:branches,id'], 'product_variant_id' => ['required', 'exists:product_variants,id'], 'quantity' => ['required', 'integer', 'min:1'], 'note' => ['nullable', 'string']]);
         DB::transaction(function () use ($data, $request) {
             $from = Inventory::where('branch_id', $data['from_branch_id'])->where('product_variant_id', $data['product_variant_id'])->lockForUpdate()->firstOrFail();
-            $to = Inventory::where('branch_id', $data['to_branch_id'])->where('product_variant_id', $data['product_variant_id'])->lockForUpdate()->first() ?? Inventory::create(['branch_id' => $data['to_branch_id'], 'product_variant_id' => $data['product_variant_id'], 'quantity_on_hand' => 0, 'quantity_reserved' => 0, 'reorder_level' => 3]);
+            $to = Inventory::where('branch_id', $data['to_branch_id'])->where('product_variant_id', $data['product_variant_id'])->lockForUpdate()->first() ?? $this->inventoryService->create($data['to_branch_id'], $data['product_variant_id']);
             $this->inventoryService->adjust($from, -$data['quantity'], 'transfer_out', $request->user()->id, $data['note'] ?? null);
             $this->inventoryService->adjust($to, $data['quantity'], 'transfer_in', $request->user()->id, $data['note'] ?? null);
         });
@@ -99,31 +101,9 @@ class OperationsController extends Controller
     public function orderStatus(Request $request, Order $order)
     {
         $status = $request->validate(['order_status' => ['required', Rule::in(['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'])]])['order_status'];
-        $allowed = ['pending' => ['confirmed', 'cancelled'], 'confirmed' => ['processing', 'cancelled'], 'processing' => ['shipping', 'cancelled'], 'shipping' => ['completed'], 'completed' => [], 'cancelled' => []];
-        if (! in_array($status, $allowed[$order->order_status] ?? [], true)) {
-            throw ValidationException::withMessages(['order_status' => 'Chuyển trạng thái đơn hàng không hợp lệ.']);
-        }
-        DB::transaction(function () use ($order, $status, $request) {
-            $order->load('items');
-            if ($order->order_status === 'pending' && $status === 'confirmed') {
-                foreach ($order->items as $item) {
-                    $inventory = Inventory::where('branch_id', $order->branch_id)->where('product_variant_id', $item->product_variant_id)->lockForUpdate()->firstOrFail();
-                    if ($inventory->quantity_reserved < $item->quantity || $inventory->quantity_on_hand < $item->quantity) {
-                        throw ValidationException::withMessages(['stock' => 'Tồn kho đã thay đổi, không thể xác nhận đơn.']);
-                    }
-                    $before = $inventory->quantity_on_hand;
-                    $inventory->decrement('quantity_on_hand', $item->quantity);
-                    $inventory->decrement('quantity_reserved', $item->quantity);
-                    InventoryTransaction::create(['branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id, 'type' => 'sale', 'quantity' => -$item->quantity, 'quantity_before' => $before, 'quantity_after' => $before - $item->quantity, 'performed_by' => $request->user()->id, 'note' => $order->order_number]);
-                }
-            }
-            if ($status === 'cancelled') {
-                $this->releaseOrderInventory($order, $request->user()->id);
-            }
-            $order->update(['order_status' => $status, 'cancelled_at' => $status === 'cancelled' ? now() : null, 'completed_at' => $status === 'completed' ? now() : null]);
-        });
+        $order = $this->orderLifecycleService->transition($order, OrderStatus::from($status), $request->user()->id);
 
-        return $this->success($order->refresh(), 'Cập nhật trạng thái đơn hàng thành công.');
+        return $this->success($order, 'Cập nhật trạng thái đơn hàng thành công.');
     }
 
     public function cancelOrder(Request $request, Order $order)
@@ -227,7 +207,7 @@ class OperationsController extends Controller
                     $product = Product::create(['category_id' => $category->id, 'name' => $row['name'], 'slug' => Str::slug($row['name']).'-'.strtolower($row['base_sku']), 'base_sku' => $row['base_sku'], 'description' => $row['description'] ?? $row['name'], 'material' => $row['material'] ?? null, 'base_type' => $row['base_type'] ?? null, 'status' => $row['status'] ?? 'active', 'published_at' => now()]);
                     $variant = $product->variants()->create(['sku' => $row['variant_sku'], 'barcode' => $row['barcode'] ?? null, 'price' => $row['price'], 'sale_price' => $row['sale_price'] ?? null, 'status' => 'active']);
                     $branch = Branch::where('code', $row['branch_code'] ?? 'MAIN')->firstOrFail();
-                    Inventory::create(['branch_id' => $branch->id, 'product_variant_id' => $variant->id, 'quantity_on_hand' => $row['stock_quantity'] ?? 0, 'quantity_reserved' => 0, 'reorder_level' => 3]);
+                    $this->inventoryService->create($branch->id, $variant->id, $row['stock_quantity'] ?? 0);
                     $created++;
                 });
             } catch (\Throwable $exception) {
@@ -311,18 +291,6 @@ class OperationsController extends Controller
         };
 
         return $this->success($rows);
-    }
-
-    private function releaseOrderInventory(Order $order, int $userId): void
-    {
-        foreach ($order->items as $item) {
-            $inventory = Inventory::where('branch_id', $order->branch_id)->where('product_variant_id', $item->product_variant_id)->lockForUpdate()->firstOrFail();
-            if ($order->order_status === 'pending') {
-                $inventory->decrement('quantity_reserved', min($item->quantity, $inventory->quantity_reserved));
-            } else {
-                $this->inventoryService->adjust($inventory, $item->quantity, 'cancel_release', $userId, $order->order_number);
-            }
-        }
     }
 
     private function couponData(Request $request, ?Coupon $coupon = null): array

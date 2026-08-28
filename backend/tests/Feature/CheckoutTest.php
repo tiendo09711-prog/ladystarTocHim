@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +26,7 @@ class CheckoutTest extends TestCase
         ]);
         $response->assertCreated()->assertJsonPath('success', true)->assertJsonPath('data.items.0.unit_price', (int) $price);
         $this->assertDatabaseHas('orders', ['user_id' => $user->id, 'order_status' => 'pending']);
+        $this->assertNotNull(Order::where('user_id', $user->id)->latest('id')->firstOrFail()->expires_at);
         $this->assertDatabaseHas('inventories', ['product_variant_id' => $variant->id, 'quantity_reserved' => 2]);
         $this->assertDatabaseMissing('cart_items', ['product_variant_id' => $variant->id]);
     }
