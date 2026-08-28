@@ -22,6 +22,11 @@ describe('adminNavigation', () => {
     expect(getActiveAdminNavigation('/admin/promotions/42/edit')?.groupId).toBe('marketing')
   })
 
+  it('includes brand management in products and inventory', () => {
+    expect(getActiveAdminNavigation('/admin/brands')?.item.label).toBe('Thương hiệu')
+    expect(getActiveAdminNavigation('/admin/brands')?.groupId).toBe('products-inventory')
+  })
+
   it('keeps every existing admin menu route available', () => {
     const configuredPaths = [adminDashboardItem, ...adminNavigationGroups.flatMap((group) => group.items)]
       .map((item) => item.path)
@@ -32,6 +37,7 @@ describe('adminNavigation', () => {
       '/admin/attributes',
       '/admin/barcodes',
       '/admin/branches',
+      '/admin/brands',
       '/admin/catalog-content',
       '/admin/categories',
       '/admin/consultation-requests',

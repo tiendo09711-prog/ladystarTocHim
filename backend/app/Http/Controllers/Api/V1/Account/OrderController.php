@@ -20,7 +20,7 @@ class OrderController extends Controller
 
     public function show(Request $request, string $orderNumber)
     {
-        return $this->success($request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images')->firstOrFail());
+        return $this->success($request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.review')->firstOrFail());
     }
 
     public function cancel(Request $request, string $orderNumber, OrderLifecycleService $orderLifecycleService)

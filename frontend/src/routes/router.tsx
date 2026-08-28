@@ -2,7 +2,11 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AccountLayout } from '../layouts/AccountLayout'
 import { StoreLayout } from '../layouts/StoreLayout'
-import { AccountIndexPage, AddressesPage, OrderDetailPage, OrdersPage, ProfilePage, WishlistPage } from '../pages/account/AccountPages'
+import { AccountIndexPage, OrdersPage, ProfilePage } from '../pages/account/AccountPages'
+import { AddressesPage } from '../pages/account/AddressesPage'
+import { OrderDetailPage } from '../pages/account/OrderDetailPage'
+import { SecurityPage } from '../pages/account/SecurityPage'
+import { WishlistPage } from '../pages/account/WishlistPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { CartPage } from '../pages/store/CartPage'
 import { CheckoutPage } from '../pages/store/CheckoutPage'
@@ -28,6 +32,7 @@ const AdminLayout = lazy(() => import('../layouts/AdminLayout').then((module) =>
 const ProductsAdminPage = lazy(() => import('../pages/admin/ProductsAdminPage').then((module) => ({ default: module.ProductsAdminPage })))
 const ProductFormPage = lazy(() => import('../pages/admin/ProductFormPage').then((module) => ({ default: module.ProductFormPage })))
 const CategoriesAdminPage = lazy(() => import('../pages/admin/CategoriesAdminPage').then((module) => ({ default: module.CategoriesAdminPage })))
+const BrandsAdminPage = lazy(() => import('../pages/admin/BrandsAdminPage').then((module) => ({ default: module.BrandsAdminPage })))
 const InventoryAdminPage = lazy(() => import('../pages/admin/InventoryAdminPage').then((module) => ({ default: module.InventoryAdminPage })))
 const OrdersAdminPage = lazy(() => import('../pages/admin/OrdersAdminPage').then((module) => ({ default: module.OrdersAdminPage })))
 const AdminOrderDetailPage = lazy(() => import('../pages/admin/OrdersAdminPage').then((module) => ({ default: module.AdminOrderDetailPage })))
@@ -65,7 +70,7 @@ export const router = createBrowserRouter([
   { element: <AdminProtectedRoute />, children: [{ path: '/admin', element: lazyPage(<AdminLayout />), children: [
     { index: true, element: <Navigate to="dashboard" replace /> }, { path: 'dashboard', element: lazyPage(<DashboardPage />) },
     { path: 'products', element: lazyPage(<ProductsAdminPage />) }, { path: 'products/create', element: lazyPage(<ProductFormPage />) }, { path: 'products/:id/edit', element: lazyPage(<ProductFormPage />) },
-    { path: 'categories', element: lazyPage(<CategoriesAdminPage />) }, { path: 'attributes', element: lazyPage(<AttributesAdminPage />) },
+    { path: 'categories', element: lazyPage(<CategoriesAdminPage />) }, { path: 'brands', element: lazyPage(<BrandsAdminPage />) }, { path: 'attributes', element: lazyPage(<AttributesAdminPage />) },
     { path: 'branches', element: lazyPage(<BranchesAdminPage />) },
     { path: 'inventory', element: lazyPage(<InventoryAdminPage />) }, { path: 'inventory/transactions', element: lazyPage(<InventoryTransactionsPage />) },
     { path: 'orders', element: lazyPage(<OrdersAdminPage />) }, { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
@@ -93,7 +98,7 @@ export const router = createBrowserRouter([
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> },
     { element: <UserProtectedRoute />, children: [{ path: 'tai-khoan', element: <AccountLayout />, children: [
-      { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },
+      { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'bao-mat', element: <SecurityPage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },
     ] }] },
     { path: '*', element: <NotFoundPage /> },
   ] },
