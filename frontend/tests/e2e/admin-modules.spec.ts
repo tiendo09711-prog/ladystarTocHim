@@ -93,11 +93,14 @@ test('admin quản lý thuộc tính, coupon và cấu hình', async ({ page }) 
 test('admin tải ảnh sản phẩm và xóa lại thành công', async ({ page }) => {
   await loginAdmin(page)
   await page.goto('/admin/products')
-  await page.getByRole('row').nth(1).getByRole('link').click()
-  await expect(page.getByRole('heading', { name: 'Chỉnh sửa sản phẩm' })).toBeVisible()
+  await Promise.all([
+    page.waitForURL(/admin\/products\/\d+\/edit$/),
+    page.getByRole('row').nth(1).getByRole('link').click(),
+  ])
+  await expect(page.getByRole('heading', { name: 'Chỉnh sửa sản phẩm' })).toBeVisible({ timeout: 15_000 })
   const editUrl = page.url()
   const initialImageCount = await page.getByRole('button', { name: 'Xóa', exact: true }).count()
-  await page.locator('input[type="file"]').setInputFiles({ name: 'e2e-product.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4xQAAAAASUVORK5CYII=', 'base64') })
+  await page.getByLabel('Chọn và cắt ảnh').setInputFiles({ name: 'e2e-product.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4xQAAAAASUVORK5CYII=', 'base64') })
   await expect(page.getByRole('dialog')).toContainText('1:1')
   await page.getByRole('button', { name: 'Dùng ảnh đã cắt' }).click()
   await page.getByRole('button', { name: 'Lưu sản phẩm' }).click()
