@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api\V1\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\GuestScopeTokenService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 
 class OrderTrackingController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(private GuestScopeTokenService $tokens) {}
 
     public function track(Request $request)
     {
@@ -47,6 +50,7 @@ class OrderTrackingController extends Controller
             'status_histories' => $order->statusHistories,
             'payment' => $order->payment?->only(['method', 'provider', 'amount', 'status', 'transaction_code', 'paid_at']),
             'shipment' => $order->shipment?->only(['carrier', 'tracking_number', 'shipping_fee_actual', 'status', 'shipped_at', 'delivered_at', 'tracking_url']),
+            'guest_after_sales_token' => $order->user_id === null ? $this->tokens->issue('guest_order_after_sales', $order->id, $order->customer_phone) : null,
         ]);
     }
 }

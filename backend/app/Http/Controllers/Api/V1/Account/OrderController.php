@@ -20,7 +20,7 @@ class OrderController extends Controller
 
     public function show(Request $request, string $orderNumber)
     {
-        $order = $request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.review', 'statusHistories', 'payment', 'shipment')->firstOrFail();
+        $order = $request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.product.variants', 'items.review', 'statusHistories', 'payment', 'shipment')->firstOrFail();
 
         return $this->success($order->makeHidden('admin_note'));
     }

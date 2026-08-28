@@ -16,6 +16,7 @@ class ServiceResource extends JsonResource
             'slug' => $this->slug,
             'short_description' => $this->short_description,
             'price' => (float) $this->price,
+            'duration_minutes' => (int) $this->duration_minutes,
             'image_path' => $this->assetUrl($this->image_path),
             'image_alt' => $this->image_alt,
             'sort_order' => $this->sort_order,
@@ -25,7 +26,9 @@ class ServiceResource extends JsonResource
 
     private function assetUrl(?string $path): ?string
     {
-        if (! $path) return null;
+        if (! $path) {
+            return null;
+        }
 
         return str_starts_with($path, '/') || preg_match('/^https?:\/\//', $path)
             ? $path

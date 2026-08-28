@@ -6,11 +6,12 @@ use App\Models\Inventory;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\StoreSetting;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
-    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null, ?Order $order = null): Inventory
+    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null, ?Model $reference = null): Inventory
     {
         $before = $inventory->quantity_on_hand;
         $after = $before + $quantity;
@@ -21,7 +22,7 @@ class InventoryService
         InventoryTransaction::create([
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
             'type' => $type, 'quantity' => $quantity, 'quantity_before' => $before, 'quantity_after' => $after,
-            'reference_type' => $order ? Order::class : null, 'reference_id' => $order?->id,
+            'reference_type' => $reference ? $reference::class : null, 'reference_id' => $reference?->getKey(),
             'note' => $note, 'performed_by' => $performedBy,
         ]);
 
@@ -30,15 +31,49 @@ class InventoryService
 
     public function reserve(Inventory $inventory, int $quantity, ?int $userId = null, ?Order $order = null): void
     {
+        $this->reserveForReference($inventory, $quantity, 'sale_reserve', $userId, $order);
+    }
+
+    public function reserveForReference(Inventory $inventory, int $quantity, string $type, ?int $userId = null, ?Model $reference = null, ?string $note = null): void
+    {
         if (($inventory->quantity_on_hand - $inventory->quantity_reserved) < $quantity) {
             throw ValidationException::withMessages(['stock' => 'Sản phẩm không đủ tồn kho khả dụng.']);
         }
         $inventory->increment('quantity_reserved', $quantity);
         InventoryTransaction::create([
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
-            'type' => 'sale_reserve', 'quantity' => $quantity, 'quantity_before' => $inventory->quantity_on_hand,
-            'quantity_after' => $inventory->quantity_on_hand, 'reference_type' => $order ? Order::class : null,
-            'reference_id' => $order?->id, 'performed_by' => $userId,
+            'type' => $type, 'quantity' => $quantity, 'quantity_before' => $inventory->quantity_on_hand,
+            'quantity_after' => $inventory->quantity_on_hand, 'reference_type' => $reference ? $reference::class : null,
+            'reference_id' => $reference?->getKey(), 'performed_by' => $userId, 'note' => $note,
+        ]);
+    }
+
+    public function releaseReservation(Inventory $inventory, int $quantity, string $type, ?int $userId = null, ?Model $reference = null, ?string $note = null): void
+    {
+        if ($inventory->quantity_reserved < $quantity) {
+            throw ValidationException::withMessages(['stock' => 'Reserved inventory is inconsistent.']);
+        }
+        $inventory->decrement('quantity_reserved', $quantity);
+        InventoryTransaction::create([
+            'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
+            'type' => $type, 'quantity' => $quantity, 'quantity_before' => $inventory->quantity_on_hand,
+            'quantity_after' => $inventory->quantity_on_hand, 'reference_type' => $reference ? $reference::class : null,
+            'reference_id' => $reference?->getKey(), 'performed_by' => $userId, 'note' => $note,
+        ]);
+    }
+
+    public function consumeReservation(Inventory $inventory, int $quantity, string $type, ?int $userId = null, ?Model $reference = null, ?string $note = null): void
+    {
+        if ($inventory->quantity_reserved < $quantity || $inventory->quantity_on_hand < $quantity) {
+            throw ValidationException::withMessages(['stock' => 'Reserved inventory cannot be consumed.']);
+        }
+        $before = $inventory->quantity_on_hand;
+        $inventory->update(['quantity_on_hand' => $before - $quantity, 'quantity_reserved' => $inventory->quantity_reserved - $quantity]);
+        InventoryTransaction::create([
+            'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
+            'type' => $type, 'quantity' => -$quantity, 'quantity_before' => $before, 'quantity_after' => $before - $quantity,
+            'reference_type' => $reference ? $reference::class : null, 'reference_id' => $reference?->getKey(),
+            'performed_by' => $userId, 'note' => $note,
         ]);
     }
 

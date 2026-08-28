@@ -95,7 +95,7 @@ class OperationsController extends Controller
     public function paymentStatus(Request $request, Order $order)
     {
         $data = $request->validate([
-            'payment_status' => ['required', Rule::in(['unpaid', 'paid', 'refunded'])],
+            'payment_status' => ['required', Rule::in(['unpaid', 'paid'])],
             'transaction_code' => ['nullable', 'string', 'max:190'],
             'note' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -278,6 +278,15 @@ class OperationsController extends Controller
             'bank_account_number' => ['sometimes', 'nullable', 'string', 'max:80'],
             'bank_branch' => ['sometimes', 'nullable', 'string', 'max:190'],
             'bank_transfer_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'returns_enabled' => ['sometimes', 'boolean'],
+            'return_window_days' => ['sometimes', 'integer', 'min:0', 'max:3650'],
+            'exchange_enabled' => ['sometimes', 'boolean'],
+            'exchange_window_days' => ['sometimes', 'integer', 'min:0', 'max:3650'],
+            'refund_shipping_on_full_return' => ['sometimes', 'boolean'],
+            'warranty_enabled' => ['sometimes', 'boolean'],
+            'appointments_enabled' => ['sometimes', 'boolean'],
+            'appointment_cancel_before_hours' => ['sometimes', 'integer', 'min:0', 'max:720'],
+            'store_timezone' => ['sometimes', 'timezone'],
         ]);
         $settings = StoreSetting::current();
         $settings->update($data);

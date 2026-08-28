@@ -5,6 +5,8 @@ import { StoreLayout } from '../layouts/StoreLayout'
 import { AccountIndexPage, OrdersPage, ProfilePage } from '../pages/account/AccountPages'
 import { AddressesPage } from '../pages/account/AddressesPage'
 import { OrderDetailPage } from '../pages/account/OrderDetailPage'
+import { ReturnsPage, WarrantiesPage } from '../pages/account/AfterSalesPages'
+import { AppointmentsPage } from '../pages/account/AppointmentsPage'
 import { SecurityPage } from '../pages/account/SecurityPage'
 import { WishlistPage } from '../pages/account/WishlistPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -25,6 +27,7 @@ import { ProductsPage } from '../pages/store/ProductsPage'
 import { PromotionsPage } from '../pages/store/PromotionsPage'
 import { StoreLocationsPage } from '../pages/store/StoreLocationsPage'
 import { ContactPage } from '../pages/store/ContactPage'
+import { AppointmentPage } from '../pages/store/AppointmentPage'
 import { AdminProtectedRoute } from './AdminProtectedRoute'
 import { UserProtectedRoute } from './UserProtectedRoute'
 
@@ -62,6 +65,9 @@ const ContactPageAdminPage = lazy(() => import('../pages/admin/ContactPageAdminP
 const GuidesAdminPage = lazy(() => import('../pages/admin/GuidesAdminPage').then((module) => ({ default: module.GuidesAdminPage })))
 const GuideFormAdminPage = lazy(() => import('../pages/admin/GuideFormAdminPage').then((module) => ({ default: module.GuideFormAdminPage })))
 const GuidesPageSettingsAdminPage = lazy(() => import('../pages/admin/GuidesPageSettingsAdminPage').then((module) => ({ default: module.GuidesPageSettingsAdminPage })))
+const ReturnsAdminPage = lazy(() => import('../pages/admin/AfterSalesAdminPages').then((module) => ({ default: module.ReturnsAdminPage })))
+const WarrantiesAdminPage = lazy(() => import('../pages/admin/AfterSalesAdminPages').then((module) => ({ default: module.WarrantiesAdminPage })))
+const AppointmentsAdminPage = lazy(() => import('../pages/admin/AppointmentsAdminPage').then((module) => ({ default: module.AppointmentsAdminPage })))
 const HairGuidePage = lazy(() => import('../pages/store/HairGuidePage').then((module) => ({ default: module.HairGuidePage })))
 
 const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p-8 text-center">Đang tải màn hình...</div>}>{page}</Suspense>
@@ -75,6 +81,9 @@ export const router = createBrowserRouter([
     { path: 'branches', element: lazyPage(<BranchesAdminPage />) },
     { path: 'inventory', element: lazyPage(<InventoryAdminPage />) }, { path: 'inventory/transactions', element: lazyPage(<InventoryTransactionsPage />) },
     { path: 'orders', element: lazyPage(<OrdersAdminPage />) }, { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
+    { path: 'returns', element: lazyPage(<ReturnsAdminPage />) }, { path: 'returns/:id', element: lazyPage(<ReturnsAdminPage />) },
+    { path: 'warranties', element: lazyPage(<WarrantiesAdminPage />) }, { path: 'warranties/:id', element: lazyPage(<WarrantiesAdminPage />) },
+    { path: 'appointments', element: lazyPage(<AppointmentsAdminPage />) },
     { path: 'customers', element: lazyPage(<CustomersAdminPage />) },
     { path: 'reviews', element: lazyPage(<ReviewsAdminPage />) },
     { path: 'coupons', element: lazyPage(<CouponsAdminPage />) },
@@ -95,11 +104,14 @@ export const router = createBrowserRouter([
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },
     { path: 'huong-dan/:slug', element: <GuideDetailPage /> },
-    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'uu-dai/:slug', element: <PromotionDetailPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContactPage /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
+    { path: 'tin-tuc', element: <NewsPage /> }, { path: 'tin-tuc/:slug', element: <NewsDetailPage /> }, { path: 'uu-dai', element: <PromotionsPage /> }, { path: 'uu-dai/:slug', element: <PromotionDetailPage /> }, { path: 'huong-dan', element: <GuidePage /> }, { path: 'he-thong-cua-hang', element: <StoreLocationsPage /> }, { path: 'lien-he', element: <ContactPage /> }, { path: 'dat-lich', element: <AppointmentPage /> }, { path: 'dich-vu-cham-soc', element: lazyPage(<HairGuidePage />) }, { path: 'huong-dan-chon-toc', element: <Navigate to="/dich-vu-cham-soc" replace /> },
     { path: 'chinh-sach-giao-hang', element: <ContentPage page="chinh-sach-giao-hang" /> }, { path: 'chinh-sach-doi-tra', element: <ContentPage page="chinh-sach-doi-tra" /> }, { path: 'chinh-sach-bao-mat', element: <ContentPage page="chinh-sach-bao-mat" /> },
     { path: 'thanh-toan', element: <CheckoutPage /> }, { path: 'dat-hang-thanh-cong/:orderNumber', element: <OrderSuccessPage /> }, { path: 'tra-cuu-don-hang', element: <OrderTrackingPage /> },
     { element: <UserProtectedRoute />, children: [{ path: 'tai-khoan', element: <AccountLayout />, children: [
       { index: true, element: <AccountIndexPage /> }, { path: 'ho-so', element: <ProfilePage /> }, { path: 'bao-mat', element: <SecurityPage /> }, { path: 'dia-chi', element: <AddressesPage /> }, { path: 'don-hang', element: <OrdersPage /> }, { path: 'don-hang/:orderNumber', element: <OrderDetailPage /> }, { path: 'yeu-thich', element: <WishlistPage /> },
+      { path: 'doi-tra', element: <ReturnsPage /> }, { path: 'doi-tra/:id', element: <ReturnsPage /> },
+      { path: 'bao-hanh', element: <WarrantiesPage /> }, { path: 'bao-hanh/:id', element: <WarrantiesPage /> },
+      { path: 'lich-hen', element: <AppointmentsPage /> }, { path: 'lich-hen/:id', element: <AppointmentsPage /> },
     ] }] },
     { path: '*', element: <NotFoundPage /> },
   ] },

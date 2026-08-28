@@ -24,6 +24,7 @@ class ProductResource extends JsonResource
             'usage_instructions' => $this->usage_instructions,
             'care_instructions' => $this->care_instructions,
             'warranty_information' => $this->warranty_information,
+            'warranty_days' => $this->warranty_days,
             'video_path' => $this->video_path ? (str_starts_with($this->video_path, '/') || str_starts_with($this->video_path, 'http') ? $this->video_path : Storage::disk('public')->url($this->video_path)) : null,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
@@ -64,6 +65,7 @@ class ProductResource extends JsonResource
             'best_listing_variant' => $this->whenLoaded('variants', function () {
                 $variants = $this->variants->sortBy(fn ($variant) => [$variant->availableStock() > 0 ? 0 : 1, $variant->currentPrice()]);
                 $variant = $variants->first();
+
                 return $variant ? ['id' => $variant->id, 'current_price' => $variant->currentPrice(), 'stock' => $variant->availableStock()] : null;
             }),
             'rating_average' => round((float) ($this->reviews_avg_rating ?? 0), 1),

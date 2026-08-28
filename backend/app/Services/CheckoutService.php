@@ -146,6 +146,7 @@ class CheckoutService
             'product_name' => $variant->product->name,
             'variant_description' => $description,
             'variant_snapshot' => $snapshot,
+            'warranty_days_snapshot' => $variant->product->warranty_days,
             'sku' => $variant->sku,
             'barcode' => $variant->barcode,
             'unit_price' => $price,

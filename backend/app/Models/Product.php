@@ -13,7 +13,7 @@ class Product extends Model
 
     protected function casts(): array
     {
-        return ['is_featured' => 'boolean', 'is_new' => 'boolean', 'published_at' => 'datetime'];
+        return ['is_featured' => 'boolean', 'is_new' => 'boolean', 'published_at' => 'datetime', 'warranty_days' => 'integer'];
     }
 
     public function category()

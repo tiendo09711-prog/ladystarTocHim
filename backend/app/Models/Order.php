@@ -42,4 +42,24 @@ class Order extends Model
     {
         return $this->hasOne(Shipment::class);
     }
+
+    public function returnRequests()
+    {
+        return $this->hasMany(ReturnRequest::class);
+    }
+
+    public function warrantyRequests()
+    {
+        return $this->hasMany(WarrantyRequest::class);
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    public function afterSalesShipments()
+    {
+        return $this->hasMany(AfterSalesShipment::class);
+    }
 }

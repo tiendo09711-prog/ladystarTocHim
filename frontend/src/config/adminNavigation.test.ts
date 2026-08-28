@@ -34,6 +34,7 @@ describe('adminNavigation', () => {
 
     expect(configuredPaths).toEqual([
       '/admin/about',
+      '/admin/appointments',
       '/admin/attributes',
       '/admin/barcodes',
       '/admin/branches',
@@ -55,10 +56,12 @@ describe('adminNavigation', () => {
       '/admin/products',
       '/admin/promotions',
       '/admin/reports',
+      '/admin/returns',
       '/admin/reviews',
       '/admin/services',
       '/admin/settings',
       '/admin/store-page',
+      '/admin/warranties',
     ])
   })
 })

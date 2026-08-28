@@ -28,6 +28,21 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function returnRequests()
+    {
+        return $this->hasMany(ReturnRequest::class);
+    }
+
+    public function warrantyRequests()
+    {
+        return $this->hasMany(WarrantyRequest::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
     public function cart()
     {
         return $this->hasOne(Cart::class);

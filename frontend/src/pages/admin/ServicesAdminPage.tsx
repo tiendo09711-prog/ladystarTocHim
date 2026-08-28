@@ -7,7 +7,7 @@ import type { ApiResponse, Service } from '../../types'
 
 type ServiceForm = Omit<Service, 'id' | 'image_path'> & { id?: number; image_path?: string | null }
 type ValidationErrors = Record<string, string[]>
-const blankService = (): ServiceForm => ({ name: '', slug: '', short_description: '', price: 0, image_alt: '', sort_order: 0, status: 'active', image_path: null })
+const blankService = (): ServiceForm => ({ name: '', slug: '', short_description: '', price: 0, duration_minutes: 60, image_alt: '', sort_order: 0, status: 'active', image_path: null })
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 })
 const slugify = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -31,7 +31,7 @@ export function ServicesAdminPage() {
     setSaving(true)
     setErrors({})
     try {
-      const payload = { name: form.name.trim(), slug: form.slug.trim(), short_description: form.short_description?.trim() || null, price: Number(form.price), image_alt: form.image_alt?.trim() || null, sort_order: Number(form.sort_order), status: form.status }
+      const payload = { name: form.name.trim(), slug: form.slug.trim(), short_description: form.short_description?.trim() || null, price: Number(form.price), duration_minutes: Number(form.duration_minutes), image_alt: form.image_alt?.trim() || null, sort_order: Number(form.sort_order), status: form.status }
       const response = form.id
         ? await apiClient.put<ApiResponse<Service>>(`/admin/services/${form.id}`, payload)
         : await apiClient.post<ApiResponse<Service>>('/admin/services', payload)
@@ -86,6 +86,7 @@ export function ServicesAdminPage() {
           <label><span className="label">Slug</span><input className="input" value={form.slug} onChange={(event) => { setSlugTouched(true); setForm((current) => ({ ...current, slug: slugify(event.target.value) })) }} required />{fieldError('slug') && <small className="text-red-700">{fieldError('slug')}</small>}</label>
           <label className="md:col-span-2"><span className="label">Mô tả ngắn</span><textarea className="input min-h-24" value={form.short_description ?? ''} maxLength={1000} onChange={(event) => setForm((current) => ({ ...current, short_description: event.target.value }))} /></label>
           <label><span className="label">Giá (VND)</span><input className="input" type="number" min="0" step="1000" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: Number(event.target.value) }))} required />{fieldError('price') && <small className="text-red-700">{fieldError('price')}</small>}</label>
+          <label><span className="label">Thời lượng (phút)</span><input className="input" type="number" min="5" max="720" step="5" value={form.duration_minutes} onChange={(event) => setForm((current) => ({ ...current, duration_minutes: Number(event.target.value) }))} required />{fieldError('duration_minutes') && <small className="text-red-700">{fieldError('duration_minutes')}</small>}</label>
           <label><span className="label">Thứ tự</span><input className="input" type="number" min="0" value={form.sort_order} onChange={(event) => setForm((current) => ({ ...current, sort_order: Number(event.target.value) }))} required /></label>
           <label><span className="label">Trạng thái</span><select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as Service['status'] }))}><option value="active">Đang hiển thị</option><option value="inactive">Đang ẩn</option></select></label>
           <label><span className="label">Alt ảnh</span><input className="input" value={form.image_alt ?? ''} onChange={(event) => setForm((current) => ({ ...current, image_alt: event.target.value }))} /></label>
@@ -95,9 +96,9 @@ export function ServicesAdminPage() {
       <div className="flex flex-wrap gap-2"><button className="btn-primary" disabled={saving}>{saving ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />}{editing ? 'Lưu thay đổi' : 'Tạo dịch vụ'}</button>{editing && <button className="btn-secondary" type="button" onClick={reset}>Hủy</button>}</div>
     </form>
 
-    <div className="table-wrap"><table className="table"><thead><tr><th>Ảnh</th><th>Dịch vụ</th><th>Giá</th><th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-      {query.data?.map((service) => <tr key={service.id}><td><div className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100">{service.image_path ? <img className="h-full w-full object-cover" src={service.image_path} alt={service.image_alt || service.name} /> : null}</div></td><td><strong>{service.name}</strong><br /><span className="text-sm text-slate-500">{service.slug}</span></td><td className="font-bold">{currency.format(service.price)}</td><td>{service.sort_order}</td><td><span className={`badge ${service.status === 'active' ? 'badge-success' : ''}`}>{service.status === 'active' ? 'Hiển thị' : 'Đang ẩn'}</span></td><td><div className="flex flex-wrap gap-2"><button className="btn-secondary px-3" type="button" onClick={() => edit(service)}><Pencil size={15} />Sửa</button><button className="btn-secondary px-3" type="button" onClick={() => void toggle(service)}>{service.status === 'active' ? <EyeOff size={15} /> : <Eye size={15} />}{service.status === 'active' ? 'Ẩn' : 'Hiện'}</button><button className="btn-secondary px-3 text-red-700" type="button" onClick={() => void remove(service)}><Trash2 size={15} />Xóa</button></div></td></tr>)}
-      {!query.isLoading && !query.data?.length && <tr><td colSpan={6} className="py-10 text-center text-slate-500">Chưa có dịch vụ.</td></tr>}
+    <div className="table-wrap"><table className="table"><thead><tr><th>Ảnh</th><th>Dịch vụ</th><th>Giá</th><th>Thời lượng</th><th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+      {query.data?.map((service) => <tr key={service.id}><td><div className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100">{service.image_path ? <img className="h-full w-full object-cover" src={service.image_path} alt={service.image_alt || service.name} /> : null}</div></td><td><strong>{service.name}</strong><br /><span className="text-sm text-slate-500">{service.slug}</span></td><td className="font-bold">{currency.format(service.price)}</td><td>{service.duration_minutes} phút</td><td>{service.sort_order}</td><td><span className={`badge ${service.status === 'active' ? 'badge-success' : ''}`}>{service.status === 'active' ? 'Hiển thị' : 'Đang ẩn'}</span></td><td><div className="flex flex-wrap gap-2"><button className="btn-secondary px-3" type="button" onClick={() => edit(service)}><Pencil size={15} />Sửa</button><button className="btn-secondary px-3" type="button" onClick={() => void toggle(service)}>{service.status === 'active' ? <EyeOff size={15} /> : <Eye size={15} />}{service.status === 'active' ? 'Ẩn' : 'Hiện'}</button><button className="btn-secondary px-3 text-red-700" type="button" onClick={() => void remove(service)}><Trash2 size={15} />Xóa</button></div></td></tr>)}
+      {!query.isLoading && !query.data?.length && <tr><td colSpan={7} className="py-10 text-center text-slate-500">Chưa có dịch vụ.</td></tr>}
     </tbody></table></div>
   </div>
 }
