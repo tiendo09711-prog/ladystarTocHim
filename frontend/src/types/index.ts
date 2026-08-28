@@ -1,6 +1,11 @@
-export type Role = 'user' | 'admin'
+export type Role = 'user' | 'staff' | 'admin'
 
-export interface User { id: number; name: string; email: string; phone?: string | null; role: Role; status: 'active' | 'blocked' }
+export interface StaffRoleSummary { id: number; name: string; slug: string }
+export interface User { id: number; name: string; email: string; phone?: string | null; role: Role; status: 'active' | 'blocked'; is_super_admin?: boolean; permissions?: string[]; staff_roles?: StaffRoleSummary[] }
+export interface Permission { id: number; key: string; label: string; group_name: string; description?: string | null }
+export interface StaffRole extends StaffRoleSummary { description?: string | null; is_system: boolean; users_count?: number; permissions_count?: number; permissions: Permission[]; created_at?: string; updated_at?: string }
+export interface StaffUser extends User { role: 'staff'; staff_roles: StaffRoleSummary[]; permissions: string[]; created_at?: string; updated_at?: string }
+export interface AuditLog { id: number; actor_id?: number | null; actor_name?: string | null; actor_email?: string | null; action: string; module: string; subject_type?: string | null; subject_id?: string | null; before_values?: Record<string, unknown> | null; after_values?: Record<string, unknown> | null; metadata?: Record<string, unknown> | null; ip_address?: string | null; user_agent?: string | null; request_method?: string | null; request_path?: string | null; created_at: string }
 export interface Category { id: number; name: string; slug: string; description?: string; image_path?: string; is_active: boolean; children?: Category[] }
 export interface Brand { id: number; name: string; slug: string; description?: string | null; logo_path?: string | null; is_active?: boolean }
 export interface AttributeValue { attribute_id: number; attribute_code?: string | null; attribute_name?: string | null; value_id: number; value: string; option_code?: string | null }

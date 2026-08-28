@@ -6,7 +6,9 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\AuthenticatedUserResource;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -19,15 +21,17 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
+    public function __construct(private AuditLogService $audit) {}
+
     public function register(RegisterRequest $request)
     {
         $user = User::create(array_merge($request->validated(), ['role' => Role::User->value, 'status' => 'active']));
-        Auth::login($user);
+        Auth::guard('web')->login($user);
         if ($request->hasSession()) {
             $request->session()->regenerate();
         }
 
-        return $this->success($user, 'Đăng ký tài khoản thành công.', 201);
+        return $this->success((new AuthenticatedUserResource($user))->resolve(), 'Đăng ký tài khoản thành công.', 201);
     }
 
     public function login(LoginRequest $request)
@@ -42,29 +46,42 @@ class AuthController extends Controller
 
     private function authenticate(LoginRequest $request, bool $admin)
     {
-        if (! Auth::attempt($request->validated())) {
+        if (! Auth::guard('web')->attempt($request->validated())) {
             return $this->error('Email hoặc mật khẩu không đúng.', ['email' => ['Thông tin đăng nhập không hợp lệ.']], 422);
         }
-        $user = $request->user();
-        if ($user->status !== 'active' || ($admin && ! $user->isAdmin())) {
-            Auth::logout();
+        $user = Auth::guard('web')->user();
+        $allowed = $admin ? $user->canAccessAdmin() : ($user->status === 'active' && $user->isCustomer());
+        if (! $allowed) {
+            Auth::guard('web')->logout();
 
-            return $this->error($admin ? 'Tài khoản không có quyền quản trị.' : 'Tài khoản đã bị khóa.', [], 403);
+            return $this->error(
+                $admin ? 'Tài khoản không có quyền quản trị.' : 'Tài khoản nhân viên vui lòng đăng nhập tại khu vực quản trị.',
+                [],
+                403,
+            );
         }
         if ($request->hasSession()) {
             $request->session()->regenerate();
         }
 
-        return $this->success($user, 'Đăng nhập thành công.');
+        if ($admin) {
+            $this->audit->record('auth.backoffice_login', 'authentication', $user, null, ['status' => 'authenticated']);
+        }
+
+        return $this->success((new AuthenticatedUserResource($user))->resolve(), 'Đăng nhập thành công.');
     }
 
     public function me(Request $request)
     {
-        return $this->success($request->user());
+        return $this->success((new AuthenticatedUserResource($request->user()))->resolve());
     }
 
     public function logout(Request $request)
     {
+        $user = $request->user();
+        if ($user?->canAccessAdmin()) {
+            $this->audit->record('auth.backoffice_logout', 'authentication', $user);
+        }
         Auth::guard('web')->logout();
         if ($request->hasSession()) {
             $request->session()->invalidate();

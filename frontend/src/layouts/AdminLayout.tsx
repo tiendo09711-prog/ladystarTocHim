@@ -5,9 +5,10 @@ import {
   Menu,
   X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { adminDashboardItem, adminNavigationGroups, getActiveAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
+import { getActiveAdminNavigation, getVisibleAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
+import { PermissionProtectedRoute } from '../routes/PermissionProtectedRoute'
 import { useAuth } from '../stores/AuthContext'
 
 export function AdminLayout() {
@@ -18,6 +19,7 @@ export function AdminLayout() {
   const activeGroupId = activeNavigation?.groupId
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(activeGroupId ? [activeGroupId] : []))
   const { user, logout } = useAuth()
+  const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user])
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -85,8 +87,8 @@ export function AdminLayout() {
           </button>
         </div>
         <nav className="grid min-h-0 flex-1 content-start gap-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-1" aria-label="Điều hướng quản trị">
-          {navigationLink(adminDashboardItem)}
-          {adminNavigationGroups.map((group) => {
+          {visibleNavigation.dashboard && navigationLink(visibleNavigation.dashboard)}
+          {visibleNavigation.groups.map((group) => {
             const GroupIcon = group.icon
             const expanded = expandedGroups.has(group.id)
             const containsActiveItem = activeGroupId === group.id
@@ -135,7 +137,7 @@ export function AdminLayout() {
           </button>
         </header>
         <main className="p-4 md:p-7">
-          <Outlet />
+          <PermissionProtectedRoute><Outlet /></PermissionProtectedRoute>
         </main>
       </div>
     </div>

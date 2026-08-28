@@ -157,14 +157,14 @@ class OperationsController extends Controller
 
     public function showCustomer(User $user)
     {
-        abort_if($user->isAdmin(), 404);
+        abort_unless($user->isCustomer(), 404);
 
         return $this->success($user->load('addresses', 'orders.items'));
     }
 
     public function customerStatus(Request $request, User $user)
     {
-        abort_if($user->isAdmin(), 422);
+        abort_unless($user->isCustomer(), 422);
         $user->update($request->validate(['status' => ['required', Rule::in(['active', 'blocked'])]]));
 
         return $this->success($user);
@@ -319,9 +319,10 @@ class OperationsController extends Controller
         return $this->success($settings->refresh(), 'Đã xóa ảnh QR.');
     }
 
-    public function export(string $resource)
+    public function export(Request $request, string $resource)
     {
         abort_unless(in_array($resource, ['products', 'orders', 'inventory', 'customers'], true), 404);
+        abort_unless($request->user()->hasPermission('export.'.$resource), 403);
 
         $rows = match ($resource) {
             'products' => ProductVariant::with('product.category')->orderBy('id')->get()->map(fn ($variant) => [

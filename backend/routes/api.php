@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Account\OrderController;
 use App\Http\Controllers\Api\V1\Account\ReturnRequestController;
 use App\Http\Controllers\Api\V1\Account\WarrantyController;
 use App\Http\Controllers\Api\V1\Admin\AboutManagementController;
+use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\AppointmentManagementController;
 use App\Http\Controllers\Api\V1\Admin\BrandManagementController;
 use App\Http\Controllers\Api\V1\Admin\CatalogContentManagementController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\RefundManagementController;
 use App\Http\Controllers\Api\V1\Admin\ReturnManagementController;
 use App\Http\Controllers\Api\V1\Admin\ServiceManagementController;
+use App\Http\Controllers\Api\V1\Admin\StaffManagementController;
+use App\Http\Controllers\Api\V1\Admin\StaffRoleManagementController;
 use App\Http\Controllers\Api\V1\Admin\StorePageManagementController;
 use App\Http\Controllers\Api\V1\Admin\WarrantyManagementController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
@@ -106,7 +109,7 @@ Route::prefix('v1')->group(function () {
     Route::get('store-page', [StorePageController::class, 'index']);
     Route::get('contact-page', [ContactPageController::class, 'index']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'customer'])->group(function () {
         Route::get('account/profile', [AccountController::class, 'profile']);
         Route::put('account/profile', [AccountController::class, 'updateProfile']);
         Route::put('account/password', [AccountController::class, 'updatePassword']);
@@ -151,6 +154,28 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::post('auth/logout', [AuthController::class, 'logout']);
             Route::get('auth/me', [AuthController::class, 'me']);
+            Route::middleware(['audit.admin', 'permission:auto'])->group(function () {
+                Route::middleware('super_admin')->group(function () {
+                    Route::get('staff', [StaffManagementController::class, 'index']);
+                    Route::post('staff', [StaffManagementController::class, 'store']);
+                    Route::get('staff/{staff}', [StaffManagementController::class, 'show']);
+                    Route::put('staff/{staff}', [StaffManagementController::class, 'update']);
+                    Route::patch('staff/{staff}/status', [StaffManagementController::class, 'status']);
+                    Route::put('staff/{staff}/roles', [StaffManagementController::class, 'roles']);
+                    Route::put('staff/{staff}/password', [StaffManagementController::class, 'password']);
+
+                    Route::get('staff-roles', [StaffRoleManagementController::class, 'index']);
+                    Route::post('staff-roles', [StaffRoleManagementController::class, 'store']);
+                    Route::get('staff-roles/{staffRole}', [StaffRoleManagementController::class, 'show']);
+                    Route::put('staff-roles/{staffRole}', [StaffRoleManagementController::class, 'update']);
+                    Route::delete('staff-roles/{staffRole}', [StaffRoleManagementController::class, 'destroy']);
+                    Route::put('staff-roles/{staffRole}/permissions', [StaffRoleManagementController::class, 'permissions']);
+                    Route::get('permissions', [StaffRoleManagementController::class, 'catalog']);
+                });
+
+                Route::get('audit-logs', [AuditLogController::class, 'index']);
+                Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show']);
+
             Route::get('dashboard/summary', [DashboardController::class, 'summary']);
             Route::get('dashboard/revenue', [DashboardController::class, 'revenue']);
             Route::get('dashboard/order-statuses', [DashboardController::class, 'orderStatuses']);
@@ -376,6 +401,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('guides-page/hero-image', [GuidePageContentManagementController::class, 'deleteHeroImage']);
             Route::post('guides-page/cta-image', [GuidePageContentManagementController::class, 'uploadCtaImage']);
             Route::delete('guides-page/cta-image', [GuidePageContentManagementController::class, 'deleteCtaImage']);
+            });
         });
     });
 });

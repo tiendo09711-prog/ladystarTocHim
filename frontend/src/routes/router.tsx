@@ -30,6 +30,8 @@ import { ContactPage } from '../pages/store/ContactPage'
 import { AppointmentPage } from '../pages/store/AppointmentPage'
 import { AdminProtectedRoute } from './AdminProtectedRoute'
 import { UserProtectedRoute } from './UserProtectedRoute'
+import { AdminIndexRedirect } from './AdminIndexRedirect'
+import { AdminForbiddenPage } from '../pages/admin/AdminForbiddenPage'
 
 const DashboardPage = lazy(() => import('../pages/admin/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 const AdminLayout = lazy(() => import('../layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
@@ -68,6 +70,9 @@ const GuidesPageSettingsAdminPage = lazy(() => import('../pages/admin/GuidesPage
 const ReturnsAdminPage = lazy(() => import('../pages/admin/AfterSalesAdminPages').then((module) => ({ default: module.ReturnsAdminPage })))
 const WarrantiesAdminPage = lazy(() => import('../pages/admin/AfterSalesAdminPages').then((module) => ({ default: module.WarrantiesAdminPage })))
 const AppointmentsAdminPage = lazy(() => import('../pages/admin/AppointmentsAdminPage').then((module) => ({ default: module.AppointmentsAdminPage })))
+const StaffManagementPage = lazy(() => import('../pages/admin/StaffManagementPage').then((module) => ({ default: module.StaffManagementPage })))
+const StaffRolesPage = lazy(() => import('../pages/admin/StaffRolesPage').then((module) => ({ default: module.StaffRolesPage })))
+const AuditLogsPage = lazy(() => import('../pages/admin/AuditLogsPage').then((module) => ({ default: module.AuditLogsPage })))
 const HairGuidePage = lazy(() => import('../pages/store/HairGuidePage').then((module) => ({ default: module.HairGuidePage })))
 
 const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p-8 text-center">Đang tải màn hình...</div>}>{page}</Suspense>
@@ -75,7 +80,7 @@ const lazyPage = (page: ReactNode) => <Suspense fallback={<div className="card p
 export const router = createBrowserRouter([
   { path: '/admin/login', element: <LoginPage admin /> },
   { element: <AdminProtectedRoute />, children: [{ path: '/admin', element: lazyPage(<AdminLayout />), children: [
-    { index: true, element: <Navigate to="dashboard" replace /> }, { path: 'dashboard', element: lazyPage(<DashboardPage />) },
+    { index: true, element: <AdminIndexRedirect /> }, { path: 'dashboard', element: lazyPage(<DashboardPage />) },
     { path: 'products', element: lazyPage(<ProductsAdminPage />) }, { path: 'products/create', element: lazyPage(<ProductFormPage />) }, { path: 'products/:id/edit', element: lazyPage(<ProductFormPage />) },
     { path: 'categories', element: lazyPage(<CategoriesAdminPage />) }, { path: 'brands', element: lazyPage(<BrandsAdminPage />) }, { path: 'attributes', element: lazyPage(<AttributesAdminPage />) },
     { path: 'branches', element: lazyPage(<BranchesAdminPage />) },
@@ -97,6 +102,10 @@ export const router = createBrowserRouter([
     { path: 'news', element: lazyPage(<NewsAdminPage />) }, { path: 'news/create', element: lazyPage(<NewsFormPage />) }, { path: 'news/:id/edit', element: lazyPage(<NewsFormPage />) }, { path: 'news/settings', element: lazyPage(<NewsPageSettingsAdminPage />) },
     { path: 'promotions', element: lazyPage(<PromotionsAdminPage />) }, { path: 'promotions/create', element: lazyPage(<PromotionFormPage />) }, { path: 'promotions/:id/edit', element: lazyPage(<PromotionFormPage />) }, { path: 'promotions/settings', element: lazyPage(<PromotionsPageSettingsAdminPage />) },
     { path: 'guides', element: lazyPage(<GuidesAdminPage />) }, { path: 'guides/create', element: lazyPage(<GuideFormAdminPage />) }, { path: 'guides/:id/edit', element: lazyPage(<GuideFormAdminPage />) }, { path: 'guides/settings', element: lazyPage(<GuidesPageSettingsAdminPage />) },
+    { path: 'staff', element: lazyPage(<StaffManagementPage />) },
+    { path: 'staff-roles', element: lazyPage(<StaffRolesPage />) },
+    { path: 'audit-logs', element: lazyPage(<AuditLogsPage />) },
+    { path: 'forbidden', element: <AdminForbiddenPage /> },
   ] }] },
   { path: '/', element: <StoreLayout />, children: [
     { index: true, element: <HomePage /> }, { path: 'san-pham', element: <ProductsPage /> }, { path: 'san-pham/:slug', element: <ProductPage /> },

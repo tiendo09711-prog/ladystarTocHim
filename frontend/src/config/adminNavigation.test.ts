@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { adminDashboardItem, adminNavigationGroups, getActiveAdminNavigation, isAdminRouteActive } from './adminNavigation'
+import type { User } from '../types'
+import { adminDashboardItem, adminNavigationGroups, getActiveAdminNavigation, getVisibleAdminNavigation, isAdminRouteActive } from './adminNavigation'
 
 describe('adminNavigation', () => {
   it('matches exact and nested admin routes by segment', () => {
@@ -36,6 +37,7 @@ describe('adminNavigation', () => {
       '/admin/about',
       '/admin/appointments',
       '/admin/attributes',
+      '/admin/audit-logs',
       '/admin/barcodes',
       '/admin/branches',
       '/admin/brands',
@@ -60,8 +62,34 @@ describe('adminNavigation', () => {
       '/admin/reviews',
       '/admin/services',
       '/admin/settings',
+      '/admin/staff',
+      '/admin/staff-roles',
       '/admin/store-page',
       '/admin/warranties',
     ])
+  })
+
+  it('lọc item và bỏ group rỗng cho Staff', () => {
+    const user = { id: 2, name: 'Sales', email: 'sales@test.local', role: 'staff', status: 'active', permissions: ['orders.view'] } as User
+    const visible = getVisibleAdminNavigation(user)
+
+    expect(visible.dashboard).toBeNull()
+    expect(visible.groups.map((group) => group.id)).toEqual(['sales'])
+    expect(visible.groups[0].items.map((item) => item.id)).toEqual(['orders'])
+  })
+
+  it('hiện Import / Export khi Staff có bất kỳ permission liên quan', () => {
+    const user = { id: 3, name: 'Exporter', email: 'export@test.local', role: 'staff', status: 'active', permissions: ['export.customers'] } as User
+    const visible = getVisibleAdminNavigation(user)
+
+    expect(visible.groups.flatMap((group) => group.items).map((item) => item.id)).toEqual(['import-export'])
+  })
+
+  it('giữ toàn bộ navigation cho Super Admin', () => {
+    const admin = { id: 1, name: 'Admin', email: 'admin@test.local', role: 'admin', status: 'active', permissions: [] } as User
+    const visible = getVisibleAdminNavigation(admin)
+
+    expect(visible.dashboard?.id).toBe('dashboard')
+    expect(visible.groups.flatMap((group) => group.items)).toHaveLength(adminNavigationGroups.flatMap((group) => group.items).length)
   })
 })

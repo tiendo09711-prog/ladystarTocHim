@@ -10,7 +10,12 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->isAdmin()) {
+        $user = $request->user();
+        if ($user?->exists) {
+            $user->refresh();
+        }
+
+        if (! $user?->canAccessAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Bạn không có quyền truy cập khu vực quản trị.',

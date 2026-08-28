@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { apiClient, csrfCookie } from '../api/apiClient'
 import type { ApiResponse, User } from '../types'
+import { isBackofficeUser } from '../features/auth/permissions'
 
 interface Credentials { email: string; password: string }
 interface RegisterPayload extends Credentials { name: string; phone?: string; password_confirmation: string }
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await csrfCookie()
-    await apiClient.post(user?.role === 'admin' ? '/admin/auth/logout' : '/auth/logout')
+    await apiClient.post(isBackofficeUser(user) ? '/admin/auth/logout' : '/auth/logout')
     authRevision.current += 1
     setUser(null)
   }

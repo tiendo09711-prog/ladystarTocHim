@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -48,9 +49,63 @@ class User extends Authenticatable
         return $this->hasOne(Cart::class);
     }
 
-    public function isAdmin(): bool
+    public function staffRoles()
+    {
+        return $this->belongsToMany(StaffRole::class, 'staff_role_user')->withTimestamps();
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'user';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === 'staff';
+    }
+
+    public function isSuperAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function canAccessAdmin(): bool
+    {
+        return $this->status === 'active' && ($this->isSuperAdmin() || $this->isStaff());
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->isStaff() && in_array($permission, $this->effectivePermissionKeys(), true);
+    }
+
+    public function effectivePermissionKeys(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return PermissionRegistry::keys();
+        }
+
+        if (! $this->isStaff()) {
+            return [];
+        }
+
+        return $this->staffRoles()
+            ->with('permissions:id,key')
+            ->get()
+            ->flatMap(fn (StaffRole $role) => $role->permissions->pluck('key'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->isSuperAdmin();
     }
 
     /**
