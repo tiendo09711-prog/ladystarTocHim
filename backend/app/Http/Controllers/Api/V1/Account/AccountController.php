@@ -55,6 +55,7 @@ class AccountController extends Controller
         $address = DB::transaction(function () use ($request, $data) {
             if (($data['is_default'] ?? false) || ! $request->user()->addresses()->exists()) {
                 $request->user()->addresses()->update(['is_default' => false]);
+                $data['is_default'] = true;
             }
 
             return $request->user()->addresses()->create($data);
@@ -124,6 +125,9 @@ class AccountController extends Controller
         $item = OrderItem::whereKey($data['order_item_id'])->whereHas('order', fn ($q) => $q->where('user_id', $request->user()->id)->where('order_status', 'completed'))->first();
         if (! $item) {
             throw ValidationException::withMessages(['order_item_id' => 'Chỉ có thể đánh giá sản phẩm trong đơn đã hoàn thành.']);
+        }
+        if ($item->review()->exists()) {
+            throw ValidationException::withMessages(['order_item_id' => 'Sản phẩm trong đơn hàng này đã được đánh giá.']);
         }
         $review = Review::create(array_merge($data, ['user_id' => $request->user()->id, 'product_id' => $item->product_id, 'status' => 'pending']));
 

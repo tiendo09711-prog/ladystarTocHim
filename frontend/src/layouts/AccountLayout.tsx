@@ -1,7 +1,7 @@
-import { Heart, MapPin, Package, UserRound } from 'lucide-react'
+import { Heart, LockKeyhole, MapPin, Package, UserRound } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 
-const links = [['Hồ sơ', '/tai-khoan/ho-so', UserRound], ['Địa chỉ', '/tai-khoan/dia-chi', MapPin], ['Đơn hàng', '/tai-khoan/don-hang', Package], ['Yêu thích', '/tai-khoan/yeu-thich', Heart]] as const
+const links = [['Hồ sơ', '/tai-khoan/ho-so', UserRound], ['Bảo mật', '/tai-khoan/bao-mat', LockKeyhole], ['Địa chỉ', '/tai-khoan/dia-chi', MapPin], ['Đơn hàng', '/tai-khoan/don-hang', Package], ['Yêu thích', '/tai-khoan/yeu-thich', Heart]] as const
 
 export function AccountLayout() {
   return <div className="container-page py-10"><div className="grid gap-6 lg:grid-cols-[240px_1fr]">

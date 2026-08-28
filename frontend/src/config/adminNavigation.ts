@@ -64,6 +64,7 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     items: [
       { id: 'products', label: 'Sản phẩm', path: '/admin/products', icon: Package },
       { id: 'categories', label: 'Danh mục', path: '/admin/categories', icon: Tags },
+      { id: 'brands', label: 'Thương hiệu', path: '/admin/brands', icon: Tags },
       { id: 'attributes', label: 'Thuộc tính', path: '/admin/attributes', icon: Boxes },
       { id: 'branches', label: 'Chi nhánh', path: '/admin/branches', icon: Warehouse },
       { id: 'inventory', label: 'Tồn kho', path: '/admin/inventory', icon: ClipboardList },

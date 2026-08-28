@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\CartController;
 use App\Http\Controllers\Api\V1\Account\CheckoutController;
 use App\Http\Controllers\Api\V1\Account\OrderController;
+use App\Http\Controllers\Api\V1\Admin\BrandManagementController;
 use App\Http\Controllers\Api\V1\Admin\CatalogManagementController;
 use App\Http\Controllers\Api\V1\Admin\CatalogContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\ContactPageManagementController;
@@ -117,6 +118,10 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/low-stock', [DashboardController::class, 'lowStock']);
 
             Route::get('categories', [CatalogManagementController::class, 'categories']);
+            Route::get('brands', [BrandManagementController::class, 'index']);
+            Route::post('brands', [BrandManagementController::class, 'store']);
+            Route::put('brands/{brand}', [BrandManagementController::class, 'update']);
+            Route::delete('brands/{brand}', [BrandManagementController::class, 'destroy']);
             Route::get('catalog/content', [CatalogContentManagementController::class, 'index']);
             Route::get('catalog/content/{pageKey}', [CatalogContentManagementController::class, 'show']);
             Route::put('catalog/content/{pageKey}', [CatalogContentManagementController::class, 'update']);
