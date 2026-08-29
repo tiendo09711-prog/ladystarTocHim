@@ -4,6 +4,8 @@ test.describe.configure({ timeout: 90_000 })
 
 test('admin cập nhật tiêu đề trang hệ thống cửa hàng', async ({ page }) => {
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
 

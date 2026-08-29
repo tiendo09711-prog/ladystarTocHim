@@ -53,7 +53,8 @@ export interface Branch {
   booking_url?: string | null; map_url?: string | null; show_on_store_page?: boolean; public_sort_order?: number; is_default: boolean; is_active: boolean
 }
 export interface AdminCustomer extends User { orders_count: number; created_at: string }
-export interface CustomerDetail extends User { addresses: Address[]; orders: Order[] }
+export interface CustomerInsight { completed_orders: number; net_spend: number; aov_net: number; first_purchase_at?: string | null; last_purchase_at?: string | null; completed_return_requests: number; warranty_count: number; appointment_count: number }
+export interface CustomerDetail extends User { addresses: Address[]; orders: Order[]; insights?: CustomerInsight }
 export interface AdminReview { id: number; rating: number; title?: string | null; content?: string | null; status: 'pending' | 'approved' | 'rejected'; admin_reply?: string | null; created_at: string; user: User; product: Pick<Product, 'id' | 'name' | 'slug'> }
 export interface Coupon { id: number; code: string; type: 'fixed' | 'percentage'; value: number; minimum_order_amount?: number | null; maximum_discount_amount?: number | null; usage_limit?: number | null; usage_limit_per_user?: number | null; used_count: number; starts_at?: string | null; expires_at?: string | null; is_active: boolean }
 export interface InventoryRow { id: number; branch_id: number; product_variant_id: number; quantity_on_hand: number; quantity_reserved: number; quantity_available: number; reorder_level: number; branch: Branch; variant: { id: number; sku: string; product: { id: number; name: string } } }

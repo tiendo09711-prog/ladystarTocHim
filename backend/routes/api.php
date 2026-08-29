@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Account\OrderController;
 use App\Http\Controllers\Api\V1\Account\ReturnRequestController;
 use App\Http\Controllers\Api\V1\Account\WarrantyController;
 use App\Http\Controllers\Api\V1\Admin\AboutManagementController;
+use App\Http\Controllers\Api\V1\Admin\AfterSalesMediaController as AdminAfterSalesMediaController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\AppointmentManagementController;
 use App\Http\Controllers\Api\V1\Admin\BrandManagementController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\V1\Admin\OperationsController;
 use App\Http\Controllers\Api\V1\Admin\ProductManagementController;
 use App\Http\Controllers\Api\V1\Admin\PromotionPageContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\RefundManagementController;
+use App\Http\Controllers\Api\V1\Admin\ReportController;
 use App\Http\Controllers\Api\V1\Admin\ReturnManagementController;
 use App\Http\Controllers\Api\V1\Admin\ServiceManagementController;
 use App\Http\Controllers\Api\V1\Admin\StaffManagementController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\V1\Admin\StorePageManagementController;
 use App\Http\Controllers\Api\V1\Admin\WarrantyManagementController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Store\AboutController;
+use App\Http\Controllers\Api\V1\Store\AfterSalesMediaController as StoreAfterSalesMediaController;
 use App\Http\Controllers\Api\V1\Store\AppointmentController as StoreAppointmentController;
 use App\Http\Controllers\Api\V1\Store\CatalogContentController;
 use App\Http\Controllers\Api\V1\Store\CatalogController;
@@ -55,10 +58,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
-        Route::post('register', [AuthController::class, 'register']);
-        Route::post('login', [AuthController::class, 'login']);
-        Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
-        Route::post('reset-password', [AuthController::class, 'resetPassword']);
+        Route::post('register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
+        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+        Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-forgot-password');
+        Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-reset-password');
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
             Route::post('logout', [AuthController::class, 'logout']);
@@ -83,6 +86,7 @@ Route::prefix('v1')->group(function () {
     Route::post('guest-checkout/place-order', [GuestCheckoutController::class, 'place'])->middleware('throttle:10,1');
     Route::get('payment-methods', [PaymentMethodController::class, 'index']);
     Route::post('orders/track', [OrderTrackingController::class, 'track'])->middleware('throttle:6,1');
+    Route::get('guest/after-sales-media/{medium}', [StoreAfterSalesMediaController::class, 'guest'])->middleware(['signed', 'throttle:30,1'])->name('guest.after-sales-media.show');
     Route::post('guest/returns', [GuestReturnController::class, 'store'])->middleware('throttle:6,1');
     Route::get('guest/returns/{code}', [GuestReturnController::class, 'show'])->middleware('throttle:12,1');
     Route::post('guest/returns/{code}/cancel', [GuestReturnController::class, 'cancel'])->middleware('throttle:6,1');
@@ -110,6 +114,7 @@ Route::prefix('v1')->group(function () {
     Route::get('contact-page', [ContactPageController::class, 'index']);
 
     Route::middleware(['auth:sanctum', 'customer'])->group(function () {
+        Route::get('account/after-sales-media/{medium}', [StoreAfterSalesMediaController::class, 'account'])->name('account.after-sales-media.show');
         Route::get('account/profile', [AccountController::class, 'profile']);
         Route::put('account/profile', [AccountController::class, 'updateProfile']);
         Route::put('account/password', [AccountController::class, 'updatePassword']);
@@ -150,11 +155,12 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('admin')->group(function () {
-        Route::post('auth/login', [AuthController::class, 'adminLogin']);
+        Route::post('auth/login', [AuthController::class, 'adminLogin'])->middleware('throttle:admin-login');
         Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::post('auth/logout', [AuthController::class, 'logout']);
             Route::get('auth/me', [AuthController::class, 'me']);
             Route::middleware(['audit.admin', 'permission:auto'])->group(function () {
+                Route::get('after-sales-media/{medium}', [AdminAfterSalesMediaController::class, 'show'])->name('admin.after-sales-media.show');
                 Route::middleware('super_admin')->group(function () {
                     Route::get('staff', [StaffManagementController::class, 'index']);
                     Route::post('staff', [StaffManagementController::class, 'store']);
@@ -163,6 +169,7 @@ Route::prefix('v1')->group(function () {
                     Route::patch('staff/{staff}/status', [StaffManagementController::class, 'status']);
                     Route::put('staff/{staff}/roles', [StaffManagementController::class, 'roles']);
                     Route::put('staff/{staff}/password', [StaffManagementController::class, 'password']);
+                    Route::patch('customers/{user}/password', [OperationsController::class, 'customerPassword']);
 
                     Route::get('staff-roles', [StaffRoleManagementController::class, 'index']);
                     Route::post('staff-roles', [StaffRoleManagementController::class, 'store']);
@@ -181,6 +188,12 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/order-statuses', [DashboardController::class, 'orderStatuses']);
             Route::get('dashboard/top-products', [DashboardController::class, 'topProducts']);
             Route::get('dashboard/low-stock', [DashboardController::class, 'lowStock']);
+
+            Route::get('reports/overview', [ReportController::class, 'overview']);
+            Route::get('reports/sales', [ReportController::class, 'sales']);
+            Route::get('reports/products', [ReportController::class, 'products']);
+            Route::get('reports/inventory', [ReportController::class, 'inventory']);
+            Route::get('reports/customers', [ReportController::class, 'customers']);
 
             Route::get('categories', [CatalogManagementController::class, 'categories']);
             Route::get('brands', [BrandManagementController::class, 'index']);

@@ -15,16 +15,20 @@ use App\Models\ProductVariant;
 use App\Models\Review;
 use App\Models\StoreSetting;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\InventoryService;
 use App\Services\OrderLifecycleService;
 use App\Services\PaymentService;
+use App\Services\ReportingService;
 use App\Services\ShipmentService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class OperationsController extends Controller
@@ -36,6 +40,8 @@ class OperationsController extends Controller
         private OrderLifecycleService $orderLifecycleService,
         private PaymentService $paymentService,
         private ShipmentService $shipmentService,
+        private AuditLogService $audit,
+        private ReportingService $reports,
     ) {}
 
     public function inventory(Request $request)
@@ -159,7 +165,10 @@ class OperationsController extends Controller
     {
         abort_unless($user->isCustomer(), 404);
 
-        return $this->success($user->load('addresses', 'orders.items'));
+        $customer = $user->load('addresses', 'orders.items');
+        $customer->setAttribute('insights', $this->reports->customerInsight($user));
+
+        return $this->success($customer);
     }
 
     public function customerStatus(Request $request, User $user)
@@ -168,6 +177,24 @@ class OperationsController extends Controller
         $user->update($request->validate(['status' => ['required', Rule::in(['active', 'blocked'])]]));
 
         return $this->success($user);
+    }
+
+    public function customerPassword(Request $request, User $user)
+    {
+        abort_unless($user->isCustomer(), 404);
+        $data = $request->validate(['password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()]]);
+        $user->update(['password' => $data['password']]);
+        $sessionsRevoked = false;
+        if (config('session.driver') === 'database' && Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            $sessionsRevoked = true;
+        }
+        $this->audit->record('customer.password_reset', 'customers', $user, null, null, [
+            'customer_id' => $user->id,
+            'sessions_revoked' => $sessionsRevoked,
+        ]);
+
+        return $this->success(null, 'Đặt lại mật khẩu khách hàng thành công.');
     }
 
     public function reviews(Request $request)

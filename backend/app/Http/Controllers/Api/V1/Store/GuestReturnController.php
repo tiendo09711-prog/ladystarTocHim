@@ -68,8 +68,8 @@ class GuestReturnController extends Controller
     private function storeMedia(Request $request, ReturnRequest $return): void
     {
         foreach ($request->file('images', []) as $index => $image) {
-            $path = $image->storePubliclyAs('after-sales/returns/'.$return->id, Str::uuid().'.'.$image->extension(), 'public');
-            $return->media()->create(['path' => $path, 'mime_type' => $image->getMimeType(), 'original_name' => basename($image->getClientOriginalName()), 'sort_order' => $index]);
+            $path = $image->storeAs('after-sales/returns/'.$return->id, Str::uuid().'.'.$image->extension(), 'local');
+            $return->media()->create(['path' => $path, 'disk' => 'local', 'mime_type' => $image->getMimeType(), 'original_name' => basename($image->getClientOriginalName()), 'sort_order' => $index]);
         }
     }
 }

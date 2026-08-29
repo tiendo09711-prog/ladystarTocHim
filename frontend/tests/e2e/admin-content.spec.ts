@@ -4,6 +4,8 @@ test.describe.configure({ timeout: 90_000 })
 
 async function loginAdmin(page: import('@playwright/test').Page) {
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
 }
@@ -63,7 +65,7 @@ test('admin tạo nháp, xuất bản và dọn dẹp bản tin', async ({ page 
   await expect(page.getByRole('heading', { name: 'Tạo bản tin' })).toBeVisible()
   await page.getByLabel('Tiêu đề').fill(title)
   await expect(page.getByLabel('Slug')).toHaveValue(slug.replace(/-/g, '-'))
-  await page.getByLabel(/^Nội dung/).fill('Đoạn đầu của bản tin E2E.\n\nĐoạn thứ hai của bản tin E2E.')
+  await page.getByRole('textbox', { name: 'Nội dung (văn bản thuần, mỗi đoạn cách nhau một dòng trống)' }).fill('Đoạn đầu của bản tin E2E.\n\nĐoạn thứ hai của bản tin E2E.')
   await page.getByRole('button', { name: 'Lưu bản nháp' }).click()
   await expect(page).toHaveURL(/admin\/news$/)
 

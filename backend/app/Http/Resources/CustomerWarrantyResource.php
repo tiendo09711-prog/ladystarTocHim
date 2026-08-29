@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class CustomerWarrantyResource extends JsonResource
 {
@@ -19,7 +18,7 @@ class CustomerWarrantyResource extends JsonResource
             'order' => $this->order?->only(['id', 'order_number']),
             'order_item' => $this->orderItem?->only(['id', 'product_name', 'variant_description', 'sku', 'warranty_days_snapshot']),
             'replacement_variant' => $this->replacementVariant?->only(['id', 'sku']),
-            'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($medium) => ['id' => $medium->id, 'url' => Storage::disk('public')->url($medium->path)])),
+            'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($medium) => ['id' => $medium->id, 'url' => $medium->urlFor($request)])),
             'shipments' => $this->whenLoaded('shipments', fn () => $this->shipments->map->only(['id', 'purpose', 'carrier', 'tracking_number', 'status', 'shipped_at', 'delivered_at', 'tracking_url'])),
         ];
     }

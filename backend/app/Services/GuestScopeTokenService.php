@@ -22,7 +22,7 @@ class GuestScopeTokenService
         if (! $encoded || ! $signature || ! hash_equals($expected, $signature) || ! is_array($payload)
             || ($payload['scope'] ?? null) !== $scope || (int) ($payload['resource_id'] ?? 0) !== $resourceId
             || ! hash_equals((string) ($payload['phone_hash'] ?? ''), $this->phoneHash($phone)) || (int) ($payload['exp'] ?? 0) < now()->timestamp) {
-            throw ValidationException::withMessages(['token' => 'PhiÃªn xÃ¡c minh khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.']);
+            throw ValidationException::withMessages(['token' => 'Phiên xác minh không hợp lệ hoặc đã hết hạn.']);
         }
     }
 

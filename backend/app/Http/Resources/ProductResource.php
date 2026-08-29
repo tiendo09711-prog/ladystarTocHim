@@ -45,7 +45,6 @@ class ProductResource extends JsonResource
                 'barcode' => $variant->barcode,
                 'price' => (float) $variant->price,
                 'sale_price' => $variant->sale_price !== null ? (float) $variant->sale_price : null,
-                'cost_price' => $variant->cost_price !== null ? (float) $variant->cost_price : null,
                 'weight' => $variant->weight !== null ? (float) $variant->weight : null,
                 'current_price' => $variant->currentPrice(),
                 'status' => $variant->status,

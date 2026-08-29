@@ -121,7 +121,7 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     label: 'Báo cáo',
     icon: BarChart3,
     items: [
-      { id: 'reports', label: 'Báo cáo', path: '/admin/reports', icon: BarChart3, permission: 'dashboard.view' },
+      { id: 'reports', label: 'Báo cáo', path: '/admin/reports', icon: BarChart3, permission: 'reports.view' },
     ],
   },
   {

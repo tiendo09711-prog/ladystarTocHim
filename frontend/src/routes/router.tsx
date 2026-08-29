@@ -34,6 +34,7 @@ import { AdminIndexRedirect } from './AdminIndexRedirect'
 import { AdminForbiddenPage } from '../pages/admin/AdminForbiddenPage'
 
 const DashboardPage = lazy(() => import('../pages/admin/DashboardPage').then((module) => ({ default: module.DashboardPage })))
+const ReportsPage = lazy(() => import('../pages/admin/ReportsPage').then((module) => ({ default: module.ReportsPage })))
 const AdminLayout = lazy(() => import('../layouts/AdminLayout').then((module) => ({ default: module.AdminLayout })))
 const ProductsAdminPage = lazy(() => import('../pages/admin/ProductsAdminPage').then((module) => ({ default: module.ProductsAdminPage })))
 const ProductFormPage = lazy(() => import('../pages/admin/ProductFormPage').then((module) => ({ default: module.ProductFormPage })))
@@ -93,7 +94,7 @@ export const router = createBrowserRouter([
     { path: 'reviews', element: lazyPage(<ReviewsAdminPage />) },
     { path: 'coupons', element: lazyPage(<CouponsAdminPage />) },
     { path: 'import-export', element: lazyPage(<ImportExportPage />) }, { path: 'barcodes', element: lazyPage(<BarcodesPage />) },
-    { path: 'reports', element: lazyPage(<DashboardPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
+    { path: 'reports', element: lazyPage(<ReportsPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
     { path: 'about', element: lazyPage(<AboutAdminPage />) },
     { path: 'home-page', element: lazyPage(<HomePageAdminPage />) },
     { path: 'store-page', element: lazyPage(<StorePageAdminPage />) },

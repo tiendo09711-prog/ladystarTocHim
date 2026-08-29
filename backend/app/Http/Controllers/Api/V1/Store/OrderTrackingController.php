@@ -21,6 +21,7 @@ class OrderTrackingController extends Controller
             'phone' => ['required', 'regex:/^[0-9+\s.-]{9,20}$/'],
         ]);
         $order = Order::query()
+            ->whereNull('user_id')
             ->where('order_number', trim($data['order_number']))
             ->where('customer_phone', trim($data['phone']))
             ->with('items', 'statusHistories', 'payment', 'shipment')

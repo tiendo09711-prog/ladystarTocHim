@@ -63,8 +63,8 @@ class WarrantyController extends Controller
     private function media(Request $request, WarrantyRequest $claim): void
     {
         foreach ($request->file('images', []) as $index => $image) {
-            $path = $image->storePubliclyAs('after-sales/warranties/'.$claim->id, Str::uuid().'.'.$image->extension(), 'public');
-            $claim->media()->create(['path' => $path, 'mime_type' => $image->getMimeType(), 'original_name' => basename($image->getClientOriginalName()), 'sort_order' => $index]);
+            $path = $image->storeAs('after-sales/warranties/'.$claim->id, Str::uuid().'.'.$image->extension(), 'local');
+            $claim->media()->create(['path' => $path, 'disk' => 'local', 'mime_type' => $image->getMimeType(), 'original_name' => basename($image->getClientOriginalName()), 'sort_order' => $index]);
         }
     }
 }

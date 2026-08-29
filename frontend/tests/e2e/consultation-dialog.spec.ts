@@ -36,6 +36,6 @@ test('đặt lịch tư vấn mở popup và xác nhận thành công', async ({
   await expect.poll(() => requestBody).toMatchObject({ name: 'Nguyễn Văn A', phone: '0901234567', source_page: '/' })
   await expect(page.getByRole('heading', { name: 'Xác nhận đăng ký thành công!' })).toBeVisible()
   await page.screenshot({ path: '../artifacts/consultation-success-desktop.png' })
-  await page.getByRole('button', { name: 'Trở về trang chủ' }).click()
+  await page.getByRole('button', { name: 'Hoàn tất' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })

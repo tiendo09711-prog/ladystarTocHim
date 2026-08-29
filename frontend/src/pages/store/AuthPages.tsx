@@ -18,7 +18,7 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
   const { user, login, loading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginData>({ resolver: zodResolver(loginSchema), defaultValues: admin ? { email: 'admin@namhair.local', password: 'Admin@123456' } : undefined })
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginData>({ resolver: zodResolver(loginSchema) })
   if (user && (!admin || isBackofficeUser(user))) return <Navigate to={admin ? getFirstAllowedAdminPath(user) ?? '/admin/forbidden' : '/tai-khoan'} replace />
   const submit = async (data: LoginData) => {
     try { const result = await login(data, admin); toast.success('Đăng nhập thành công.'); const from = (location.state as { from?: string } | null)?.from; navigate(from ?? (isBackofficeUser(result) ? getFirstAllowedAdminPath(result) ?? '/admin/forbidden' : '/tai-khoan')) }
@@ -37,6 +37,8 @@ export function RegisterPage() {
 }
 
 export function ForgotPasswordPage() {
+  const enabled = import.meta.env.VITE_PASSWORD_RESET_EMAIL_ENABLED === 'true'
+  if (!enabled) return <div className="container-page py-14"><div className="card mx-auto max-w-md p-7"><h1 className="text-3xl font-black">Quên mật khẩu</h1><p className="muted mt-3">Để đặt lại mật khẩu, vui lòng liên hệ cửa hàng hoặc bộ phận hỗ trợ.</p><Link className="btn-primary mt-6 inline-flex" to="/lien-he">Liên hệ hỗ trợ</Link></div></div>
   const submit = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const email = String(new FormData(event.currentTarget).get('email')); try { await apiClient.post('/auth/forgot-password', { email }); toast.success('Nếu email tồn tại, hướng dẫn sẽ được gửi.') } catch { toast.error('Không thể gửi yêu cầu lúc này.') } }
   return <div className="container-page py-14"><div className="card mx-auto max-w-md p-7"><h1 className="text-3xl font-black">Quên mật khẩu</h1><p className="muted mt-2">Nhập email để nhận hướng dẫn đặt lại mật khẩu.</p><form className="mt-6 grid gap-4" onSubmit={submit}><label><span className="label">Email</span><input className="input" name="email" type="email" required /></label><button className="btn-primary">Gửi hướng dẫn</button></form></div></div>
 }

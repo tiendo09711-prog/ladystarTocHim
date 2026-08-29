@@ -11,6 +11,7 @@ final class PermissionRegistry
     {
         $groups = [
             'Dashboard' => ['dashboard.view' => 'Xem dashboard'],
+            'Báo cáo' => ['reports.view' => 'Xem báo cáo kinh doanh'],
             'Đơn hàng' => [
                 'orders.view' => 'Xem đơn hàng',
                 'orders.status.manage' => 'Quản lý trạng thái đơn hàng',
@@ -142,7 +143,9 @@ final class PermissionRegistry
         if ($uri === 'auth/me' || $uri === 'auth/logout') return [];
         if (Str::startsWith($uri, ['staff', 'staff-roles', 'permissions'])) return [];
         if (Str::startsWith($uri, 'audit-logs')) return ['audit.view'];
+        if (Str::startsWith($uri, 'after-sales-media')) return [];
         if (Str::startsWith($uri, 'dashboard/')) return ['dashboard.view'];
+        if (Str::startsWith($uri, 'reports/')) return ['reports.view'];
         if ($uri === 'import/products') return ['import.products', 'products.manage', 'inventory.adjust'];
         if (Str::startsWith($uri, 'export/')) {
             $permission = match ((string) $route?->parameter('resource')) {

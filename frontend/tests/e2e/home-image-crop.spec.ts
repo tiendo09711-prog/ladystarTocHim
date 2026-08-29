@@ -41,6 +41,8 @@ test('admin cắt ảnh Hero đúng tỷ lệ trước khi upload', async ({ pag
   })
 
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')
@@ -115,6 +117,8 @@ test('admin cắt ảnh Hero đúng tỷ lệ trước khi upload', async ({ pag
 test('mọi nhóm ảnh Home Page đều mở cùng trình crop đúng tỷ lệ', async ({ page }) => {
   await mockAdmin(page)
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')
@@ -169,6 +173,8 @@ test('admin lưu danh sách lợi ích theo từng dòng', async ({ page }) => {
   })
 
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')

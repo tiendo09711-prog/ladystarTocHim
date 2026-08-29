@@ -42,6 +42,8 @@ test('admin chỉnh sửa và lưu cấu hình thanh thông báo', async ({ page
   })
 
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await page.goto('/admin/home-page')
@@ -64,6 +66,8 @@ test('admin chỉnh sửa và lưu cấu hình thanh thông báo', async ({ page
 test('admin cập nhật nội dung và các ảnh riêng của trang chủ', async ({ page }) => {
   test.setTimeout(120_000)
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await page.goto('/admin/home-page')

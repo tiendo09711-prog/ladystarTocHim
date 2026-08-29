@@ -93,6 +93,9 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
+        if (! config('features.password_reset_email')) {
+            return $this->error('Để đặt lại mật khẩu, vui lòng liên hệ cửa hàng hoặc bộ phận hỗ trợ.', ['contact_url' => ['/lien-he']], 503);
+        }
         $request->validate(['email' => ['required', 'email']]);
         Password::sendResetLink($request->only('email'));
 
@@ -101,6 +104,9 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
+        if (! config('features.password_reset_email')) {
+            return $this->error('Chức năng đặt lại mật khẩu qua email hiện chưa được bật.', [], 503);
+        }
         $data = $request->validate(['token' => ['required'], 'email' => ['required', 'email'], 'password' => ['required', 'confirmed', 'min:8']]);
         $status = Password::reset($data, function (User $user, string $password) {
             $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();

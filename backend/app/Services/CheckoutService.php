@@ -150,6 +150,7 @@ class CheckoutService
             'sku' => $variant->sku,
             'barcode' => $variant->barcode,
             'unit_price' => $price,
+            'cost_price_snapshot' => $variant->cost_price,
             'quantity' => $line['quantity'],
             'line_total' => $price * $line['quantity'],
         ]);

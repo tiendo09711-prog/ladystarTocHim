@@ -44,7 +44,7 @@ class GuestAfterSalesSecurityTest extends TestCase
         Carbon::setTestNow();
         $this->postJson('/api/v1/orders/track', ['order_number' => $guest->order_number, 'phone' => $guest->customer_phone])->assertOk()->assertJsonPath('data.order_number', $guest->order_number)->assertJsonStructure(['data' => ['guest_after_sales_token']]);
         $registered = Order::where('order_number', 'NH-DEMO-001')->firstOrFail();
-        $this->postJson('/api/v1/orders/track', ['order_number' => $registered->order_number, 'phone' => $registered->customer_phone])->assertOk()->assertJsonPath('data.guest_after_sales_token', null);
+        $this->postJson('/api/v1/orders/track', ['order_number' => $registered->order_number, 'phone' => $registered->customer_phone])->assertNotFound()->assertJsonPath('message', 'Không tìm thấy đơn hàng phù hợp.');
     }
 
     private function guestOrder(string $number, string $phone): Order

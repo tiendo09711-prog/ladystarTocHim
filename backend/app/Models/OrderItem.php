@@ -10,7 +10,7 @@ class OrderItem extends Model
 
     protected function casts(): array
     {
-        return ['variant_snapshot' => 'array', 'warranty_days_snapshot' => 'integer'];
+        return ['variant_snapshot' => 'array', 'warranty_days_snapshot' => 'integer', 'cost_price_snapshot' => 'decimal:2'];
     }
 
     public function product()

@@ -28,7 +28,7 @@ class AfterSalesShipmentService
                 return $locked;
             }
             if (! in_array($status, $allowed[$locked->status] ?? [], true)) {
-                throw ValidationException::withMessages(['status' => 'Chuyá»ƒn tráº¡ng thÃ¡i váº­n chuyá»ƒn háº­u mÃ£i khÃ´ng há»£p lá»‡.']);
+                throw ValidationException::withMessages(['status' => 'Chuyển trạng thái vận chuyển hậu mãi không hợp lệ.']);
             }
             $updates = ['status' => $status];
             if ($status === 'shipped') {
@@ -48,7 +48,7 @@ class AfterSalesShipmentService
         $valid = $context instanceof ReturnRequest ? ['return_inbound', 'exchange_outbound']
             : ($context instanceof WarrantyRequest ? ['warranty_inbound', 'warranty_outbound'] : []);
         if (! in_array($purpose, $valid, true)) {
-            throw ValidationException::withMessages(['purpose' => 'Má»¥c Ä‘Ã­ch váº­n chuyá»ƒn khÃ´ng phÃ¹ há»£p.']);
+            throw ValidationException::withMessages(['purpose' => 'Mục đích vận chuyển không phù hợp.']);
         }
     }
 }
