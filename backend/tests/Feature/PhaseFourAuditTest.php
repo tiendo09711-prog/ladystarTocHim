@@ -54,7 +54,7 @@ class PhaseFourAuditTest extends TestCase
         $inventory = Inventory::firstOrFail();
         $this->actingAs($admin)->postJson('/api/v1/admin/inventory/adjust', [
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
-            'quantity' => 1, 'type' => 'adjustment', 'note' => 'Audit adjustment',
+            'quantity' => 1, 'type' => 'adjustment', 'reason_code' => 'manual_correction', 'note' => 'Audit adjustment',
         ])->assertOk();
         $this->assertDatabaseHas('audit_logs', ['action' => 'inventory.adjusted']);
 

@@ -18,6 +18,9 @@ final class AdminAuditRegistry
             Str::startsWith($uri, 'inventory/transfer') => ['inventory.transferred', 'inventory'],
             Str::startsWith($uri, ['inventory/adjust', 'inventory/import']) => ['inventory.adjusted', 'inventory'],
             Str::contains($uri, 'payment-status') => ['payment.status_changed', 'payments'],
+            Str::contains($uri, 'confirm-cod-delivery') => ['shipment.cod_delivery_confirmed', 'shipments'],
+            $uri === 'orders' && $method === 'POST' => ['order.created_by_admin', 'orders'],
+            preg_match('#^orders/[^/]+$#', $uri) === 1 && $method === 'PATCH' => ['order.updated', 'orders'],
             Str::endsWith($uri, '/cancel') && Str::startsWith($uri, 'orders/') => ['order.cancelled', 'orders'],
             Str::endsWith($uri, '/status') && Str::startsWith($uri, 'orders/') => ['order.status_changed', 'orders'],
             Str::contains($uri, '/notes') => ['order.note_updated', 'orders'],
@@ -73,7 +76,9 @@ final class AdminAuditRegistry
 
     private static function productAction(string $uri, string $method): string
     {
-        if (Str::endsWith($uri, '/status')) return 'product.status_changed';
+        if (Str::endsWith($uri, '/status')) {
+            return 'product.status_changed';
+        }
 
         return self::crudAction('product', $method);
     }

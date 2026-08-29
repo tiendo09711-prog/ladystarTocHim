@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Model;
 
 class Appointment extends Model
@@ -9,6 +10,11 @@ class Appointment extends Model
     public const ACTIVE_STATUSES = ['pending', 'confirmed', 'checked_in'];
 
     protected $guarded = [];
+
+    public function setCustomerPhoneAttribute(?string $value): void
+    {
+        $this->attributes['customer_phone'] = PhoneNormalizer::normalize($value);
+    }
 
     protected function casts(): array
     {

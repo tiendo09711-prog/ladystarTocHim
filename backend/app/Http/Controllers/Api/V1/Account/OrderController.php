@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Account;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Services\AfterSalesEligibilityService;
 use App\Services\OrderLifecycleService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,12 @@ class OrderController extends Controller
         return $this->success($request->user()->orders()->with('items')->latest()->paginate(10));
     }
 
-    public function show(Request $request, string $orderNumber)
+    public function show(Request $request, string $orderNumber, AfterSalesEligibilityService $eligibility)
     {
         $order = $request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.product.variants', 'items.review', 'statusHistories', 'payment', 'shipment')->firstOrFail();
+
+        $eligibilityByItem = $eligibility->forOrder($order);
+        $order->items->each(fn ($item) => $item->setAttribute('after_sales_eligibility', $eligibilityByItem[$item->id]));
 
         return $this->success($order->makeHidden('admin_note'));
     }

@@ -12,7 +12,7 @@ class ExpirePendingOrders extends Command
 {
     protected $signature = 'orders:expire-pending';
 
-    protected $description = 'Cancel pending orders after their reservation expires';
+    protected $description = 'Cancel unpaid pending orders after their reservation expires';
 
     public function handle(OrderLifecycleService $orderLifecycleService): int
     {
@@ -22,12 +22,14 @@ class ExpirePendingOrders extends Command
             ->where('order_status', OrderStatus::Pending->value)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
+            ->where('payment_status', '!=', 'paid')
+            ->whereDoesntHave('payment', fn ($query) => $query->where('status', 'paid'))
             ->orderBy('id')
             ->chunkById(100, function ($orders) use ($orderLifecycleService, &$expired) {
                 foreach ($orders as $order) {
                     try {
-                        $result = $orderLifecycleService->cancel($order, null, [OrderStatus::Pending], 'Tự động hủy do hết thời gian giữ hàng.');
-                        if ($result->order_status === OrderStatus::Cancelled->value) {
+                        $result = $orderLifecycleService->expirePending($order);
+                        if ($result?->order_status === OrderStatus::Cancelled->value) {
                             $expired++;
                         }
                     } catch (ValidationException) {
@@ -36,7 +38,7 @@ class ExpirePendingOrders extends Command
                 }
             });
 
-        $this->info("Expired {$expired} pending order(s).");
+        $this->info('Expired '.$expired.' pending order(s).');
 
         return self::SUCCESS;
     }

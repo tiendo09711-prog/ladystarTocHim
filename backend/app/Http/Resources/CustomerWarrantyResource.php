@@ -10,7 +10,7 @@ class CustomerWarrantyResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id, 'code' => $this->code, 'status' => $this->status, 'issue_type' => $this->issue_type,
+            'id' => $this->id, 'code' => $this->code, 'status' => $this->status, 'quantity' => $this->quantity, 'issue_type' => $this->issue_type,
             'description' => $this->description, 'requested_resolution' => $this->requested_resolution, 'actual_resolution' => $this->actual_resolution,
             'customer_note' => $this->customer_note, 'rejection_reason' => $this->rejection_reason, 'requested_at' => $this->requested_at,
             'reviewed_at' => $this->reviewed_at, 'approved_at' => $this->approved_at, 'received_at' => $this->received_at,

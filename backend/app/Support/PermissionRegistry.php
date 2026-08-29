@@ -140,13 +140,30 @@ final class PermissionRegistry
         $method = strtoupper($request->method());
         $read = in_array($method, ['GET', 'HEAD'], true);
 
-        if ($uri === 'auth/me' || $uri === 'auth/logout') return [];
-        if (Str::startsWith($uri, ['staff', 'staff-roles', 'permissions'])) return [];
-        if (Str::startsWith($uri, 'audit-logs')) return ['audit.view'];
-        if (Str::startsWith($uri, 'after-sales-media')) return [];
-        if (Str::startsWith($uri, 'dashboard/')) return ['dashboard.view'];
-        if (Str::startsWith($uri, 'reports/')) return ['reports.view'];
-        if ($uri === 'import/products') return ['import.products', 'products.manage', 'inventory.adjust'];
+        if ($uri === 'auth/me' || $uri === 'auth/logout') {
+            return [];
+        }
+        if ($uri === 'account/password') {
+            return [];
+        }
+        if (Str::startsWith($uri, ['staff', 'staff-roles', 'permissions'])) {
+            return [];
+        }
+        if (Str::startsWith($uri, 'audit-logs')) {
+            return ['audit.view'];
+        }
+        if (Str::startsWith($uri, 'after-sales-media')) {
+            return [];
+        }
+        if (Str::startsWith($uri, 'dashboard/')) {
+            return ['dashboard.view'];
+        }
+        if (Str::startsWith($uri, 'reports/')) {
+            return ['reports.view'];
+        }
+        if ($uri === 'import/products') {
+            return ['import.products', 'products.manage', 'inventory.adjust'];
+        }
         if (Str::startsWith($uri, 'export/')) {
             $permission = match ((string) $route?->parameter('resource')) {
                 'products' => 'export.products',
@@ -158,47 +175,112 @@ final class PermissionRegistry
 
             return $permission ? [$permission] : [];
         }
-        if (Str::startsWith($uri, 'products')) return [$read ? 'products.view' : 'products.manage'];
-        if (Str::startsWith($uri, ['categories', 'brands', 'attributes'])) return [$read ? 'catalog.view' : 'catalog.manage'];
-        if (Str::startsWith($uri, 'branches')) return [$read ? 'branches.view' : 'branches.manage'];
+        if (Str::startsWith($uri, 'products')) {
+            return [$read ? 'products.view' : 'products.manage'];
+        }
+        if (Str::startsWith($uri, ['categories', 'brands', 'attributes'])) {
+            return [$read ? 'catalog.view' : 'catalog.manage'];
+        }
+        if (Str::startsWith($uri, 'branches')) {
+            return [$read ? 'branches.view' : 'branches.manage'];
+        }
         if (Str::startsWith($uri, 'inventory')) {
-            if ($read) return ['inventory.view'];
+            if ($read) {
+                return ['inventory.view'];
+            }
+
             return [Str::startsWith($uri, 'inventory/transfer') ? 'inventory.transfer' : 'inventory.adjust'];
         }
         if (Str::startsWith($uri, 'orders')) {
-            if ($read) return ['orders.view'];
-            if (Str::contains($uri, 'payment-status')) return ['orders.payment.manage'];
-            if (Str::contains($uri, 'notes')) return ['orders.notes.manage'];
-            if (Str::contains($uri, 'shipment')) return ['orders.shipment.manage'];
+            if ($read) {
+                return ['orders.view'];
+            }
+            if (Str::contains($uri, 'confirm-cod-delivery')) {
+                return ['orders.payment.manage', 'orders.shipment.manage'];
+            }
+            if (Str::contains($uri, 'payment-status')) {
+                return ['orders.payment.manage'];
+            }
+            if (Str::contains($uri, 'notes')) {
+                return ['orders.notes.manage'];
+            }
+            if (Str::contains($uri, 'shipment')) {
+                return ['orders.shipment.manage'];
+            }
+
             return ['orders.status.manage'];
         }
         if (Str::startsWith($uri, 'returns')) {
-            if (Str::contains($uri, 'refund-summary')) return ['refunds.view'];
-            if (Str::endsWith($uri, '/refund')) return ['refunds.manage'];
+            if (Str::contains($uri, 'refund-summary')) {
+                return ['refunds.view'];
+            }
+            if (Str::endsWith($uri, '/refund')) {
+                return ['refunds.manage'];
+            }
+
             return [$read ? 'returns.view' : 'returns.manage'];
         }
-        if (Str::startsWith($uri, 'refunds')) return [$read ? 'refunds.view' : 'refunds.manage'];
-        if (Str::startsWith($uri, 'warranties')) return [$read ? 'warranties.view' : 'warranties.manage'];
-        if (Str::startsWith($uri, ['appointment-schedules', 'appointment-blocks'])) return [$read ? 'appointments.view' : 'appointments.schedule.manage'];
-        if (Str::startsWith($uri, 'appointments')) return [$read ? 'appointments.view' : 'appointments.manage'];
+        if (Str::startsWith($uri, 'refunds')) {
+            return [$read ? 'refunds.view' : 'refunds.manage'];
+        }
+        if (Str::startsWith($uri, 'warranties')) {
+            return [$read ? 'warranties.view' : 'warranties.manage'];
+        }
+        if (Str::startsWith($uri, ['appointment-schedules', 'appointment-blocks'])) {
+            return [$read ? 'appointments.view' : 'appointments.schedule.manage'];
+        }
+        if (Str::startsWith($uri, 'appointments')) {
+            return [$read ? 'appointments.view' : 'appointments.manage'];
+        }
         if (Str::startsWith($uri, 'consultation-requests')) {
-            if (Str::contains($uri, '/appointment')) return ['consultations.manage', 'appointments.manage'];
+            if (Str::contains($uri, '/appointment')) {
+                return ['consultations.manage', 'appointments.manage'];
+            }
+
             return [$read ? 'consultations.view' : 'consultations.manage'];
         }
-        if (Str::startsWith($uri, 'customers')) return [$read ? 'customers.view' : 'customers.status.manage'];
-        if (Str::startsWith($uri, 'reviews')) return [$read ? 'reviews.view' : 'reviews.manage'];
-        if (Str::startsWith($uri, 'coupons')) return [$read ? 'coupons.view' : 'coupons.manage'];
-        if (Str::startsWith($uri, 'services')) return [$read ? 'services.view' : 'services.manage'];
-        if (Str::startsWith($uri, ['promotions', 'promotions-page'])) return [$read ? 'promotions.view' : 'promotions.manage'];
-        if (Str::startsWith($uri, 'barcodes')) return [$read ? 'barcodes.view' : 'barcodes.manage'];
-        if (Str::startsWith($uri, 'settings')) return [$read ? 'settings.view' : 'settings.manage'];
-        if (Str::startsWith($uri, 'home-page')) return ['content.home.manage'];
-        if (Str::startsWith($uri, 'store-page')) return ['content.store.manage'];
-        if (Str::startsWith($uri, 'contact-page')) return ['content.contact.manage'];
-        if (Str::startsWith($uri, 'about')) return ['content.about.manage'];
-        if (Str::startsWith($uri, 'catalog/content')) return [Str::contains($uri, 'hair-guide') ? 'content.guides.manage' : 'content.catalog.manage'];
-        if (Str::startsWith($uri, ['news', 'news-page'])) return ['content.news.manage'];
-        if (Str::startsWith($uri, ['guides', 'guides-page'])) return ['content.guides.manage'];
+        if (Str::startsWith($uri, 'customers')) {
+            return [$read ? 'customers.view' : 'customers.status.manage'];
+        }
+        if (Str::startsWith($uri, 'reviews')) {
+            return [$read ? 'reviews.view' : 'reviews.manage'];
+        }
+        if (Str::startsWith($uri, 'coupons')) {
+            return [$read ? 'coupons.view' : 'coupons.manage'];
+        }
+        if (Str::startsWith($uri, 'services')) {
+            return [$read ? 'services.view' : 'services.manage'];
+        }
+        if (Str::startsWith($uri, ['promotions', 'promotions-page'])) {
+            return [$read ? 'promotions.view' : 'promotions.manage'];
+        }
+        if (Str::startsWith($uri, 'barcodes')) {
+            return [$read ? 'barcodes.view' : 'barcodes.manage'];
+        }
+        if (Str::startsWith($uri, 'settings')) {
+            return [$read ? 'settings.view' : 'settings.manage'];
+        }
+        if (Str::startsWith($uri, 'home-page')) {
+            return ['content.home.manage'];
+        }
+        if (Str::startsWith($uri, 'store-page')) {
+            return ['content.store.manage'];
+        }
+        if (Str::startsWith($uri, 'contact-page')) {
+            return ['content.contact.manage'];
+        }
+        if (Str::startsWith($uri, 'about')) {
+            return ['content.about.manage'];
+        }
+        if (Str::startsWith($uri, 'catalog/content')) {
+            return [Str::contains($uri, 'hair-guide') ? 'content.guides.manage' : 'content.catalog.manage'];
+        }
+        if (Str::startsWith($uri, ['news', 'news-page'])) {
+            return ['content.news.manage'];
+        }
+        if (Str::startsWith($uri, ['guides', 'guides-page'])) {
+            return ['content.guides.manage'];
+        }
 
         return null;
     }

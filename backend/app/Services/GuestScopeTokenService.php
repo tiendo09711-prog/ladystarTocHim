@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Validation\ValidationException;
 
 class GuestScopeTokenService
@@ -28,7 +29,7 @@ class GuestScopeTokenService
 
     private function phoneHash(string $phone): string
     {
-        return hash('sha256', preg_replace('/\D+/', '', $phone) ?? '');
+        return hash('sha256', PhoneNormalizer::normalize($phone) ?? '');
     }
 
     private function encode(string $value): string

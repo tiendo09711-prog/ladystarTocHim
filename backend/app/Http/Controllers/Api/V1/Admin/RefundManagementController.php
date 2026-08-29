@@ -19,7 +19,14 @@ class RefundManagementController extends Controller
 
     public function index(Request $request)
     {
-        return $this->success(Refund::with('order', 'returnRequest', 'processor')->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))->latest('requested_at')->paginate(20));
+        $query = Refund::with('order', 'returnRequest', 'processor');
+        $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')));
+        $query->when($request->filled('source'), fn ($q) => $q->where('source', $request->input('source')));
+        $query->when($request->filled('order_number'), fn ($q) => $q->whereHas('order', fn ($order) => $order->where('order_number', 'like', '%'.$request->input('order_number').'%')));
+        $query->when($request->filled('from'), fn ($q) => $q->whereDate('requested_at', '>=', $request->input('from')));
+        $query->when($request->filled('to'), fn ($q) => $q->whereDate('requested_at', '<=', $request->input('to')));
+
+        return $this->success($query->latest('requested_at')->paginate(20));
     }
 
     public function show(Refund $refund)

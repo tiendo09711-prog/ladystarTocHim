@@ -95,7 +95,7 @@ class ReportingService
         $query = DB::table('order_items as oi')->join('orders as o', 'o.id', '=', 'oi.order_id')
             ->join('products as p', 'p.id', '=', 'oi.product_id')->leftJoin('product_variants as pv', 'pv.id', '=', 'oi.product_variant_id')
             ->leftJoinSub($returns, 'ret', 'ret.product_id', '=', 'oi.product_id')
-            ->where('o.order_status', 'completed')->whereBetween('o.completed_at', [$filters['from'], $filters['to']])
+            ->where('o.order_status', 'completed')->where('o.payment_status', 'paid')->whereBetween('o.completed_at', [$filters['from'], $filters['to']])
             ->selectRaw('oi.product_id, p.name as product_name, SUM(oi.quantity) as quantity_sold, SUM(oi.line_total) as gross_revenue, COALESCE(MAX(ret.returned_quantity), 0) as completed_return_quantity, SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, pv.cost_price, 0)) as estimated_cogs, MAX(o.completed_at) as last_sold_at')
             ->groupBy('oi.product_id', 'p.name');
         $this->branch($query, $filters, 'o.branch_id');
@@ -228,7 +228,7 @@ class ReportingService
 
     private function completedOrders(array $filters): Builder
     {
-        $query = DB::table('orders as o')->where('o.order_status', 'completed')->whereBetween('o.completed_at', [$filters['from'], $filters['to']]);
+        $query = DB::table('orders as o')->where('o.order_status', 'completed')->where('o.payment_status', 'paid')->whereBetween('o.completed_at', [$filters['from'], $filters['to']]);
         $this->branch($query, $filters, 'o.branch_id');
 
         return $query;
@@ -247,7 +247,7 @@ class ReportingService
     {
         $query = DB::table('order_items as oi')->join('orders as o', 'o.id', '=', 'oi.order_id')
             ->leftJoin('product_variants as pv', 'pv.id', '=', 'oi.product_variant_id')
-            ->where('o.order_status', 'completed')->whereBetween('o.completed_at', [$filters['from'], $filters['to']]);
+            ->where('o.order_status', 'completed')->where('o.payment_status', 'paid')->whereBetween('o.completed_at', [$filters['from'], $filters['to']]);
         $this->branch($query, $filters, 'o.branch_id');
         $cost = $query->selectRaw('COALESCE(SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, pv.cost_price, 0)), 0) as gross_cogs, SUM(CASE WHEN oi.cost_price_snapshot IS NOT NULL THEN 1 ELSE 0 END) as snapshot_items, SUM(CASE WHEN oi.cost_price_snapshot IS NULL AND pv.cost_price IS NOT NULL THEN 1 ELSE 0 END) as fallback_items, SUM(CASE WHEN oi.cost_price_snapshot IS NULL AND pv.cost_price IS NULL THEN 1 ELSE 0 END) as missing_items')->first();
 

@@ -80,6 +80,11 @@ class ReturnManagementController extends Controller
         return $this->result($this->service->complete($returnRequest));
     }
 
+    public function handover(Request $request, ReturnRequest $returnRequest)
+    {
+        return $this->result($this->service->handoverExchange($returnRequest, $request->user()->id));
+    }
+
     public function saveShipment(Request $request, ReturnRequest $returnRequest)
     {
         $data = $request->validate([

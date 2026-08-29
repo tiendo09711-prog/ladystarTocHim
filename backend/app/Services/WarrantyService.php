@@ -24,12 +24,17 @@ class WarrantyService
             if (! $this->eligibility->canClaimWarranty($lockedOrder, $lockedItem)) {
                 throw ValidationException::withMessages(['order_item' => 'This item is not eligible for warranty.']);
             }
+            $quantity = (int) ($data['quantity'] ?? 1);
+            if ($quantity < 1 || $quantity > $this->eligibility->warrantyableQuantity($lockedItem)) {
+                throw ValidationException::withMessages(['quantity' => 'Warranty quantity exceeds the eligible purchased quantity.']);
+            }
             if ($lockedItem->warrantyRequests()->whereIn('status', WarrantyRequest::ACTIVE_STATUSES)->exists()) {
                 throw ValidationException::withMessages(['order_item' => 'An active warranty claim already exists.']);
             }
             $claim = WarrantyRequest::create([
                 'code' => $this->uniqueCode(), 'user_id' => $userId, 'order_id' => $lockedOrder->id, 'order_item_id' => $lockedItem->id,
                 'status' => 'requested', 'issue_type' => $data['issue_type'], 'description' => $data['description'],
+                'quantity' => $quantity,
                 'requested_resolution' => $data['requested_resolution'] ?? null, 'customer_note' => $data['customer_note'] ?? null,
                 'requested_at' => now(),
             ]);
@@ -46,7 +51,7 @@ class WarrantyService
     public function approve(WarrantyRequest $claim, string $resolution, ?int $replacementVariantId, ?int $branchId, ?string $note = null): WarrantyRequest
     {
         return DB::transaction(function () use ($claim, $resolution, $replacementVariantId, $branchId, $note) {
-            $locked = WarrantyRequest::with('order')->lockForUpdate()->findOrFail($claim->id);
+            $locked = WarrantyRequest::with('order', 'orderItem')->lockForUpdate()->findOrFail($claim->id);
             if ($locked->status === 'approved') {
                 return $this->load($locked);
             }
@@ -59,6 +64,9 @@ class WarrantyService
                     throw ValidationException::withMessages(['replacement_variant_id' => 'A replacement variant is required.']);
                 }
                 $variant = ProductVariant::with('product')->whereKey($replacementVariantId)->lockForUpdate()->firstOrFail();
+                if ($variant->product_id !== $locked->orderItem->product_id) {
+                    throw ValidationException::withMessages(['replacement_variant_id' => 'Replacement must belong to the same product.']);
+                }
                 if ($variant->status !== 'active' || $variant->product->status !== 'active') {
                     throw ValidationException::withMessages(['replacement_variant_id' => 'Replacement variant is inactive.']);
                 }
@@ -66,7 +74,7 @@ class WarrantyService
                 if (! $inventory) {
                     throw ValidationException::withMessages(['stock' => 'Replacement inventory is unavailable.']);
                 }
-                $this->inventoryService->reserveForReference($inventory, 1, 'warranty_reserve', null, $locked, $locked->code);
+                $this->inventoryService->reserveForReference($inventory, (int) $locked->quantity, 'warranty_reserve', null, $locked, $locked->code);
                 $updates['replacement_variant_id'] = $variant->id;
                 $updates['replacement_reserved_at'] = now();
             }
@@ -103,7 +111,48 @@ class WarrantyService
 
     public function complete(WarrantyRequest $claim): WarrantyRequest
     {
-        return $this->transition($claim, ['ready', 'processing'], 'completed', ['completed_at' => now()]);
+        return DB::transaction(function () use ($claim) {
+            $locked = WarrantyRequest::lockForUpdate()->findOrFail($claim->id);
+            if ($locked->status === 'completed') {
+                return $this->load($locked);
+            }
+            if (! in_array($locked->status, ['ready', 'processing'], true)) {
+                throw ValidationException::withMessages(['status' => 'Invalid warranty lifecycle transition.']);
+            }
+            if ($locked->actual_resolution === 'replacement' && ! $locked->replacement_consumed_at) {
+                throw ValidationException::withMessages(['stock' => 'Replacement warranty cannot complete before stock is fulfilled.']);
+            }
+            if ($locked->replacement_reserved_at && ! $locked->replacement_released_at && ! $locked->replacement_consumed_at) {
+                throw ValidationException::withMessages(['stock' => 'Warranty cannot complete with a dangling reservation.']);
+            }
+            $locked->update(['status' => 'completed', 'completed_at' => now()]);
+
+            return $this->load($locked);
+        });
+    }
+
+    public function handoverReplacement(WarrantyRequest $claim, int $actorId): WarrantyRequest
+    {
+        return DB::transaction(function () use ($claim, $actorId) {
+            $locked = WarrantyRequest::with('order')->lockForUpdate()->findOrFail($claim->id);
+            if ($locked->status === 'completed') {
+                return $this->load($locked);
+            }
+            if ($locked->actual_resolution !== 'replacement' || ! in_array($locked->status, ['processing', 'ready'], true)) {
+                throw ValidationException::withMessages(['status' => 'Replacement is not ready for handover.']);
+            }
+            if (! $locked->replacement_consumed_at) {
+                if (! $locked->replacement_reserved_at || $locked->replacement_released_at) {
+                    throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
+                }
+                $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $locked->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                $this->inventoryService->consumeReservation($inventory, (int) $locked->quantity, 'warranty_consume', $actorId, $locked, $locked->code);
+                $locked->update(['replacement_consumed_at' => now()]);
+            }
+            $locked->update(['status' => 'completed', 'completed_at' => now()]);
+
+            return $this->load($locked);
+        });
     }
 
     public function updateShipmentStatus(AfterSalesShipment $shipment, string $status, int $actorId): AfterSalesShipment
@@ -123,7 +172,7 @@ class WarrantyService
                         throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
                     }
                     $inventory = Inventory::where('branch_id', $claim->order->branch_id)->where('product_variant_id', $claim->replacement_variant_id)->lockForUpdate()->firstOrFail();
-                    $this->inventoryService->consumeReservation($inventory, 1, 'warranty_consume', $actorId, $claim, $claim->code);
+                    $this->inventoryService->consumeReservation($inventory, (int) $claim->quantity, 'warranty_consume', $actorId, $claim, $claim->code);
                     $claim->update(['replacement_consumed_at' => now()]);
                 }
                 $lockedShipment->update(['status' => 'shipped', 'shipped_at' => now()]);
@@ -171,7 +220,7 @@ class WarrantyService
             }
             if ($locked->replacement_reserved_at && ! $locked->replacement_released_at && ! $locked->replacement_consumed_at) {
                 $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $locked->replacement_variant_id)->lockForUpdate()->firstOrFail();
-                $this->inventoryService->releaseReservation($inventory, 1, 'warranty_release', null, $locked, $locked->code);
+                $this->inventoryService->releaseReservation($inventory, (int) $locked->quantity, 'warranty_release', null, $locked, $locked->code);
                 $locked->replacement_released_at = now();
             }
             $locked->fill(['status' => $to] + array_filter($updates, fn ($value) => $value !== null))->save();

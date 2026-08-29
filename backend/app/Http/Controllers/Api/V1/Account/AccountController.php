@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +25,7 @@ class AccountController extends Controller
 
     public function updateProfile(Request $request)
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['nullable', 'regex:/^[0-9+\s.-]{9,20}$/', 'unique:users,phone,'.$request->user()->id],
@@ -151,6 +153,8 @@ class AccountController extends Controller
 
     private function addressData(Request $request): array
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
+
         return $request->validate([
             'recipient_name' => ['required', 'string', 'max:120'], 'phone' => ['required', 'regex:/^[0-9+\s.-]{9,20}$/'],
             'province' => ['required', 'string'], 'district' => ['required', 'string'], 'ward' => ['required', 'string'],

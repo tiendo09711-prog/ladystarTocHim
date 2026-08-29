@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
     protected $guarded = [];
+
+    public function setCustomerPhoneAttribute(?string $value): void
+    {
+        $this->attributes['customer_phone'] = PhoneNormalizer::normalize($value);
+    }
 
     protected function casts(): array
     {

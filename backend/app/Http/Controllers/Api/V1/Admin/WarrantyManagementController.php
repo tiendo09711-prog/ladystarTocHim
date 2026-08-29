@@ -74,6 +74,11 @@ class WarrantyManagementController extends Controller
         return $this->result($this->service->complete($warrantyRequest));
     }
 
+    public function handover(Request $request, WarrantyRequest $warrantyRequest)
+    {
+        return $this->result($this->service->handoverReplacement($warrantyRequest, $request->user()->id));
+    }
+
     public function saveShipment(Request $request, WarrantyRequest $warrantyRequest)
     {
         $data = $request->validate(['purpose' => ['required', Rule::in(['warranty_inbound', 'warranty_outbound'])], 'carrier' => ['nullable', 'string', 'max:190'], 'tracking_number' => ['nullable', 'string', 'max:190'], 'shipping_fee_actual' => ['nullable', 'numeric', 'min:0'], 'tracking_url' => ['nullable', 'url', 'max:1000'], 'note' => ['nullable', 'string', 'max:2000']]);

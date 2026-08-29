@@ -2,11 +2,17 @@
 
 namespace App\Http\Requests\Store;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class CheckoutRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['customer_phone' => PhoneNormalizer::normalize($this->input('customer_phone'))]);
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;

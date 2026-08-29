@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
-    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null, ?Model $reference = null): Inventory
+    public function adjust(Inventory $inventory, int $quantity, string $type, ?int $performedBy = null, ?string $note = null, ?Model $reference = null, ?string $reasonCode = null): Inventory
     {
         $before = $inventory->quantity_on_hand;
         $after = $before + $quantity;
@@ -23,7 +23,7 @@ class InventoryService
             'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
             'type' => $type, 'quantity' => $quantity, 'quantity_before' => $before, 'quantity_after' => $after,
             'reference_type' => $reference ? $reference::class : null, 'reference_id' => $reference?->getKey(),
-            'note' => $note, 'performed_by' => $performedBy,
+            'note' => $note, 'performed_by' => $performedBy, 'reason_code' => $reasonCode,
         ]);
 
         return $inventory->refresh();

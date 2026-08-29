@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\ReturnRequest;
@@ -13,9 +14,9 @@ class RefundService
 {
     public function __construct(private RefundCalculatorService $calculator) {}
 
-    public function create(Payment $payment, array $data, int $actorId, ?ReturnRequest $return = null): Refund
+    public function create(Payment $payment, array $data, int $actorId, ?ReturnRequest $return = null, string $source = 'return'): Refund
     {
-        return DB::transaction(function () use ($payment, $data, $actorId, $return) {
+        return DB::transaction(function () use ($payment, $data, $actorId, $return, $source) {
             $locked = Payment::with('order')->lockForUpdate()->findOrFail($payment->id);
             if (! in_array($locked->status, ['paid', 'partially_refunded', 'refunded'], true)) {
                 throw ValidationException::withMessages(['payment' => 'Only a paid payment can be refunded.']);
@@ -40,9 +41,50 @@ class RefundService
             return Refund::create([
                 'code' => $this->uniqueCode(), 'order_id' => $locked->order_id, 'payment_id' => $locked->id,
                 'return_request_id' => $return?->id, 'amount' => $this->decimal($amount), 'status' => 'pending',
+                'source' => $source,
                 'method' => $data['method'], 'transaction_code' => $data['transaction_code'] ?? null,
                 'reason' => $data['reason'] ?? null, 'admin_note' => $data['admin_note'] ?? null,
                 'requested_at' => now(), 'processed_by' => $actorId,
+            ]);
+        });
+    }
+
+    public function createForCancellation(Order $order, int $actorId, ?string $reason = null): Refund
+    {
+        return DB::transaction(function () use ($order, $actorId, $reason) {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            $payment = Payment::query()->where('order_id', $lockedOrder->id)->lockForUpdate()->first();
+            if (! $payment || $payment->status !== 'paid') {
+                throw ValidationException::withMessages(['payment' => 'Only a paid order requires a cancellation refund.']);
+            }
+
+            $existing = Refund::query()
+                ->where('order_id', $lockedOrder->id)
+                ->where('source', 'order_cancellation')
+                ->whereIn('status', ['pending', 'completed'])
+                ->lockForUpdate()
+                ->first();
+            if ($existing) {
+                return $existing;
+            }
+
+            $amount = $this->minor($this->remainingRefundableAmount($payment, true));
+            if ($amount <= 0) {
+                throw ValidationException::withMessages(['amount' => 'No refundable payment amount remains.']);
+            }
+
+            return Refund::create([
+                'code' => $this->uniqueCode(),
+                'order_id' => $lockedOrder->id,
+                'payment_id' => $payment->id,
+                'return_request_id' => null,
+                'source' => 'order_cancellation',
+                'amount' => $this->decimal($amount),
+                'status' => 'pending',
+                'method' => $payment->method === 'cod' ? 'cash' : 'manual_bank_transfer',
+                'reason' => $reason ?: 'Paid order cancellation',
+                'requested_at' => now(),
+                'processed_by' => $actorId,
             ]);
         });
     }

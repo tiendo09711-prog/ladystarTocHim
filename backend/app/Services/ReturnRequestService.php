@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class ReturnRequestService
 {
-    public function __construct(private AfterSalesEligibilityService $eligibility, private InventoryService $inventoryService) {}
+    public function __construct(private AfterSalesEligibilityService $eligibility, private InventoryService $inventoryService, private RefundCalculatorService $refundCalculator) {}
 
     public function createRequest(Order $order, array $data, ?int $userId): ReturnRequest
     {
@@ -63,10 +63,22 @@ class ReturnRequestService
                 'customer_note' => $data['customer_note'] ?? null, 'requested_at' => now(),
             ]);
             foreach ($data['items'] as $line) {
+                $orderItem = $items[(int) $line['order_item_id']];
+                $originalValue = $this->minor($orderItem->unit_price) * (int) $line['quantity'];
+                $replacementValue = null;
+                $priceDifference = null;
+                if ($data['request_type'] === 'exchange') {
+                    $replacement = ProductVariant::findOrFail($line['replacement_variant_id']);
+                    $replacementValue = $this->minor($replacement->currentPrice()) * (int) $line['quantity'];
+                    $priceDifference = $replacementValue - $originalValue;
+                }
                 $request->items()->create([
                     'order_item_id' => $line['order_item_id'], 'quantity' => $line['quantity'],
                     'reason_code' => $line['reason_code'], 'reason_detail' => $line['reason_detail'] ?? null,
                     'replacement_variant_id' => $line['replacement_variant_id'] ?? null,
+                    'original_value' => $this->decimal($originalValue),
+                    'replacement_value' => $replacementValue === null ? null : $this->decimal($replacementValue),
+                    'price_difference' => $priceDifference === null ? null : $this->decimal($priceDifference),
                 ]);
             }
 
@@ -162,7 +174,55 @@ class ReturnRequestService
 
     public function complete(ReturnRequest $request): ReturnRequest
     {
-        return $this->transition($request, ['received'], 'completed', ['completed_at' => now()]);
+        return DB::transaction(function () use ($request) {
+            $locked = ReturnRequest::with('order.payment', 'items.orderItem', 'refunds')->lockForUpdate()->findOrFail($request->id);
+            if ($locked->status === 'completed') {
+                return $this->load($locked);
+            }
+            if ($locked->status !== 'received') {
+                throw ValidationException::withMessages(['status' => 'Return must be received before completion.']);
+            }
+            if ($locked->request_type === 'exchange') {
+                throw ValidationException::withMessages(['status' => 'Exchange cannot be completed before replacement fulfilment.']);
+            }
+
+            $required = $this->minor($this->refundCalculator->suggestedForReturn($locked));
+            $completed = $this->minor($locked->refunds()->where('status', 'completed')->sum('amount'));
+            if ($required > 0 && $completed < $required) {
+                throw ValidationException::withMessages(['refund' => 'Return cannot be completed until the required refund is completed.']);
+            }
+
+            $locked->update(['status' => 'completed', 'completed_at' => now()]);
+
+            return $this->load($locked);
+        });
+    }
+
+    public function handoverExchange(ReturnRequest $request, int $actorId): ReturnRequest
+    {
+        return DB::transaction(function () use ($request, $actorId) {
+            $locked = ReturnRequest::with('order', 'items')->lockForUpdate()->findOrFail($request->id);
+            if ($locked->status === 'completed') {
+                return $this->load($locked);
+            }
+            if ($locked->request_type !== 'exchange' || $locked->status !== 'received') {
+                throw ValidationException::withMessages(['status' => 'Exchange must be received before handover.']);
+            }
+            foreach ($locked->items as $item) {
+                if ($item->replacement_consumed_at) {
+                    continue;
+                }
+                if (! $item->replacement_reserved_at || $item->replacement_released_at) {
+                    throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
+                }
+                $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                $this->inventoryService->consumeReservation($inventory, (int) $item->quantity, 'exchange_consume', $actorId, $locked, $locked->code);
+                $item->update(['replacement_consumed_at' => now()]);
+            }
+            $locked->update(['status' => 'completed', 'completed_at' => now()]);
+
+            return $this->load($locked);
+        });
     }
 
     public function updateExchangeShipmentStatus(AfterSalesShipment $shipment, string $status, int $actorId): AfterSalesShipment
@@ -265,5 +325,10 @@ class ReturnRequestService
     private function minor(mixed $amount): int
     {
         return (int) round((float) $amount * 100);
+    }
+
+    private function decimal(int $minor): float
+    {
+        return $minor / 100;
     }
 }

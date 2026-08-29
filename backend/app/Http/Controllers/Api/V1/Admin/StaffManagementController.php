@@ -7,6 +7,7 @@ use App\Models\StaffRole;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -38,6 +39,7 @@ class StaffManagementController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:190'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
@@ -71,6 +73,7 @@ class StaffManagementController extends Controller
 
     public function update(Request $request, User $staff)
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
         $this->assertStaff($staff);
         $before = $this->staffData($staff);
         $data = $request->validate([

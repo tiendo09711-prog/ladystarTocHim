@@ -49,6 +49,20 @@ class CheckoutService
         });
     }
 
+    public function placeAdmin(array $payload, ?User $customer = null): Order
+    {
+        return DB::transaction(function () use ($payload, $customer) {
+            $branch = Branch::where('is_active', true)->findOrFail($payload['branch_id']);
+            $summary = $this->guestSummary($payload['items'], $payload['coupon_code'] ?? null, $branch, (float) ($payload['shipping_fee'] ?? 0), $customer);
+            $order = $this->createOrder($summary, $payload + ['order_source' => 'admin'], $customer);
+            if (($payload['payment_status'] ?? 'unpaid') === 'paid') {
+                return $this->paymentService->updateStatus($order, 'paid', (int) $payload['actor_id'], $payload['transaction_code'] ?? null, $payload['payment_note'] ?? null);
+            }
+
+            return $order;
+        });
+    }
+
     private function authenticatedSummary(User $user, ?string $couponCode): array
     {
         $cart = $user->cart()->with('items.variant.product', 'items.variant.attributeValues.attribute', 'items.variant.inventories')->first();
@@ -60,7 +74,7 @@ class CheckoutService
         return $this->summarize($lines, $user, $couponCode) + ['cart' => $cart];
     }
 
-    private function guestSummary(array $items, ?string $couponCode): array
+    private function guestSummary(array $items, ?string $couponCode, ?Branch $branch = null, ?float $shippingFee = null, ?User $user = null): array
     {
         $variantIds = collect($items)->pluck('product_variant_id')->map(fn ($id) => (int) $id)->values();
         $variants = ProductVariant::with('product', 'attributeValues.attribute', 'inventories')->whereIn('id', $variantIds)->get()->keyBy('id');
@@ -69,12 +83,12 @@ class CheckoutService
         }
         $lines = collect($items)->map(fn ($item) => ['variant' => $variants[(int) $item['product_variant_id']], 'quantity' => (int) $item['quantity']]);
 
-        return $this->summarize($lines, null, $couponCode);
+        return $this->summarize($lines, $user, $couponCode, $branch, $shippingFee);
     }
 
-    private function summarize(Collection $lines, ?User $user, ?string $couponCode): array
+    private function summarize(Collection $lines, ?User $user, ?string $couponCode, ?Branch $branch = null, ?float $shippingFee = null): array
     {
-        $branch = Branch::where('is_default', true)->firstOrFail();
+        $branch ??= Branch::where('is_default', true)->firstOrFail();
         $subtotal = 0;
         foreach ($lines as $line) {
             $variant = $line['variant'];
@@ -90,7 +104,7 @@ class CheckoutService
         }
         $discount = $this->discount($user, $couponCode, $subtotal);
         $settings = StoreSetting::current();
-        $shipping = $subtotal >= (float) $settings->free_shipping_from ? 0 : (float) $settings->shipping_fee;
+        $shipping = $shippingFee ?? ($subtotal >= (float) $settings->free_shipping_from ? 0 : (float) $settings->shipping_fee);
 
         return ['branch' => $branch, 'lines' => $lines, 'subtotal' => $subtotal, 'discount_amount' => $discount, 'shipping_fee' => $shipping, 'total_amount' => max(0, $subtotal - $discount + $shipping)];
     }
@@ -99,9 +113,13 @@ class CheckoutService
     {
         $settings = StoreSetting::current();
         if (($payload['payment_method'] ?? 'cod') === 'bank_transfer' && ! $settings->bank_transfer_enabled) {
-            throw ValidationException::withMessages(['payment_method' => 'Chuyển khoản ngân hàng hiện không khả dụng.']);
+            throw ValidationException::withMessages(['payment_method' => 'Bank transfer is currently unavailable.']);
         }
-        $order = Order::create(array_merge(Arr::except($payload, ['items', 'coupon_code']), [
+        $attributes = Arr::only($payload, [
+            'customer_name', 'customer_email', 'customer_phone', 'province', 'district', 'ward',
+            'shipping_address', 'payment_method', 'customer_note', 'admin_note',
+        ]);
+        $order = Order::create(array_merge($attributes, [
             'order_number' => $settings->order_prefix.now()->format('ymd').strtoupper(Str::random(6)),
             'user_id' => $user?->id,
             'branch_id' => $summary['branch']->id,
@@ -111,6 +129,8 @@ class CheckoutService
             'total_amount' => $summary['total_amount'],
             'payment_status' => 'unpaid',
             'order_status' => 'pending',
+            'order_source' => $payload['order_source'] ?? 'web',
+            'coupon_code' => empty($payload['coupon_code']) ? null : strtoupper($payload['coupon_code']),
             'expires_at' => now()->addMinutes(config('orders.pending_expiry_minutes', 30)),
         ]));
 
@@ -121,8 +141,8 @@ class CheckoutService
         $order->statusHistories()->create([
             'from_status' => null,
             'to_status' => 'pending',
-            'changed_by' => $user?->id,
-            'note' => 'Đơn hàng được tạo.',
+            'changed_by' => $payload['actor_id'] ?? $user?->id,
+            'note' => 'Order created.',
             'created_at' => now(),
         ]);
         $this->paymentService->createForOrder($order);

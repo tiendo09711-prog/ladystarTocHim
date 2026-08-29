@@ -58,9 +58,9 @@ class PhaseTwoTest extends TestCase
         $this->actingAs($admin)->putJson("/api/v1/admin/orders/{$order->id}/shipment", ['carrier' => 'GHN', 'tracking_number' => 'TRACK-001', 'shipping_fee_actual' => 35000])->assertOk();
         $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/shipment/status", ['status' => 'shipped'])->assertOk();
         $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/shipment/status", ['status' => 'shipped'])->assertOk();
-        $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/shipment/status", ['status' => 'delivered'])->assertOk();
         $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/payment-status", ['payment_status' => 'paid', 'transaction_code' => 'BANK-001'])->assertOk();
         $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/payment-status", ['payment_status' => 'paid'])->assertOk();
+        $this->actingAs($admin)->patchJson("/api/v1/admin/orders/{$order->id}/shipment/status", ['status' => 'delivered'])->assertOk();
 
         $this->assertDatabaseHas('shipments', ['order_id' => $order->id, 'status' => 'delivered', 'tracking_number' => 'TRACK-001']);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'order_status' => 'completed', 'payment_status' => 'paid']);

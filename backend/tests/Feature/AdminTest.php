@@ -26,7 +26,7 @@ class AdminTest extends TestCase
         $this->actingAs($admin)->postJson('/api/v1/admin/categories', ['name' => 'Danh mục thử', 'slug' => 'danh-muc-thu', 'is_active' => true, 'sort_order' => 99])->assertCreated();
         $inventory = Inventory::firstOrFail();
         $before = $inventory->quantity_on_hand;
-        $this->actingAs($admin)->postJson('/api/v1/admin/inventory/adjust', ['branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id, 'quantity' => 5, 'type' => 'adjustment', 'note' => 'Kiểm thử'])->assertOk();
+        $this->actingAs($admin)->postJson('/api/v1/admin/inventory/adjust', ['branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id, 'quantity' => 5, 'type' => 'adjustment', 'reason_code' => 'stocktake', 'note' => 'Kiểm thử'])->assertOk();
         $this->assertDatabaseHas('inventories', ['id' => $inventory->id, 'quantity_on_hand' => $before + 5]);
         $this->assertDatabaseHas('inventory_transactions', ['product_variant_id' => $inventory->product_variant_id, 'type' => 'adjustment', 'quantity' => 5]);
     }

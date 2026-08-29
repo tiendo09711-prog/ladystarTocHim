@@ -10,6 +10,40 @@ use Carbon\CarbonInterface;
 
 class AfterSalesEligibilityService
 {
+    public function forOrder(Order $order): array
+    {
+        $order->loadMissing('shipment', 'items.product');
+        $settings = StoreSetting::current();
+        $reference = $this->deliveryReferenceAt($order);
+        $returnUntil = $reference?->copy()->addDays((int) $settings->return_window_days);
+        $exchangeUntil = $reference?->copy()->addDays((int) $settings->exchange_window_days);
+
+        return $order->items->mapWithKeys(function (OrderItem $item) use ($order, $settings, $reference, $returnUntil, $exchangeUntil) {
+            $returnable = $this->returnableQuantity($item);
+            $warrantyable = $this->warrantyableQuantity($item);
+            $warrantyDays = $item->warranty_days_snapshot ?? $item->product?->warranty_days;
+            $warrantyUntil = $reference && $warrantyDays !== null ? $reference->copy()->addDays((int) $warrantyDays) : null;
+            $canReturn = $returnable > 0 && $this->canReturn($order);
+            $canExchange = $returnable > 0 && $this->canExchange($order);
+            $canWarranty = $warrantyable > 0 && $this->canClaimWarranty($order, $item);
+
+            return [$item->id => [
+                'can_return' => $canReturn,
+                'return_quantity' => $returnable,
+                'return_until' => $returnUntil?->toIso8601String(),
+                'can_exchange' => $canExchange,
+                'exchange_quantity' => $returnable,
+                'exchange_until' => $exchangeUntil?->toIso8601String(),
+                'can_warranty' => $canWarranty,
+                'warranty_quantity' => $warrantyable,
+                'warranty_until' => $warrantyUntil?->toIso8601String(),
+                'return_disabled_reason' => $canReturn ? null : $this->disabledReason((bool) $settings->returns_enabled, $order, $returnable, $returnUntil),
+                'exchange_disabled_reason' => $canExchange ? null : $this->disabledReason((bool) $settings->exchange_enabled, $order, $returnable, $exchangeUntil),
+                'warranty_disabled_reason' => $canWarranty ? null : $this->disabledReason((bool) $settings->warranty_enabled, $order, $warrantyable, $warrantyUntil),
+            ]];
+        })->all();
+    }
+
     public function deliveryReferenceAt(Order $order): ?CarbonInterface
     {
         $order->loadMissing('shipment');
@@ -48,10 +82,29 @@ class AfterSalesEligibilityService
         return max(0, (int) $item->quantity - (int) $claimed);
     }
 
+    public function warrantyableQuantity(OrderItem $item): int
+    {
+        $claimed = $item->warrantyRequests()->whereNotIn('status', ['rejected', 'cancelled'])->sum('quantity');
+
+        return max(0, (int) $item->quantity - (int) $claimed);
+    }
+
     private function withinWindow(Order $order, bool $enabled, int $days): bool
     {
         $reference = $this->deliveryReferenceAt($order);
 
         return $enabled && $order->order_status === 'completed' && $reference && now()->lte($reference->copy()->addDays($days));
+    }
+
+    private function disabledReason(bool $enabled, Order $order, int $quantity, ?CarbonInterface $until): string
+    {
+        return match (true) {
+            ! $enabled => 'disabled',
+            $order->order_status !== 'completed' => 'order_not_completed',
+            $quantity <= 0 => 'quantity_exhausted',
+            ! $until => 'policy_unavailable',
+            now()->gt($until) => 'window_expired',
+            default => 'not_eligible',
+        };
     }
 }

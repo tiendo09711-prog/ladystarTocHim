@@ -54,6 +54,7 @@ class WarrantyController extends Controller
     {
         return $request->validate([
             'order_id' => ['required', 'integer'], 'order_item_id' => ['required', 'integer'], 'issue_type' => ['required', 'string', 'max:80'],
+            'quantity' => ['sometimes', 'integer', 'min:1'],
             'description' => ['required', 'string', 'max:5000'], 'requested_resolution' => ['nullable', Rule::in(['repair', 'replacement'])],
             'customer_note' => ['nullable', 'string', 'max:3000'], 'images' => ['nullable', 'array', 'max:5'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],

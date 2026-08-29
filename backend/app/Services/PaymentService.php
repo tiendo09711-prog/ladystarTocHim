@@ -25,6 +25,9 @@ class PaymentService
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->getKey());
             $payment = Payment::query()->where('order_id', $lockedOrder->id)->lockForUpdate()->first()
                 ?? $this->createForOrder($lockedOrder);
+            if ($lockedOrder->order_status === 'cancelled') {
+                throw ValidationException::withMessages(['order' => 'Cancelled orders cannot be marked paid.']);
+            }
             if ($orderPaymentStatus === 'refunded') {
                 throw ValidationException::withMessages(['payment_status' => 'Refunds must use the refund workflow.']);
             }
@@ -32,6 +35,9 @@ class PaymentService
                 throw ValidationException::withMessages(['payment_status' => 'Payment status is controlled by completed refunds.']);
             }
             $targetStatus = $this->paymentStatus($orderPaymentStatus);
+            if ($targetStatus === 'pending' && $payment->status === 'paid') {
+                throw ValidationException::withMessages(['payment_status' => 'Paid payments cannot be reverted to unpaid.']);
+            }
             $updates = [
                 'status' => $targetStatus,
                 'method' => $lockedOrder->payment_method,
@@ -54,7 +60,11 @@ class PaymentService
             }
 
             $payment->update($updates);
-            $lockedOrder->update(['payment_status' => $orderPaymentStatus]);
+            $orderUpdates = ['payment_status' => $orderPaymentStatus];
+            if ($targetStatus === 'paid') {
+                $orderUpdates['expires_at'] = null;
+            }
+            $lockedOrder->update($orderUpdates);
 
             return $lockedOrder->refresh()->load('payment', 'shipment', 'statusHistories');
         });

@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Services\AppointmentService;
 use App\Services\GuestScopeTokenService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 
 class GuestAppointmentController extends Controller
@@ -19,7 +20,7 @@ class GuestAppointmentController extends Controller
     public function lookup(Request $request)
     {
         $data = $request->validate(['code' => ['required', 'string'], 'phone' => ['required', 'string', 'min:8', 'max:30']]);
-        $appointment = Appointment::where('code', $data['code'])->whereNull('user_id')->where('customer_phone', $data['phone'])->with('branch', 'service')->first();
+        $appointment = Appointment::where('code', $data['code'])->whereNull('user_id')->where('customer_phone', PhoneNormalizer::normalize($data['phone']))->with('branch', 'service')->first();
         if (! $appointment) {
             return $this->error('Appointment not found.', [], 404);
         }
