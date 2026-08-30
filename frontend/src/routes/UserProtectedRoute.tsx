@@ -7,5 +7,6 @@ export function UserProtectedRoute() {
   const location = useLocation()
   const access = getAccessState(user, loading)
   if (access === 'loading') return <div className="p-10 text-center">Đang kiểm tra phiên đăng nhập...</div>
-  return access === 'user' || access === 'admin' ? <Outlet /> : <Navigate to="/dang-nhap" state={{ from: location.pathname }} replace />
+  if (access === 'admin') return <Navigate to="/admin" replace />
+  return access === 'user' ? <Outlet /> : <Navigate to="/dang-nhap" state={{ from: location.pathname }} replace />
 }

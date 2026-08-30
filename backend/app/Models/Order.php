@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
     protected $guarded = [];
+
+    public function setCustomerPhoneAttribute(?string $value): void
+    {
+        $this->attributes['customer_phone'] = PhoneNormalizer::normalize($value);
+    }
 
     protected function casts(): array
     {
@@ -26,5 +32,40 @@ class Order extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
+
+    public function returnRequests()
+    {
+        return $this->hasMany(ReturnRequest::class);
+    }
+
+    public function warrantyRequests()
+    {
+        return $this->hasMany(WarrantyRequest::class);
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    public function afterSalesShipments()
+    {
+        return $this->hasMany(AfterSalesShipment::class);
     }
 }

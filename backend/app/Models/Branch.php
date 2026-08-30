@@ -23,4 +23,19 @@ class Branch extends Model
     {
         return $this->hasMany(Inventory::class);
     }
+
+    public function appointmentSchedules()
+    {
+        return $this->hasMany(AppointmentSchedule::class);
+    }
+
+    public function appointmentBlocks()
+    {
+        return $this->hasMany(AppointmentBlock::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
 }

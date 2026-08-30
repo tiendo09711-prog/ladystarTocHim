@@ -12,7 +12,7 @@ class ProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() === true;
+        return $this->user()?->canAccessAdmin() === true;
     }
 
     public function rules(): array
@@ -34,6 +34,7 @@ class ProductRequest extends FormRequest
             'usage_instructions' => ['nullable', 'string'],
             'care_instructions' => ['nullable', 'string'],
             'warranty_information' => ['nullable', 'string'],
+            'warranty_days' => ['nullable', 'integer', 'min:0', 'max:36500'],
             'status' => ['required', Rule::in(['draft', 'active', 'inactive'])],
             'is_featured' => ['boolean'],
             'is_new' => ['boolean'],
@@ -58,13 +59,21 @@ class ProductRequest extends FormRequest
             $attributeSets = [];
             foreach ($this->input('variants', []) as $index => $variant) {
                 $skuQuery = ProductVariant::withTrashed()->where('sku', $variant['sku'] ?? '');
-                if (! empty($variant['id'])) $skuQuery->whereKeyNot($variant['id']);
-                if ($skuQuery->exists()) $validator->errors()->add('variants.'.$index.'.sku', 'SKU biến thể đã tồn tại.');
+                if (! empty($variant['id'])) {
+                    $skuQuery->whereKeyNot($variant['id']);
+                }
+                if ($skuQuery->exists()) {
+                    $validator->errors()->add('variants.'.$index.'.sku', 'SKU biến thể đã tồn tại.');
+                }
 
                 if (! empty($variant['barcode'])) {
                     $barcodeQuery = ProductVariant::withTrashed()->where('barcode', $variant['barcode']);
-                    if (! empty($variant['id'])) $barcodeQuery->whereKeyNot($variant['id']);
-                    if ($barcodeQuery->exists()) $validator->errors()->add('variants.'.$index.'.barcode', 'Barcode đã tồn tại.');
+                    if (! empty($variant['id'])) {
+                        $barcodeQuery->whereKeyNot($variant['id']);
+                    }
+                    if ($barcodeQuery->exists()) {
+                        $validator->errors()->add('variants.'.$index.'.barcode', 'Barcode đã tồn tại.');
+                    }
                 }
 
                 $valueIds = $variant['attribute_value_ids'] ?? [];

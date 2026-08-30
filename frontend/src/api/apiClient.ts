@@ -1,5 +1,15 @@
 import axios from 'axios'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    suppressUnauthorizedEvent?: boolean
+  }
+
+  export interface InternalAxiosRequestConfig {
+    suppressUnauthorizedEvent?: boolean
+  }
+}
+
 const defaultApiBaseUrl = typeof window === 'undefined'
   ? 'http://localhost:8000'
   : `${window.location.protocol}//${window.location.hostname}:8000`
@@ -48,7 +58,7 @@ apiClient.interceptors.response.use(
       return apiClient.request(request)
     }
     const isAuthProbe = request?.url?.endsWith('/auth/me') || request?.url?.endsWith('/admin/auth/me')
-    if (error.response?.status === 401 && !isAuthProbe) window.dispatchEvent(new Event('auth:unauthorized'))
+    if (error.response?.status === 401 && !isAuthProbe && !request?.suppressUnauthorizedEvent) window.dispatchEvent(new Event('auth:unauthorized'))
     return Promise.reject(error)
   },
 )

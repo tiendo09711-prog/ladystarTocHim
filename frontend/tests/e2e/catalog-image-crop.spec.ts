@@ -31,6 +31,8 @@ function content(pageKey: string) {
 
 async function loginAdmin(page: import('@playwright/test').Page) {
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
 }
@@ -76,7 +78,8 @@ test('admin catalog crop Hero và Tư vấn cho mọi trang sản phẩm', async
     await expect(page.getByLabel('Trang cần chỉnh')).toHaveValue(target.value)
     for (const slot of ['Hero', 'Tư vấn']) {
       const title = `${slot} ${target.value === 'hair-guide' ? 'Dịch vụ chăm sóc' : 'Catalog'}`
-      await page.getByLabel(`Chọn ảnh ${title}`).setInputFiles(imageFile)
+      const uploadFile = { ...imageFile, name: `catalog-source-${target.value}-${slot === 'Hero' ? 'hero' : 'consultation'}.png` }
+      await page.getByLabel(`Chọn ảnh ${title}`).setInputFiles(uploadFile)
       const dialog = page.getByRole('dialog', { name: `Cắt ảnh ${title}` })
       await expect(dialog).toBeVisible()
       await expect(dialog).toContainText('tỷ lệ 6:5')
@@ -85,10 +88,11 @@ test('admin catalog crop Hero và Tư vấn cho mọi trang sản phẩm', async
         await page.getByRole('button', { name: 'Dùng ảnh đã cắt' }).click()
         await expect(page.getByText('Đã cập nhật ảnh Hero.')).toBeVisible()
         expect(uploadedBody).not.toBeNull()
-        expect(uploadedBody!.includes(Buffer.from('catalog-source-cropped.webp'))).toBeTruthy()
+        expect(uploadedBody!.includes(Buffer.from('catalog-source-products-hero-cropped.webp'))).toBeTruthy()
         expect(uploadedBody!.includes(Buffer.from('image/webp'))).toBeTruthy()
       } else {
-        await page.getByRole('button', { name: 'Đóng trình cắt ảnh' }).click()
+        await expect(page.getByText('Đã cập nhật ảnh Hero.')).toBeHidden({ timeout: 10_000 })
+        await dialog.getByRole('button', { name: 'Đóng trình cắt ảnh' }).click()
       }
     }
   }

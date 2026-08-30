@@ -18,6 +18,7 @@ class Service extends Model
     {
         return [
             'price' => 'decimal:2',
+            'duration_minutes' => 'integer',
             'sort_order' => 'integer',
         ];
     }
@@ -30,5 +31,10 @@ class Service extends Model
     public function consultationRequests()
     {
         return $this->hasMany(ConsultationRequest::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
     }
 }

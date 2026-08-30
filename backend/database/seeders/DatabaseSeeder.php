@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AppointmentSchedule;
 use App\Models\Attribute;
 use App\Models\Branch;
 use App\Models\Brand;
@@ -21,6 +22,17 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(RbacSeeder::class);
+        $this->call(HairFinderConfigSeeder::class);
+
+        if ($this->container->environment(['local', 'testing'])) {
+            $this->call(DemoDataSeeder::class);
+        }
+    }
+
+    public function seedDemoData(): void
+    {
+
         $admin = User::updateOrCreate(['email' => 'admin@namhair.local'], ['name' => 'Quản trị LADYSTARS', 'phone' => '0900000001', 'password' => 'Admin@123456', 'role' => 'admin', 'status' => 'active']);
         $user = User::updateOrCreate(['email' => 'user@namhair.local'], ['name' => 'Khách hàng mẫu', 'phone' => '0900000002', 'password' => 'User@123456', 'role' => 'user', 'status' => 'active']);
         $branch = Branch::updateOrCreate(['code' => 'MAIN'], ['name' => 'LADYSTARS - Chi nhánh trung tâm', 'phone' => '02873008899', 'province' => 'TP. Hồ Chí Minh', 'district' => 'Quận 3', 'ward' => 'Phường 6', 'address_line' => '123 Đường Mẫu', 'is_default' => true, 'is_active' => true]);
@@ -28,6 +40,10 @@ class DatabaseSeeder extends Seeder
         $categoryNames = ['Tóc giả nam nguyên đầu', 'Tóc giả nam bán phần', 'Tóc dán nam', 'Toupee nam', 'Hair system nam', 'Tóc mái nam', 'Tóc kẹp nam', 'Tóc giả nam tóc thật', 'Tóc giả nam sợi tổng hợp', 'Phụ kiện tóc giả', 'Keo dán tóc', 'Dung dịch vệ sinh', 'Lược và dụng cụ chăm sóc'];
         $categories = collect($categoryNames)->map(fn ($name, $index) => Category::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Danh mục {$name} tại LADYSTARS", 'is_active' => true, 'sort_order' => $index + 1]));
         $brands = collect(['LADYSTARS Select', 'Urban Crown', 'Gentleman System'])->map(fn ($name) => Brand::updateOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'description' => "Thương hiệu {$name}", 'is_active' => true]));
+
+        foreach (range(0, 6) as $dayOfWeek) {
+            AppointmentSchedule::updateOrCreate(['branch_id' => $branch->id, 'day_of_week' => $dayOfWeek, 'start_time' => '09:00:00'], ['end_time' => '18:00:00', 'slot_minutes' => 30, 'capacity' => 2, 'is_active' => true]);
+        }
 
         $attributeData = [
             'color' => ['Màu tóc', ['Đen tự nhiên', 'Đen nâu', 'Nâu đậm', 'Muối tiêu']],
@@ -62,6 +78,7 @@ class DatabaseSeeder extends Seeder
                 'care_instructions' => 'Vệ sinh bằng dung dịch chuyên dụng, để khô tự nhiên.', 'warranty_information' => 'Bảo hành kỹ thuật 30 ngày.',
                 'status' => 'active', 'is_featured' => $index < 6, 'is_new' => $index >= 9, 'published_at' => now()->subDays($index),
             ]);
+            $product->update(['warranty_days' => 30]);
             $product->images()->delete();
             $product->images()->create(['image_path' => '/images/product-placeholder.svg', 'alt_text' => $name, 'sort_order' => 0, 'is_primary' => true]);
             foreach ([1, 2] as $variantIndex) {

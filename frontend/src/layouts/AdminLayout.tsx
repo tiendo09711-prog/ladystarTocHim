@@ -5,10 +5,14 @@ import {
   Menu,
   X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { adminDashboardItem, adminNavigationGroups, getActiveAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
+import { getActiveAdminNavigation, getVisibleAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
+import { PermissionProtectedRoute } from '../routes/PermissionProtectedRoute'
 import { useAuth } from '../stores/AuthContext'
+import { AdminGlobalSearch } from '../components/admin/AdminGlobalSearch'
+import { can } from '../features/auth/permissions'
+import { useAdminAttention } from '../features/admin/useAdminAttention'
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -18,7 +22,9 @@ export function AdminLayout() {
   const activeGroupId = activeNavigation?.groupId
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(activeGroupId ? [activeGroupId] : []))
   const { user, logout } = useAuth()
+  const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user])
   const navigate = useNavigate()
+  const attention = useAdminAttention(can(user, 'dashboard.view'))
 
   useEffect(() => {
     if (!activeGroupId) return
@@ -74,7 +80,7 @@ export function AdminLayout() {
           onClick={() => setMobileOpen(false)}
         />
       )}
-      <aside className={[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-72', 'fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[#193b2d] p-3 text-white transition-all lg:translate-x-0'].join(' ')}>
+      <aside className={[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-72', 'admin-sidebar fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[#193b2d] p-3 text-white transition-all lg:translate-x-0'].join(' ')}>
         <div className="mb-5 flex items-center justify-between px-2 py-3">
           <span className={[collapsed ? 'lg:hidden' : '', 'text-xl font-black'].join(' ')}>LADYSTARS</span>
           <button className="hidden lg:block" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}>
@@ -85,8 +91,8 @@ export function AdminLayout() {
           </button>
         </div>
         <nav className="grid min-h-0 flex-1 content-start gap-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-1" aria-label="Điều hướng quản trị">
-          {navigationLink(adminDashboardItem)}
-          {adminNavigationGroups.map((group) => {
+          {visibleNavigation.dashboard && navigationLink(visibleNavigation.dashboard)}
+          {visibleNavigation.groups.map((group) => {
             const GroupIcon = group.icon
             const expanded = expandedGroups.has(group.id)
             const containsActiveItem = activeGroupId === group.id
@@ -117,6 +123,7 @@ export function AdminLayout() {
             )
           })}
         </nav>
+        {!collapsed && attention.data && <div className='mt-3 hidden rounded-xl bg-white/10 p-3 text-xs lg:block'><strong>Cần xử lý</strong><div className='mt-2 grid gap-1'><span>Đơn chờ: {attention.data.counters.pending_orders ?? 0}</span><span>Đổi trả: {attention.data.counters.returns_requested ?? 0}</span><span>Bảo hành: {attention.data.counters.warranties_requested ?? 0}</span></div></div>}
       </aside>
       <div className={[collapsed ? 'lg:ml-20' : 'lg:ml-72', 'min-w-0 flex-1 transition-all'].join(' ')}>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-5">
@@ -129,13 +136,14 @@ export function AdminLayout() {
               <div className="font-bold">{user?.name}</div>
             </div>
           </div>
+          {can(user, 'dashboard.view') && <AdminGlobalSearch />}
           <button className="btn-secondary" onClick={signOut}>
             <LogOut size={18} />
             <span className="hidden sm:inline">Đăng xuất</span>
           </button>
         </header>
         <main className="p-4 md:p-7">
-          <Outlet />
+          <PermissionProtectedRoute><Outlet /></PermissionProtectedRoute>
         </main>
       </div>
     </div>

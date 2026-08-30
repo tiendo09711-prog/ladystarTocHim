@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductRequest;
-use App\Http\Resources\ProductResource;
+use App\Http\Resources\AdminProductResource;
 use App\Models\AttributeValue;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Services\ProductDuplicationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,14 +24,17 @@ class ProductManagementController extends Controller
 
     public function index(Request $request)
     {
-        $products = Product::with('category', 'brand', 'images', 'variants.inventories')->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->input('search').'%')->orWhere('base_sku', 'like', '%'.$request->input('search').'%'))->latest()->paginate(15);
+        $products = Product::with('category', 'brand', 'images', 'variants.inventories')
+            ->when($request->filled('search'), fn ($query) => $query->where(fn ($search) => $search->where('name', 'like', '%'.$request->input('search').'%')->orWhere('base_sku', 'like', '%'.$request->input('search').'%')))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+            ->latest()->paginate(15);
 
-        return $this->success(ProductResource::collection($products)->response()->getData(true));
+        return $this->success(AdminProductResource::collection($products)->response()->getData(true));
     }
 
     public function show(Product $product)
     {
-        return $this->success(new ProductResource($product->load('category', 'brand', 'images', 'variants.attributeValues.attribute', 'variants.inventories')));
+        return $this->success(new AdminProductResource($product->load('category', 'brand', 'images', 'variants.attributeValues.attribute', 'variants.inventories')));
     }
 
     public function store(ProductRequest $request)
@@ -49,7 +53,7 @@ class ProductManagementController extends Controller
             return $product;
         });
 
-        return $this->success(new ProductResource($product->load('category', 'brand', 'images', 'variants.inventories')), 'Tạo sản phẩm thành công.', 201);
+        return $this->success(new AdminProductResource($product->load('category', 'brand', 'images', 'variants.inventories')), 'Tạo sản phẩm thành công.', 201);
     }
 
     public function update(ProductRequest $request, Product $product)
@@ -73,7 +77,7 @@ class ProductManagementController extends Controller
             $product->variants()->whereNotIn('id', $keptVariantIds)->delete();
         });
 
-        return $this->success(new ProductResource($product->refresh()->load('category', 'brand', 'images', 'variants.inventories')), 'Cập nhật sản phẩm thành công.');
+        return $this->success(new AdminProductResource($product->refresh()->load('category', 'brand', 'images', 'variants.inventories')), 'Cập nhật sản phẩm thành công.');
     }
 
     public function destroy(Product $product)
@@ -88,6 +92,11 @@ class ProductManagementController extends Controller
         $product->update($request->validate(['status' => ['required', Rule::in(['draft', 'active', 'inactive'])]]));
 
         return $this->success($product);
+    }
+
+    public function duplicate(Request $request, Product $product, ProductDuplicationService $duplication)
+    {
+        return $this->success(new AdminProductResource($duplication->duplicate($product, $request->user())), 'Đã nhân bản sản phẩm.', 201);
     }
 
     public function uploadImages(Request $request, Product $product)
@@ -117,7 +126,7 @@ class ProductManagementController extends Controller
         }
         $this->removeStoredFile($oldPath);
 
-        return $this->success(new ProductResource($product->refresh()), 'Tải video sản phẩm thành công.', 201);
+        return $this->success(new AdminProductResource($product->refresh()), 'Tải video sản phẩm thành công.', 201);
     }
 
     public function deleteVideo(Product $product)
@@ -125,7 +134,7 @@ class ProductManagementController extends Controller
         $this->removeStoredFile($product->video_path);
         $product->update(['video_path' => null]);
 
-        return $this->success(new ProductResource($product->refresh()), 'Đã xóa video sản phẩm.');
+        return $this->success(new AdminProductResource($product->refresh()), 'Đã xóa video sản phẩm.');
     }
 
     public function deleteImage(Product $product, ProductImage $image)

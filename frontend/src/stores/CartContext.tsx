@@ -3,6 +3,7 @@ import { apiClient } from '../api/apiClient'
 import type { ApiResponse, CartData, CartItem, Product, ProductVariant } from '../types'
 import { useAuth } from './AuthContext'
 import { calculateCartSubtotal } from '../features/cart/calculations'
+import { isBackofficeUser } from '../features/auth/permissions'
 
 interface CartContextValue extends CartData {
   loading: boolean
@@ -29,7 +30,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (authLoading) return
-    if (!user) { setItems(readGuestItems()); setLoading(false); return }
+    if (!user || isBackofficeUser(user)) { setItems(user ? [] : readGuestItems()); setLoading(false); return }
     try {
       const guestItems = readGuestItems()
       if (guestItems.length) {
@@ -44,7 +45,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => { void refresh() }, [refresh])
 
   const addItem = async (product: Product, variant: ProductVariant, quantity: number) => {
-    if (user) {
+    if (user && !isBackofficeUser(user)) {
       await apiClient.post('/cart/items', { product_variant_id: variant.id, quantity })
       await refresh()
       return
@@ -57,15 +58,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const updateItem = async (id: number | string, quantity: number) => {
-    if (user) { await apiClient.patch(`/cart/items/${id}`, { quantity }); await refresh(); return }
+    if (user && !isBackofficeUser(user)) { await apiClient.patch(`/cart/items/${id}`, { quantity }); await refresh(); return }
     persistGuest(readGuestItems().map((item) => item.id === id ? { ...item, quantity: Math.min(quantity, item.variant.stock) } : item))
   }
   const removeItem = async (id: number | string) => {
-    if (user) { await apiClient.delete(`/cart/items/${id}`); await refresh(); return }
+    if (user && !isBackofficeUser(user)) { await apiClient.delete(`/cart/items/${id}`); await refresh(); return }
     persistGuest(readGuestItems().filter((item) => item.id !== id))
   }
   const clear = async () => {
-    if (user) { await apiClient.delete('/cart'); setItems([]); return }
+    if (user && !isBackofficeUser(user)) { await apiClient.delete('/cart'); setItems([]); return }
     persistGuest([])
   }
 

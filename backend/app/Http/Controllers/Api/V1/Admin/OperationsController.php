@@ -15,26 +15,46 @@ use App\Models\ProductVariant;
 use App\Models\Review;
 use App\Models\StoreSetting;
 use App\Models\User;
+use App\Services\AuditLogService;
+use App\Services\CheckoutService;
 use App\Services\InventoryService;
 use App\Services\OrderLifecycleService;
+use App\Services\PaymentService;
+use App\Services\ReportingService;
+use App\Services\ShipmentService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class OperationsController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private InventoryService $inventoryService, private OrderLifecycleService $orderLifecycleService) {}
+    public function __construct(
+        private InventoryService $inventoryService,
+        private OrderLifecycleService $orderLifecycleService,
+        private PaymentService $paymentService,
+        private ShipmentService $shipmentService,
+        private AuditLogService $audit,
+        private ReportingService $reports,
+        private CheckoutService $checkoutService,
+    ) {}
 
     public function inventory(Request $request)
     {
         $query = Inventory::with('branch', 'variant.product');
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->integer('branch_id'));
+        }
+        if ($request->boolean('low_stock')) {
+            $query->whereRaw('(quantity_on_hand - quantity_reserved) <= reorder_level');
         }
         if ($request->filled('search')) {
             $query->whereHas('variant', fn ($q) => $q->where('sku', 'like', '%'.$request->input('search').'%')->orWhereHas('product', fn ($p) => $p->where('name', 'like', '%'.$request->input('search').'%')));
@@ -50,10 +70,18 @@ class OperationsController extends Controller
 
     public function adjustInventory(Request $request)
     {
-        $data = $request->validate(['branch_id' => ['required', 'exists:branches,id'], 'product_variant_id' => ['required', 'exists:product_variants,id'], 'quantity' => ['required', 'integer', 'not_in:0'], 'type' => ['required', Rule::in(['import', 'adjustment', 'return'])], 'note' => ['nullable', 'string']]);
+        $data = $request->validate([
+            'branch_id' => ['required', 'exists:branches,id'],
+            'product_variant_id' => ['required', 'exists:product_variants,id'],
+            'quantity' => ['required', 'integer', 'not_in:0'],
+            'type' => ['required', Rule::in(['import', 'adjustment', 'return'])],
+            'reason_code' => ['required_if:type,adjustment', 'nullable', Rule::in(['stocktake', 'damage', 'lost', 'manual_correction', 'other'])],
+            'note' => ['required_if:type,adjustment', 'nullable', 'string'],
+        ]);
         $inventory = $this->inventoryService->firstOrCreate($data['branch_id'], $data['product_variant_id']);
+        $inventory = $this->inventoryService->adjust($inventory, $data['quantity'], $data['type'], $request->user()->id, $data['note'] ?? null, null, $data['reason_code'] ?? null);
 
-        return $this->success($this->inventoryService->adjust($inventory, $data['quantity'], $data['type'], $request->user()->id, $data['note'] ?? null), 'Điều chỉnh kho thành công.');
+        return $this->success($inventory, 'Inventory adjusted successfully.');
     }
 
     public function transferInventory(Request $request)
@@ -76,17 +104,106 @@ class OperationsController extends Controller
 
     public function orders(Request $request)
     {
-        return $this->success(Order::with('user', 'items')->when($request->filled('status'), fn ($q) => $q->where('order_status', $request->input('status')))->latest()->paginate(20));
+        $query = Order::with('user', 'items', 'payment', 'shipment');
+        $query->when($request->filled('search'), function ($query) use ($request) {
+            $raw = trim((string) $request->input('search'));
+            $value = '%'.$raw.'%';
+            $phone = PhoneNormalizer::normalizeIfPossible($raw);
+            $query->where(function ($search) use ($value, $phone) {
+                $search->where('order_number', 'like', $value)
+                    ->orWhere('customer_name', 'like', $value)
+                    ->orWhere('customer_email', 'like', $value);
+                if ($phone !== null) {
+                    $search->orWhere('customer_phone', 'like', '%'.$phone.'%');
+                }
+            });
+        });
+        $query->when($request->filled('order_status'), fn ($q) => $q->where('order_status', $request->input('order_status')));
+        $query->when($request->filled('status'), fn ($q) => $q->where('order_status', $request->input('status')));
+        $query->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', $request->input('payment_status')));
+        $query->when($request->filled('payment_method'), fn ($q) => $q->where('payment_method', $request->input('payment_method')));
+        $query->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')));
+        $query->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->input('date_from')));
+        $query->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->input('date_to')));
+        $query->when($request->filled('min_total'), fn ($q) => $q->where('total_amount', '>=', $request->input('min_total')));
+        $query->when($request->filled('max_total'), fn ($q) => $q->where('total_amount', '<=', $request->input('max_total')));
+
+        return $this->success($query->latest()->paginate(20));
+    }
+
+    public function createOrder(Request $request)
+    {
+        $data = $request->validate([
+            'customer_id' => ['nullable', 'integer', 'exists:users,id'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'customer_name' => ['required_without:customer_id', 'nullable', 'string', 'max:120'],
+            'customer_email' => ['required_without:customer_id', 'nullable', 'email', 'max:190'],
+            'customer_phone' => ['required_without:customer_id', 'nullable', 'regex:/^[0-9+\s.-]{9,20}$/'],
+            'province' => ['required', 'string', 'max:190'],
+            'district' => ['required', 'string', 'max:190'],
+            'ward' => ['required', 'string', 'max:190'],
+            'shipping_address' => ['required', 'string', 'max:255'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.product_variant_id' => ['required', 'integer', 'distinct', 'exists:product_variants,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'coupon_code' => ['nullable', 'string', 'max:80'],
+            'shipping_fee' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['required', Rule::in(['cod', 'bank_transfer'])],
+            'payment_status' => ['sometimes', Rule::in(['unpaid', 'paid'])],
+            'transaction_code' => ['nullable', 'string', 'max:190'],
+            'customer_note' => ['nullable', 'string', 'max:1000'],
+            'admin_note' => ['nullable', 'string', 'max:3000'],
+        ]);
+        $customer = isset($data['customer_id']) ? User::where('role', 'user')->findOrFail($data['customer_id']) : null;
+        if ($customer) {
+            $data['customer_name'] ??= $customer->name;
+            $data['customer_email'] ??= $customer->email;
+            $data['customer_phone'] ??= $customer->phone;
+        }
+        $data['actor_id'] = $request->user()->id;
+
+        return $this->success($this->checkoutService->placeAdmin($data, $customer), 'Admin order created.', 201);
+    }
+
+    public function updateOrder(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'customer_name' => ['sometimes', 'string', 'max:120'],
+            'customer_email' => ['sometimes', 'email', 'max:190'],
+            'customer_phone' => ['sometimes', 'regex:/^[0-9+\s.-]{9,20}$/'],
+            'province' => ['sometimes', 'string', 'max:190'],
+            'district' => ['sometimes', 'string', 'max:190'],
+            'ward' => ['sometimes', 'string', 'max:190'],
+            'shipping_address' => ['sometimes', 'string', 'max:255'],
+            'customer_note' => ['nullable', 'string', 'max:1000'],
+            'admin_note' => ['nullable', 'string', 'max:3000'],
+        ]);
+        $order = DB::transaction(function () use ($order, $data) {
+            $locked = Order::lockForUpdate()->findOrFail($order->id);
+            if ($locked->order_status !== OrderStatus::Pending->value) {
+                throw ValidationException::withMessages(['order_status' => 'Only pending orders can be edited.']);
+            }
+            $locked->update($data);
+
+            return $locked->refresh()->load('user', 'branch', 'items', 'payment', 'shipment');
+        });
+
+        return $this->success($order, 'Pending order updated.');
     }
 
     public function showOrder(Order $order)
     {
-        return $this->success($order->load('user', 'branch', 'items.product.images'));
+        return $this->success($order->load('user', 'branch', 'items.product.images', 'items.variant', 'statusHistories', 'payment', 'shipment', 'refunds'));
     }
 
     public function paymentStatus(Request $request, Order $order)
     {
-        $order->update($request->validate(['payment_status' => ['required', Rule::in(['unpaid', 'paid', 'refunded'])]]));
+        $data = $request->validate([
+            'payment_status' => ['required', Rule::in(['unpaid', 'paid'])],
+            'transaction_code' => ['nullable', 'string', 'max:190'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $order = $this->paymentService->updateStatus($order, $data['payment_status'], $request->user()->id, $data['transaction_code'] ?? null, $data['note'] ?? null);
 
         return $this->success($order);
     }
@@ -100,10 +217,19 @@ class OperationsController extends Controller
 
     public function orderStatus(Request $request, Order $order)
     {
-        $status = $request->validate(['order_status' => ['required', Rule::in(['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'])]])['order_status'];
-        $order = $this->orderLifecycleService->transition($order, OrderStatus::from($status), $request->user()->id);
+        $data = $request->validate([
+            'order_status' => ['required', Rule::in(['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'])],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        if (in_array($data['order_status'], ['shipping', 'completed'], true)) {
+            throw ValidationException::withMessages(['order_status' => 'Shipping and completion must be driven by shipment actions.']);
+        }
+        $note = $data['note'] ?? ($data['order_status'] === 'cancelled' ? 'Administrator cancelled order.' : null);
+        $order = $data['order_status'] === 'cancelled'
+            ? $this->orderLifecycleService->cancel($order, $request->user()->id, [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing], $note)
+            : $this->orderLifecycleService->transition($order, OrderStatus::from($data['order_status']), $request->user()->id, null, $note);
 
-        return $this->success($order, 'Cập nhật trạng thái đơn hàng thành công.');
+        return $this->success($order, 'Order status updated.');
     }
 
     public function cancelOrder(Request $request, Order $order)
@@ -113,24 +239,88 @@ class OperationsController extends Controller
         return $this->orderStatus($request, $order);
     }
 
+    public function saveShipment(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'carrier' => ['required', 'string', 'max:190'],
+            'tracking_number' => ['nullable', 'string', 'max:190'],
+            'shipping_fee_actual' => ['nullable', 'numeric', 'min:0'],
+            'tracking_url' => ['nullable', 'url:http,https', 'max:1000'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return $this->success($this->shipmentService->save($order, $data, $request->user()->id), 'Đã lưu thông tin vận chuyển.');
+    }
+
+    public function shipmentStatus(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['shipped', 'delivered', 'delivery_failed', 'returned'])],
+            'reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return $this->success($this->shipmentService->updateStatus($order, $data['status'], $request->user()->id, $data['reason'] ?? null), 'Shipment status updated.');
+    }
+
+    public function confirmCodDelivery(Request $request, Order $order)
+    {
+        $data = $request->validate(['transaction_code' => ['nullable', 'string', 'max:190'], 'note' => ['nullable', 'string', 'max:2000']]);
+
+        return $this->success($this->shipmentService->confirmCodDelivered($order, $request->user()->id, $data['transaction_code'] ?? null, $data['note'] ?? null));
+    }
+
     public function customers(Request $request)
     {
-        return $this->success(User::where('role', 'user')->withCount('orders')->when($request->filled('search'), fn ($q) => $q->where(fn ($search) => $search->where('name', 'like', '%'.$request->input('search').'%')->orWhere('email', 'like', '%'.$request->input('search').'%')->orWhere('phone', 'like', '%'.$request->input('search').'%')))->latest()->paginate(20));
+        $query = User::where('role', 'user')->withCount('orders');
+        $query->when($request->filled('search'), function ($query) use ($request) {
+            $raw = trim((string) $request->input('search'));
+            $value = '%'.$raw.'%';
+            $phone = PhoneNormalizer::normalizeIfPossible($raw);
+            $query->where(function ($search) use ($value, $phone) {
+                $search->where('name', 'like', $value)->orWhere('email', 'like', $value);
+                if ($phone !== null) {
+                    $search->orWhere('phone', 'like', '%'.$phone.'%');
+                }
+            });
+        });
+
+        return $this->success($query->latest()->paginate(20));
     }
 
     public function showCustomer(User $user)
     {
-        abort_if($user->isAdmin(), 404);
+        abort_unless($user->isCustomer(), 404);
 
-        return $this->success($user->load('addresses', 'orders.items'));
+        $customer = $user->load('addresses', 'orders.items', 'customerTags', 'customerNotes.staff:id,name');
+        $customer->setAttribute('insights', $this->reports->customerInsight($user));
+
+        return $this->success($customer);
     }
 
     public function customerStatus(Request $request, User $user)
     {
-        abort_if($user->isAdmin(), 422);
+        abort_unless($user->isCustomer(), 422);
         $user->update($request->validate(['status' => ['required', Rule::in(['active', 'blocked'])]]));
 
         return $this->success($user);
+    }
+
+    public function customerPassword(Request $request, User $user)
+    {
+        abort_unless($user->isCustomer(), 404);
+        $data = $request->validate(['password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()]]);
+        $user->update(['password' => $data['password']]);
+        $sessionsRevoked = false;
+        if (config('session.driver') === 'database' && Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            $sessionsRevoked = true;
+        }
+        $this->audit->record('customer.password_reset', 'customers', $user, null, null, [
+            'customer_id' => $user->id,
+            'sessions_revoked' => $sessionsRevoked,
+        ]);
+
+        return $this->success(null, 'Đặt lại mật khẩu khách hàng thành công.');
     }
 
     public function reviews(Request $request)
@@ -235,6 +425,21 @@ class OperationsController extends Controller
             'free_shipping_from' => ['required', 'numeric', 'min:0'],
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'order_prefix' => ['required', 'alpha_num', 'max:12'],
+            'bank_transfer_enabled' => ['sometimes', 'boolean'],
+            'bank_name' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_account_name' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_account_number' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'bank_branch' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'bank_transfer_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'returns_enabled' => ['sometimes', 'boolean'],
+            'return_window_days' => ['sometimes', 'integer', 'min:0', 'max:3650'],
+            'exchange_enabled' => ['sometimes', 'boolean'],
+            'exchange_window_days' => ['sometimes', 'integer', 'min:0', 'max:3650'],
+            'refund_shipping_on_full_return' => ['sometimes', 'boolean'],
+            'warranty_enabled' => ['sometimes', 'boolean'],
+            'appointments_enabled' => ['sometimes', 'boolean'],
+            'appointment_cancel_before_hours' => ['sometimes', 'integer', 'min:0', 'max:720'],
+            'store_timezone' => ['sometimes', 'timezone'],
         ]);
         $settings = StoreSetting::current();
         $settings->update($data);
@@ -242,9 +447,35 @@ class OperationsController extends Controller
         return $this->success($settings->refresh(), 'Đã lưu cấu hình cửa hàng.');
     }
 
-    public function export(string $resource)
+    public function uploadBankQr(Request $request)
+    {
+        $image = $request->validate(['image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']])['image'];
+        $path = $image->storePubliclyAs('settings/bank-transfer', Str::uuid().'.'.$image->extension(), 'public');
+        $settings = StoreSetting::current();
+        $oldPath = $settings->bank_qr_path;
+        $settings->update(['bank_qr_path' => $path]);
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $this->success($settings->refresh(), 'Đã cập nhật ảnh QR.');
+    }
+
+    public function deleteBankQr()
+    {
+        $settings = StoreSetting::current();
+        if ($settings->bank_qr_path) {
+            Storage::disk('public')->delete($settings->bank_qr_path);
+            $settings->update(['bank_qr_path' => null]);
+        }
+
+        return $this->success($settings->refresh(), 'Đã xóa ảnh QR.');
+    }
+
+    public function export(Request $request, string $resource)
     {
         abort_unless(in_array($resource, ['products', 'orders', 'inventory', 'customers'], true), 404);
+        abort_unless($request->user()->hasPermission('export.'.$resource), 403);
 
         $rows = match ($resource) {
             'products' => ProductVariant::with('product.category')->orderBy('id')->get()->map(fn ($variant) => [

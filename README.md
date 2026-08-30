@@ -1,14 +1,18 @@
-# Nam Hair Store
+# LADYSTARS
 
-Website thương mại điện tử một cửa hàng chuyên tóc giả nam, toupee, hair system và phụ kiện. Repository gồm React + TypeScript ở `frontend/` và Laravel REST API ở `backend/`.
+Hệ thống thương mại điện tử LADYSTARS gồm React + TypeScript ở `frontend/` và Laravel REST API ở `backend/`.
 
 ## Chức năng
 
 - Public: trang chủ, danh mục, tìm kiếm, lọc, sắp xếp, phân trang, chi tiết và biến thể sản phẩm.
 - Khách: giỏ hàng tạm lưu trên trình duyệt; đăng ký/đăng nhập bằng Sanctum SPA cookie.
 - User: hồ sơ, địa chỉ, giỏ hàng server, coupon, checkout transaction, lịch sử/theo dõi/hủy đơn, wishlist và review đủ điều kiện.
-- Admin: dashboard Recharts; CRUD sản phẩm/biến thể/ảnh, danh mục, thuộc tính/giá trị, chi nhánh, coupon; quản lý tồn kho/chuyển kho, đơn hàng, khách hàng, review, cấu hình cửa hàng, import/export Excel và barcode CODE128.
-- Bảo mật: role chỉ gồm `user|admin`, middleware admin, validation backend, giá/tồn kho được tính lại, không lưu bearer token trong `localStorage`.
+- Customer: hồ sơ, đơn hàng, đổi/trả, bảo hành, lịch hẹn và bảo mật tài khoản.
+- Staff: truy cập backoffice theo RBAC/permission được cấp.
+- Super Admin: toàn quyền, quản lý Staff, vai trò, audit log và reset mật khẩu khách hàng nội bộ.
+- Vận hành: Order, Payment thủ công, Shipment thủ công, Refund thủ công, tồn kho, hậu mãi và Appointment nội bộ.
+- Báo cáo: doanh thu gộp/thuần, hoàn tiền, giá vốn và lợi nhuận ước tính, sản phẩm, tồn kho, khách hàng.
+- Bảo mật: Sanctum SPA cookie, rate limiting auth, guest tracking tách biệt, media hậu mãi private và không lưu bearer token trong `localStorage`.
 
 ## Yêu cầu
 
@@ -25,6 +29,12 @@ php artisan key:generate
 php artisan migrate --seed
 php artisan storage:link
 php artisan serve
+```
+
+Trong terminal khác, chạy scheduler để tự động hết hạn đơn đang chờ:
+
+```bash
+php artisan schedule:work
 ```
 
 Tạo database trước khi migrate:
@@ -48,6 +58,8 @@ copy .env.example .env
 npm run dev
 ```
 
+Lệnh root này khởi động MySQL local (khi cần), Laravel API, Laravel Scheduler và React Vite; `Ctrl+C` dừng toàn bộ tiến trình ứng dụng con.
+
 Frontend mặc định ở `http://localhost:5173`.
 
 ## Sanctum SPA local
@@ -58,14 +70,14 @@ Frontend mặc định ở `http://localhost:5173`.
 - Axios dùng `withCredentials` và gọi `/sanctum/csrf-cookie` trước đăng nhập/đăng xuất.
 - Không trộn `localhost` với `127.0.0.1` trong cùng phiên trình duyệt.
 
-## Tài khoản seed
+## LOCAL DEVELOPMENT ONLY — tài khoản demo
 
 | Role | Email | Password |
 |---|---|---|
 | Admin | `admin@namhair.local` | `Admin@123456` |
 | User | `user@namhair.local` | `User@123456` |
 
-Chỉ dùng cho local development và phải đổi trên production.
+Các tài khoản này chỉ được tạo trong môi trường `local`/`testing`. Production seeding không tạo demo account. Tạo Super Admin thật bằng `php artisan users:create-super-admin`.
 
 ## Chạy kiểm tra
 
@@ -82,6 +94,13 @@ npm run build
 npx playwright install chromium
 npx playwright test --project=chromium
 ```
+
+## Production
+
+- Đọc và hoàn tất `docs/deployment-notes.md` trước bàn giao.
+- Chạy `php artisan db:seed --force` chỉ để seed RBAC system data; không có demo data ở production.
+- Chạy `php artisan after-sales:privatize-media` sau backup để chuyển evidence hậu mãi cũ sang private storage.
+- Payment, Shipment và Refund vẫn là quy trình manual/internal; Phase 5 không gọi provider bên thứ ba.
 
 ## Database chính
 

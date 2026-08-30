@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\V1\Account;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Review;
+use App\Models\Wishlist;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +29,7 @@ class AccountController extends Controller
 
     public function updateProfile(Request $request)
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['nullable', 'regex:/^[0-9+\s.-]{9,20}$/', 'unique:users,phone,'.$request->user()->id],
@@ -102,19 +108,66 @@ class AccountController extends Controller
 
     public function wishlist(Request $request)
     {
-        return $this->success(Product::whereIn('id', DB::table('wishlists')->where('user_id', $request->user()->id)->pluck('product_id'))->with('images', 'variants.inventories')->get());
+        $entries = $request->user()->wishlistEntries()->with([
+            'product.images',
+            'product.category',
+            'product.brand',
+            'product.variants.attributeValues.attribute',
+            'product.variants.inventories',
+            'variant.attributeValues.attribute',
+            'variant.inventories',
+        ])->latest('created_at')->get();
+
+        return $this->success($entries->filter(fn ($entry) => $entry->product)->map(fn ($entry) => [
+            'id' => $entry->id,
+            'product_id' => $entry->product_id,
+            'product_variant_id' => $entry->product_variant_id,
+            'product' => (new ProductResource($entry->product))->resolve(),
+            'variant' => $entry->variant ? [
+                'id' => $entry->variant->id,
+                'sku' => $entry->variant->sku,
+                'current_price' => $entry->variant->currentPrice(),
+                'status' => $entry->variant->status,
+                'stock' => $entry->variant->availableStock(),
+                'attributes' => $entry->variant->attributeValues->map(fn ($value) => [
+                    'attribute_id' => $value->attribute_id,
+                    'attribute_name' => $value->attribute->name,
+                    'value_id' => $value->id,
+                    'value' => $value->display_value,
+                ])->values(),
+            ] : null,
+            'created_at' => $entry->created_at,
+        ])->values());
     }
 
     public function addWishlist(Request $request, Product $product)
     {
-        DB::table('wishlists')->insertOrIgnore(['user_id' => $request->user()->id, 'product_id' => $product->id, 'created_at' => now()]);
+        $variantId = $request->validate(['product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id']])['product_variant_id'] ?? null;
+        if ($variantId && ! ProductVariant::whereKey($variantId)->where('product_id', $product->id)->exists()) {
+            throw ValidationException::withMessages(['product_variant_id' => 'Phân loại không thuộc sản phẩm đã chọn.']);
+        }
 
-        return $this->success(null, 'Đã thêm vào danh sách yêu thích.', 201);
+        $attributes = ['product_id' => $product->id, 'product_variant_id' => $variantId];
+        try {
+            $entry = $request->user()->wishlistEntries()->firstOrCreate($attributes, ['created_at' => now()]);
+        } catch (QueryException) {
+            $entry = $request->user()->wishlistEntries()->where($attributes)->firstOrFail();
+        }
+
+        return $this->success(['id' => $entry->id], 'Đã thêm vào danh sách yêu thích.', $entry->wasRecentlyCreated ? 201 : 200);
     }
 
     public function removeWishlist(Request $request, Product $product)
     {
         DB::table('wishlists')->where('user_id', $request->user()->id)->where('product_id', $product->id)->delete();
+
+        return $this->success(null, 'Đã xóa khỏi danh sách yêu thích.');
+    }
+
+    public function removeWishlistItem(Request $request, Wishlist $wishlist)
+    {
+        abort_unless($wishlist->user_id === $request->user()->id, 404);
+        $wishlist->delete();
 
         return $this->success(null, 'Đã xóa khỏi danh sách yêu thích.');
     }
@@ -137,7 +190,7 @@ class AccountController extends Controller
     public function updateReview(Request $request, int $id)
     {
         $review = Review::where('user_id', $request->user()->id)->findOrFail($id);
-        $review->update(array_merge($request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'title' => ['nullable', 'string'], 'content' => ['nullable', 'string']]), ['status' => 'pending']));
+        $review->update(array_merge($request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'title' => ['nullable', 'string', 'max:190'], 'content' => ['nullable', 'string', 'max:3000']]), ['status' => 'pending']));
 
         return $this->success($review, 'Đã cập nhật đánh giá.');
     }
@@ -151,6 +204,8 @@ class AccountController extends Controller
 
     private function addressData(Request $request): array
     {
+        $request->merge(['phone' => PhoneNormalizer::normalize($request->input('phone'))]);
+
         return $request->validate([
             'recipient_name' => ['required', 'string', 'max:120'], 'phone' => ['required', 'regex:/^[0-9+\s.-]{9,20}$/'],
             'province' => ['required', 'string'], 'district' => ['required', 'string'], 'ward' => ['required', 'string'],

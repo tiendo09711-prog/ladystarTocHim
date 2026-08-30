@@ -12,35 +12,63 @@ use Illuminate\Validation\ValidationException;
 
 class OrderLifecycleService
 {
-    public function __construct(private InventoryService $inventoryService) {}
+    public function __construct(private InventoryService $inventoryService, private RefundService $refundService) {}
 
-    public function cancel(Order $order, ?int $actorId = null, array $allowedStatuses = [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing]): Order
+    public function cancel(Order $order, ?int $actorId = null, array $allowedStatuses = [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing], ?string $note = null): Order
     {
-        return $this->transition($order, OrderStatus::Cancelled, $actorId, $allowedStatuses);
+        return $this->transition($order, OrderStatus::Cancelled, $actorId, $allowedStatuses, $note);
     }
 
-    public function transition(Order $order, OrderStatus $targetStatus, ?int $actorId = null, ?array $allowedStatuses = null): Order
+    public function expirePending(Order $order): ?Order
     {
-        return DB::transaction(function () use ($order, $targetStatus, $actorId, $allowedStatuses) {
+        return DB::transaction(function () use ($order) {
+            $lockedOrder = Order::query()->with('payment')->lockForUpdate()->findOrFail($order->id);
+            if ($lockedOrder->order_status !== OrderStatus::Pending->value || ! $lockedOrder->expires_at || $lockedOrder->expires_at->isFuture()) {
+                return null;
+            }
+            if ($lockedOrder->payment_status === 'paid' || $lockedOrder->payment?->status === 'paid') {
+                $lockedOrder->update(['expires_at' => null]);
+
+                return null;
+            }
+
+            return $this->cancel($lockedOrder, null, [OrderStatus::Pending], 'Automatically cancelled because the stock reservation expired.');
+        });
+    }
+
+    public function transition(Order $order, OrderStatus $targetStatus, ?int $actorId = null, ?array $allowedStatuses = null, ?string $note = null): Order
+    {
+        return DB::transaction(function () use ($order, $targetStatus, $actorId, $allowedStatuses, $note) {
             $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->getKey());
             $currentStatus = OrderStatus::tryFrom($lockedOrder->order_status);
 
             if ($currentStatus === OrderStatus::Cancelled && $targetStatus === OrderStatus::Cancelled) {
-                return $lockedOrder;
+                return $lockedOrder->load('items', 'payment', 'shipment', 'statusHistories');
             }
-
             if (! $currentStatus || ! in_array($targetStatus, $this->allowedTransitions($currentStatus), true)) {
-                throw ValidationException::withMessages(['order_status' => 'Chuyển trạng thái đơn hàng không hợp lệ.']);
+                throw ValidationException::withMessages(['order_status' => 'Invalid order lifecycle transition.']);
+            }
+            if ($allowedStatuses !== null && ! in_array($currentStatus, $allowedStatuses, true)) {
+                throw ValidationException::withMessages(['order_status' => 'Order is not in an allowed status for this operation.']);
             }
 
-            if ($allowedStatuses !== null && ! in_array($currentStatus, $allowedStatuses, true)) {
-                throw ValidationException::withMessages(['order_status' => 'Chuyển trạng thái đơn hàng không hợp lệ.']);
+            if ($targetStatus === OrderStatus::Shipping && $lockedOrder->shipment()->lockForUpdate()->value('status') !== 'shipped') {
+                throw ValidationException::withMessages(['shipment' => 'Order shipping status must be driven by a shipped shipment.']);
+            }
+            if ($targetStatus === OrderStatus::Completed) {
+                $shipmentStatus = $lockedOrder->shipment()->lockForUpdate()->value('status');
+                $paymentStatus = $lockedOrder->payment()->lockForUpdate()->value('status');
+                if ($shipmentStatus !== 'delivered') {
+                    throw ValidationException::withMessages(['shipment' => 'Order completion requires a delivered shipment.']);
+                }
+                if ($lockedOrder->payment_status !== 'paid' || $paymentStatus !== 'paid') {
+                    throw ValidationException::withMessages(['payment' => 'Order completion requires a paid payment.']);
+                }
             }
 
             if ($targetStatus === OrderStatus::Confirmed) {
                 $this->consumeReservedInventory($lockedOrder, $actorId);
             }
-
             if ($targetStatus === OrderStatus::Cancelled) {
                 $this->releaseInventory($lockedOrder, $currentStatus, $actorId);
                 $this->releaseCoupon($lockedOrder);
@@ -49,14 +77,33 @@ class OrderLifecycleService
             $updates = ['order_status' => $targetStatus->value];
             if ($targetStatus === OrderStatus::Cancelled) {
                 $updates['cancelled_at'] = now();
+                $updates['expires_at'] = null;
+            }
+            if ($targetStatus === OrderStatus::Confirmed) {
+                $updates['expires_at'] = null;
             }
             if ($targetStatus === OrderStatus::Completed) {
                 $updates['completed_at'] = now();
             }
 
             $lockedOrder->update($updates);
+            $lockedOrder->statusHistories()->create([
+                'from_status' => $currentStatus->value,
+                'to_status' => $targetStatus->value,
+                'changed_by' => $actorId,
+                'note' => $note,
+                'created_at' => now(),
+            ]);
 
-            return $lockedOrder->refresh()->load('items');
+            $paymentStatus = $lockedOrder->payment()->lockForUpdate()->value('status');
+            if ($targetStatus === OrderStatus::Cancelled && ($lockedOrder->payment_status === 'paid' || $paymentStatus === 'paid')) {
+                if ($paymentStatus !== 'paid') {
+                    throw ValidationException::withMessages(['payment' => 'Paid order cache is inconsistent with its payment record.']);
+                }
+                $this->refundService->createForCancellation($lockedOrder, $actorId, $note);
+            }
+
+            return $lockedOrder->refresh()->load('items', 'payment', 'shipment', 'statusHistories', 'refunds');
         });
     }
 
@@ -65,25 +112,15 @@ class OrderLifecycleService
         foreach ($order->items as $item) {
             $inventory = $this->lockedInventory($order, $item->product_variant_id);
             if ($inventory->quantity_reserved < $item->quantity || $inventory->quantity_on_hand < $item->quantity) {
-                throw ValidationException::withMessages(['stock' => 'Tồn kho đã thay đổi, không thể xác nhận đơn.']);
+                throw ValidationException::withMessages(['stock' => 'Reserved inventory is inconsistent.']);
             }
-
             $before = $inventory->quantity_on_hand;
-            $inventory->update([
-                'quantity_on_hand' => $before - $item->quantity,
-                'quantity_reserved' => $inventory->quantity_reserved - $item->quantity,
-            ]);
+            $inventory->update(['quantity_on_hand' => $before - $item->quantity, 'quantity_reserved' => $inventory->quantity_reserved - $item->quantity]);
             InventoryTransaction::create([
-                'branch_id' => $inventory->branch_id,
-                'product_variant_id' => $inventory->product_variant_id,
-                'type' => 'sale',
-                'quantity' => -$item->quantity,
-                'quantity_before' => $before,
-                'quantity_after' => $before - $item->quantity,
-                'reference_type' => Order::class,
-                'reference_id' => $order->id,
-                'performed_by' => $actorId,
-                'note' => $order->order_number,
+                'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
+                'type' => 'sale', 'quantity' => -$item->quantity, 'quantity_before' => $before,
+                'quantity_after' => $before - $item->quantity, 'reference_type' => Order::class,
+                'reference_id' => $order->id, 'performed_by' => $actorId, 'note' => $order->order_number,
             ]);
         }
     }
@@ -92,24 +129,17 @@ class OrderLifecycleService
     {
         foreach ($order->items as $item) {
             $inventory = $this->lockedInventory($order, $item->product_variant_id);
-
             if ($currentStatus === OrderStatus::Pending) {
                 if ($inventory->quantity_reserved < $item->quantity) {
-                    throw ValidationException::withMessages(['stock' => 'Tồn kho giữ chỗ không hợp lệ, không thể hủy đơn.']);
+                    throw ValidationException::withMessages(['stock' => 'Reserved inventory is inconsistent.']);
                 }
-
                 $inventory->decrement('quantity_reserved', $item->quantity);
                 InventoryTransaction::create([
-                    'branch_id' => $inventory->branch_id,
-                    'product_variant_id' => $inventory->product_variant_id,
-                    'type' => 'cancel_release',
-                    'quantity' => $item->quantity,
-                    'quantity_before' => $inventory->quantity_on_hand,
-                    'quantity_after' => $inventory->quantity_on_hand,
-                    'reference_type' => Order::class,
-                    'reference_id' => $order->id,
-                    'performed_by' => $actorId,
-                    'note' => $order->order_number,
+                    'branch_id' => $inventory->branch_id, 'product_variant_id' => $inventory->product_variant_id,
+                    'type' => 'cancel_release', 'quantity' => $item->quantity,
+                    'quantity_before' => $inventory->quantity_on_hand, 'quantity_after' => $inventory->quantity_on_hand,
+                    'reference_type' => Order::class, 'reference_id' => $order->id,
+                    'performed_by' => $actorId, 'note' => $order->order_number,
                 ]);
 
                 continue;
@@ -125,22 +155,16 @@ class OrderLifecycleService
         if (! $usage) {
             return;
         }
-
         $coupon = Coupon::query()->whereKey($usage->coupon_id)->lockForUpdate()->first();
         if ($coupon && $coupon->used_count > 0) {
             $coupon->update(['used_count' => $coupon->used_count - 1]);
         }
-
         DB::table('coupon_usages')->where('id', $usage->id)->delete();
     }
 
     private function lockedInventory(Order $order, int $variantId): Inventory
     {
-        return Inventory::query()
-            ->where('branch_id', $order->branch_id)
-            ->where('product_variant_id', $variantId)
-            ->lockForUpdate()
-            ->firstOrFail();
+        return Inventory::query()->where('branch_id', $order->branch_id)->where('product_variant_id', $variantId)->lockForUpdate()->firstOrFail();
     }
 
     private function allowedTransitions(OrderStatus $status): array
@@ -149,7 +173,7 @@ class OrderLifecycleService
             OrderStatus::Pending => [OrderStatus::Confirmed, OrderStatus::Cancelled],
             OrderStatus::Confirmed => [OrderStatus::Processing, OrderStatus::Cancelled],
             OrderStatus::Processing => [OrderStatus::Shipping, OrderStatus::Cancelled],
-            OrderStatus::Shipping => [OrderStatus::Completed],
+            OrderStatus::Shipping => [OrderStatus::Completed, OrderStatus::Cancelled],
             OrderStatus::Completed, OrderStatus::Cancelled => [],
         };
     }

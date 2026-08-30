@@ -4,6 +4,8 @@ test.describe.configure({ timeout: 90_000 })
 
 async function loginAdmin(page: import('@playwright/test').Page) {
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
 }
@@ -44,7 +46,7 @@ test('admin crop ảnh bìa ưu đãi 16:9 và upload WebP', async ({ page }) =>
 
   await page.goto('/admin/promotions/create')
   await page.getByLabel('Tiêu đề').fill('Ưu đãi crop')
-  await page.getByLabel('Nội dung').fill('Nội dung crop')
+  await page.getByRole('textbox', { name: 'Nội dung', exact: true }).fill('Nội dung crop')
   await page.getByLabel('Chọn ảnh bìa ưu đãi').setInputFiles({ name: 'promotion-cover-source.png', mimeType: 'image/png', buffer: await sourceImage(page) })
   const dialog = page.getByRole('dialog', { name: 'Cắt ảnh bìa ưu đãi' })
   await expect(dialog).toBeVisible()

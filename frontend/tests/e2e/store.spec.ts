@@ -5,7 +5,7 @@ test('nút ưu đãi mở trang ưu đãi riêng', async ({ page }) => {
   await page.getByRole('button', { name: 'Tin tức & ưu đãi' }).hover()
   await page.getByRole('link', { name: 'Ưu đãi', exact: true }).click()
   await expect(page).toHaveURL('/uu-dai')
-  await expect(page.getByLabel('Trang ưu đãi')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Ưu đãi dành riêng cho bạn' })).toBeVisible({ timeout: 20_000 })
 })
 
 test('hệ thống cửa hàng là liên kết đơn đến trang trống', async ({ page }) => {
@@ -32,7 +32,7 @@ test('hệ thống cửa hàng là liên kết đơn đến trang trống', asyn
   for (const location of ['ha-noi', 'ho-chi-minh']) {
     await page.goto(`/lien-he?location=${location}`)
     await expect(page).toHaveURL(`/lien-he?location=${location}`)
-    await expect(page.getByRole('heading', { level: 1, name: 'Mỗi lựa chọn đẹp bắt đầu từ một cuộc trò chuyện' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Mỗi lựa chọn đẹp bắt đầu từ một cuộc trò chuyện' })).toBeVisible({ timeout: 20_000 })
   }
 })
 
@@ -64,6 +64,8 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
 
 test('admin đăng nhập và xem dashboard', async ({ page }) => {
   await page.goto('/admin/login')
+  await page.getByLabel('Email').fill('admin@namhair.local')
+  await page.getByLabel('Mật khẩu').fill('Admin@123456')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()

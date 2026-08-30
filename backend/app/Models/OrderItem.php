@@ -10,7 +10,7 @@ class OrderItem extends Model
 
     protected function casts(): array
     {
-        return ['variant_snapshot' => 'array'];
+        return ['variant_snapshot' => 'array', 'warranty_days_snapshot' => 'integer', 'cost_price_snapshot' => 'decimal:2'];
     }
 
     public function product()
@@ -31,5 +31,15 @@ class OrderItem extends Model
     public function review()
     {
         return $this->hasOne(Review::class);
+    }
+
+    public function returnItems()
+    {
+        return $this->hasMany(ReturnItem::class);
+    }
+
+    public function warrantyRequests()
+    {
+        return $this->hasMany(WarrantyRequest::class);
     }
 }

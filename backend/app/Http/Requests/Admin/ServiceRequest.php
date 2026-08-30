@@ -11,7 +11,7 @@ class ServiceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() === true;
+        return $this->user()?->canAccessAdmin() === true;
     }
 
     protected function prepareForValidation(): void
@@ -30,6 +30,7 @@ class ServiceRequest extends FormRequest
             'slug' => ['required', 'string', 'max:190', 'regex:/^[a-z0-9-]+$/', Rule::unique('services', 'slug')->ignore($serviceId)],
             'short_description' => ['nullable', 'string', 'max:1000'],
             'price' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'duration_minutes' => ['sometimes', 'integer', 'min:5', 'max:1440'],
             'image_alt' => ['nullable', 'string', 'max:190'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(Service::STATUSES)],

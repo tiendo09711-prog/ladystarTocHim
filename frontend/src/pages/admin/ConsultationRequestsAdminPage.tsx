@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
+import { PermissionGate } from '../../components/admin/PermissionGate'
 import type { ApiResponse } from '../../types'
 
 type Consultation = { id: number; name: string; phone: string; source_page: string; service_name?: string; message?: string; status: string; admin_note?: string; created_at: string; product?: { name: string }; category?: { name: string }; service?: { name: string }; branch?: { name: string } }
@@ -24,7 +25,7 @@ export function ConsultationRequestsAdminPage() {
         <td>{item.source_page === '/dich-vu-cham-soc' ? 'Dịch vụ chăm sóc tóc' : item.source_page}{item.branch?.name && <><br /><span className="text-sm text-slate-500">{item.branch.name}</span></>}</td>
         <td><strong>{item.service?.name ?? item.service_name ?? item.product?.name ?? item.category?.name ?? '—'}</strong>{item.message && <p className="mt-1 max-w-56 text-sm text-slate-500">{item.message}</p>}</td>
         <td>{new Date(item.created_at).toLocaleString('vi-VN')}</td>
-        <td><div className="grid min-w-64 gap-2"><select className="input" value={selectedStatuses[item.id] ?? item.status} aria-label={`Trạng thái yêu cầu ${item.id}`} onChange={(event) => setSelectedStatuses((current) => ({ ...current, [item.id]: event.target.value }))}>{statuses.slice(1).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><textarea className="input min-h-20" aria-label={`Ghi chú yêu cầu ${item.id}`} defaultValue={item.admin_note ?? ''} placeholder="Ghi chú nội bộ" onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} /><button className="btn-secondary justify-center" onClick={() => void save(item)}><Save size={15} />Lưu</button></div></td>
+        <td><PermissionGate permission="consultations.manage" fallback={<div className="min-w-64"><strong>{statuses.find(([value]) => value === item.status)?.[1] ?? item.status}</strong><p className="muted mt-1 text-sm">{item.admin_note || 'Chưa có ghi chú nội bộ.'}</p></div>}><div className="grid min-w-64 gap-2"><select className="input" value={selectedStatuses[item.id] ?? item.status} aria-label={`Trạng thái yêu cầu ${item.id}`} onChange={(event) => setSelectedStatuses((current) => ({ ...current, [item.id]: event.target.value }))}>{statuses.slice(1).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><textarea className="input min-h-20" aria-label={`Ghi chú yêu cầu ${item.id}`} defaultValue={item.admin_note ?? ''} placeholder="Ghi chú nội bộ" onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} /><button className="btn-secondary justify-center" onClick={() => void save(item)}><Save size={15} />Lưu</button></div></PermissionGate></td>
       </tr>)}
     </tbody></table></div>
   </div>

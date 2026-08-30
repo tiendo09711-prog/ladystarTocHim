@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Middleware\AuditAdminMutation;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureCustomer;
+use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -22,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'admin' => EnsureAdmin::class,
+            'customer' => EnsureCustomer::class,
+            'permission' => EnsurePermission::class,
+            'super_admin' => EnsureSuperAdmin::class,
+            'audit.admin' => AuditAdminMutation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
