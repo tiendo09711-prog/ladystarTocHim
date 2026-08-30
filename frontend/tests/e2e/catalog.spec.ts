@@ -34,7 +34,7 @@ test('catalog mobile filter drawer is accessible without horizontal overflow', a
 test('admin saves catalog content and views consultation requests', async ({ page }) => {
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   const loginResponse = page.waitForResponse((response) => response.url().includes('/api/v1/admin/auth/login'))
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect((await loginResponse).status()).toBe(200)

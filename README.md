@@ -26,7 +26,8 @@ cd backend
 composer install
 copy .env.example .env
 php artisan key:generate
-php artisan migrate --seed
+php artisan migrate
+php artisan db:seed
 php artisan storage:link
 php artisan serve
 ```
@@ -42,6 +43,8 @@ Tạo database trước khi migrate:
 ```sql
 CREATE DATABASE nam_hair CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
+
+Nếu dùng Docker Compose, copy `.env.example` thành `.env` ở thư mục root và tự đặt `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`; repository không cung cấp mật khẩu mặc định.
 
 Backend mặc định ở `http://localhost:8000`.
 
@@ -70,14 +73,9 @@ Frontend mặc định ở `http://localhost:5173`.
 - Axios dùng `withCredentials` và gọi `/sanctum/csrf-cookie` trước đăng nhập/đăng xuất.
 - Không trộn `localhost` với `127.0.0.1` trong cùng phiên trình duyệt.
 
-## LOCAL DEVELOPMENT ONLY — tài khoản demo
+## Tạo tài khoản quản trị
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@namhair.local` | `Admin@123456` |
-| User | `user@namhair.local` | `User@123456` |
-
-Các tài khoản này chỉ được tạo trong môi trường `local`/`testing`. Production seeding không tạo demo account. Tạo Super Admin thật bằng `php artisan users:create-super-admin`.
+Không có tài khoản quản trị mặc định. Tạo Super Admin bằng lệnh tương tác `php artisan users:create-super-admin`; mật khẩu không xuất hiện trong source hoặc shell history.
 
 ## Chạy kiểm tra
 
@@ -98,7 +96,7 @@ npx playwright test --project=chromium
 ## Production
 
 - Đọc và hoàn tất `docs/deployment-notes.md` trước bàn giao.
-- Chạy `php artisan db:seed --force` chỉ để seed RBAC system data; không có demo data ở production.
+- Chạy `php artisan db:seed --force` chỉ để seed RBAC system data; demo data không được gọi bởi `DatabaseSeeder`.
 - Chạy `php artisan after-sales:privatize-media` sau backup để chuyển evidence hậu mãi cũ sang private storage.
 - Payment, Shipment và Refund vẫn là quy trình manual/internal; Phase 5 không gọi provider bên thứ ba.
 

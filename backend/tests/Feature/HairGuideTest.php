@@ -16,11 +16,13 @@ class HairGuideTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_hair_guide_uses_hair_care_service_fallback_title(): void
+    public function test_public_hair_guide_returns_empty_content_when_not_configured(): void
     {
         $this->getJson('/api/v1/hair-guide')
             ->assertOk()
-            ->assertJsonPath('data.title', 'Dịch vụ chăm sóc tóc phù hợp với bạn');
+            ->assertJsonPath('data.title', null)
+            ->assertJsonPath('data.subtitle', null)
+            ->assertJsonPath('data.settings', []);
     }
 
     public function test_public_hair_guide_returns_active_services_in_saved_order(): void

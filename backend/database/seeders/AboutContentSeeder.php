@@ -6,11 +6,16 @@ use App\Models\AboutSection;
 use App\Models\PageSeo;
 use App\Support\AboutContent;
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class AboutContentSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment('testing')) {
+            throw new LogicException('AboutContentSeeder is restricted to the testing environment.');
+        }
+
         foreach (AboutContent::sections() as $section) {
             $settings = $section['settings'] ?? null;
             unset($section['settings']);

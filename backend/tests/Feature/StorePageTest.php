@@ -22,31 +22,20 @@ class StorePageTest extends TestCase
         return User::where('role', 'admin')->firstOrFail();
     }
 
-    public function test_public_store_page_returns_database_content_and_visible_branches(): void
+    public function test_public_store_page_is_empty_until_configured(): void
     {
         $this->seed();
-        Branch::firstOrFail()->update([
-            'public_description' => 'Không gian tư vấn riêng tư.',
-            'opening_hours' => '09:00 - 20:00',
-            'latitude' => 10.7769,
-            'longitude' => 106.7009,
-        ]);
-        Branch::create(['name' => 'Chi nhánh ẩn', 'code' => 'HIDDEN', 'is_active' => true, 'show_on_store_page' => false]);
-        StorePageItem::where('item_type', 'policy')->firstOrFail()->update(['is_active' => false]);
-
-        $response = $this->getJson('/api/v1/store-page')->assertOk();
-
-        $response->assertJsonPath('data.content.title', 'Tìm điểm tư vấn gần bạn')
-            ->assertJsonPath('data.branches.0.opening_hours', '09:00 - 20:00')
-            ->assertJsonCount(5, 'data.steps')
-            ->assertJsonCount(2, 'data.policies')
-            ->assertJsonCount(1, 'data.branches');
+        $this->getJson('/api/v1/store-page')
+            ->assertOk()
+            ->assertJsonPath('data.content', null)
+            ->assertJsonPath('data.steps', [])
+            ->assertJsonPath('data.policies', [])
+            ->assertJsonPath('data.branches', []);
     }
 
     public function test_admin_can_update_store_page_and_manage_items(): void
     {
         $admin = $this->admin();
-        $content = StorePageContent::firstOrFail();
 
         $this->actingAs($admin)->putJson('/api/v1/admin/store-page', [
             'title' => 'Hệ thống trải nghiệm LADYSTARS',
@@ -54,6 +43,7 @@ class StorePageTest extends TestCase
             'seo' => ['title' => 'Địa điểm LADYSTARS', 'description' => 'Danh sách địa điểm tư vấn.'],
         ])->assertOk()->assertJsonPath('data.content.title', 'Hệ thống trải nghiệm LADYSTARS');
 
+        $content = StorePageContent::firstOrFail();
         $this->assertDatabaseHas('store_page_contents', ['id' => $content->id, 'title' => 'Hệ thống trải nghiệm LADYSTARS']);
         $this->assertDatabaseHas('page_seos', ['page_key' => 'he-thong-cua-hang', 'title' => 'Địa điểm LADYSTARS']);
 
@@ -73,7 +63,8 @@ class StorePageTest extends TestCase
     {
         Storage::fake('public');
         $admin = $this->admin();
-        $item = StorePageItem::firstOrFail();
+        $content = StorePageContent::firstOrCreate(['page_key' => 'store-locations']);
+        $item = $content->items()->create(['item_type' => 'process', 'title' => 'Test', 'sort_order' => 1, 'is_active' => true]);
         $branch = Branch::firstOrFail();
 
         $this->actingAs($admin)->postJson('/api/v1/admin/store-page/images/hero', ['image' => UploadedFile::fake()->image('hero.jpg', 1200, 700)])->assertCreated();

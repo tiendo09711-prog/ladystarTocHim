@@ -3,12 +3,15 @@ import { getHomePageContent } from '../../api/contentApi'
 import { BrandStory, ContactAndInsights, FloatingContactDock, HomeFinalCta, ServiceProcess, SolutionsAndStyles, Testimonials } from '../../components/home/HomeContentSections'
 import { HomeHero, QuickConsultation } from '../../components/home/HomeHero'
 import { ProductDiscovery } from '../../components/home/ProductDiscovery'
-import { defaultHomePageSections } from '../../data/homeContent'
+import { EmptyState } from '../../components/common/EmptyState'
+import { LoadingState } from '../../components/common/LoadingState'
 
 export function HomePage() {
   const query = useQuery({ queryKey: ['home-page-content'], queryFn: getHomePageContent, staleTime: 5 * 60 * 1000 })
   const content = query.data
-  const sections = content?.sections ?? defaultHomePageSections
+  if (query.isLoading) return <div className="container-page py-12"><LoadingState label="Đang tải trang chủ..." /></div>
+  if (!content?.sections) return <div className="container-page py-12"><EmptyState title="Trang chủ chưa được cấu hình" description="Nội dung sẽ xuất hiện sau khi được thiết lập trong trang quản trị." /></div>
+  const sections = content.sections
 
   return <>
     <HomeHero content={sections.hero} imagePath={content?.hero_image_path} imageAlt={content?.hero_image_alt} />

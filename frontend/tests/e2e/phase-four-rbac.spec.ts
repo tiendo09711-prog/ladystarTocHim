@@ -29,7 +29,7 @@ async function api(page: Page, method: string, path: string, data?: unknown) {
 
 test('Super Admin tạo Staff; Staff chỉ thấy và gọi đúng permission', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await loginBackoffice(page, 'admin@namhair.local', 'Admin@123456')
+  await loginBackoffice(page, 'admin@namhair.local', process.env.E2E_ADMIN_PASSWORD!)
 
   const suffix = `${Date.now()}`
   const permissionResponse = await api(page, 'GET', 'admin/permissions')

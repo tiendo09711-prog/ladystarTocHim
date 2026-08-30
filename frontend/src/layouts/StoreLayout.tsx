@@ -11,11 +11,6 @@ import { compareIds, rememberSearch, searchHistory } from '../features/products/
 
 type NavItem = { label: string; path: string; children?: readonly (readonly [string, string])[] }
 
-const defaultAnnouncementMessages = [
-  'Miễn phí giao hàng cho đơn từ 1.000.000đ',
-  'Tư vấn lựa chọn theo phong cách riêng',
-]
-
 const navItems: NavItem[] = [
   { label: 'Trang chủ', path: '/' },
   { label: 'Câu chuyện thương hiệu', path: '/gioi-thieu' },
@@ -28,8 +23,8 @@ const navItems: NavItem[] = [
 function AnnouncementBar() {
   const query = useQuery({ queryKey: ['home-page-content'], queryFn: getHomePageContent, staleTime: 5 * 60 * 1000 })
   const content = query.data
-  const messages = content?.announcement_messages?.length ? content.announcement_messages : defaultAnnouncementMessages
-  const enabled = content?.announcement_enabled ?? true
+  const messages = content?.announcement_messages ?? []
+  const enabled = content?.announcement_enabled ?? false
   const intervalSeconds = content?.announcement_interval_seconds ?? 5
   const [activeIndex, setActiveIndex] = useState(0)
   const messageKey = messages.join('\u0000')

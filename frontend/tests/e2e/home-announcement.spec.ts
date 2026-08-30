@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { defaultHomePageSections } from '../../src/data/homeContent'
+import { homeSectionsFixture } from './fixtures/homeContent'
 
 const homeContent = {
   id: 1,
@@ -10,7 +10,7 @@ const homeContent = {
   hero_image_path: null,
   hero_image_alt: null,
   brand_story_image_path: null,
-  sections: defaultHomePageSections,
+    sections: homeSectionsFixture,
 }
 
 test('thanh thông báo tự động chuyển sang dòng kế tiếp', async ({ page }) => {
@@ -43,7 +43,7 @@ test('admin chỉnh sửa và lưu cấu hình thanh thông báo', async ({ page
 
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await page.goto('/admin/home-page')
@@ -67,7 +67,7 @@ test('admin cập nhật nội dung và các ảnh riêng của trang chủ', as
   test.setTimeout(120_000)
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await page.goto('/admin/home-page')

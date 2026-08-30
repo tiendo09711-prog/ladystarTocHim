@@ -8,11 +8,16 @@ use App\Models\PageSeo;
 use App\Models\Service;
 use App\Models\StoreSetting;
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class ServiceSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment('testing')) {
+            throw new LogicException('ServiceSeeder is restricted to the testing environment.');
+        }
+
         $services = [
             ['name' => 'Vệ sinh tóc giả', 'slug' => 've-sinh-toc-gia', 'short_description' => 'Làm sạch tóc và phần đế, hỗ trợ duy trì cảm giác sạch sẽ và dễ chịu khi sử dụng.', 'price' => 100000, 'sort_order' => 10, 'status' => 'active', 'image_alt' => 'Chuyên viên vệ sinh và chăm sóc tóc giả'],
             ['name' => 'Detox da đầu', 'slug' => 'detox-da-dau', 'short_description' => 'Làm sạch da đầu chuyên sâu, hỗ trợ loại bỏ cặn bẩn và mang lại cảm giác thông thoáng.', 'price' => 50000, 'sort_order' => 20, 'status' => 'active', 'image_alt' => 'Liệu trình detox làm sạch da đầu'],

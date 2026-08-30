@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
+import { randomBytes } from 'node:crypto'
+
+process.env.E2E_ADMIN_PASSWORD ??= `${randomBytes(24).toString('base64url')}Aa1`
 
 export default defineConfig({
   testDir: './tests/e2e',

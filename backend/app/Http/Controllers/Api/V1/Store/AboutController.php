@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Api\V1\Store;
 use App\Http\Controllers\Controller;
 use App\Models\AboutSection;
 use App\Models\PageSeo;
-use App\Support\AboutContent;
 use App\Support\ApiResponse;
-use Illuminate\Support\Collection;
 
 class AboutController extends Controller
 {
@@ -16,9 +14,6 @@ class AboutController extends Controller
     public function index()
     {
         $sections = AboutSection::published()->orderBy('sort_order')->get();
-        if ($sections->isEmpty()) {
-            $sections = $this->fallbackSections();
-        }
 
         return $this->success([
             'sections' => $sections->map(fn ($section) => $this->serialize($section))->values(),
@@ -40,17 +35,7 @@ class AboutController extends Controller
         if ($seo) {
             return ['title' => $seo->title, 'description' => $seo->description, 'og_image_path' => $seo->og_image_path];
         }
-        $fallback = collect(AboutContent::seos())->firstWhere('page_key', $pageKey);
-
-        return $fallback ? ['title' => $fallback['title'], 'description' => $fallback['description'], 'og_image_path' => null] : null;
-    }
-
-    private function fallbackSections(): Collection
-    {
-        return collect(AboutContent::sections())->map(fn (array $section) => new AboutSection(array_merge($section, [
-            'settings_json' => $section['settings'] ?? null,
-            'is_active' => true,
-        ])));
+        return null;
     }
 
     private function serialize(AboutSection $section): array

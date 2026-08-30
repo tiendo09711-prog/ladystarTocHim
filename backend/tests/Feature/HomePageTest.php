@@ -20,30 +20,39 @@ class HomePageTest extends TestCase
         return User::where('role', 'admin')->firstOrFail();
     }
 
-    public function test_public_home_page_returns_announcement_configuration(): void
+    private function validSections(): array
+    {
+        $sections = HomePageContent::defaultSections();
+        foreach ($sections as &$section) {
+            foreach ($section as $key => $value) {
+                if (is_string($value) && $value === '') $section[$key] = str_ends_with($key, '_url') ? '/' : 'Test';
+            }
+        }
+        unset($section);
+        $sections['hero']['trust_items'] = ['Test'];
+        $sections['consultation']['options'] = ['Test'];
+        $sections['brand_story']['values'] = [['title' => 'Test', 'description' => 'Test']];
+        $sections['solutions']['bullets'] = ['Test'];
+        $sections['styles']['items'] = [['title' => 'Test', 'description' => 'Test', 'url' => '/', 'image_alt' => 'Test']];
+        $sections['process']['steps'] = [['number' => '1', 'title' => 'Test', 'description' => 'Test', 'image_alt' => 'Test']];
+        $sections['testimonials']['items'] = [['quote' => 'Test', 'customer' => 'Test', 'label' => 'Test', 'detail_title' => 'Test', 'detail' => 'Test', 'image_alt' => 'Test']];
+        $sections['contact']['cards'] = [['title' => 'Test', 'description' => 'Test', 'url' => '/']];
+        $sections['insights']['items'] = [['title' => 'Test', 'description' => 'Test', 'url' => '/']];
+
+        return $sections;
+    }
+
+    public function test_public_home_page_is_empty_when_not_configured(): void
     {
         $this->getJson('/api/v1/home-page')
             ->assertOk()
-            ->assertJsonPath('data.announcement_enabled', true)
-            ->assertJsonPath('data.announcement_interval_seconds', 5)
-            ->assertJsonPath('data.announcement_messages.0', 'Miễn phí giao hàng cho đơn từ 1.000.000đ')
-            ->assertJsonPath('data.sections.hero.title', 'Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn.')
-            ->assertJsonPath('data.sections.solutions.image_path', null)
-            ->assertJsonPath('data.sections.styles.items.0.image_alt', 'Phong cách tự nhiên hằng ngày')
-            ->assertJsonPath('data.sections.styles.items.0.image_position_x', 50)
-            ->assertJsonPath('data.sections.styles.items.0.image_position_y', 50)
-            ->assertJsonPath('data.sections.process.steps.0.image_alt', 'Bước lắng nghe nhu cầu')
-            ->assertJsonPath('data.sections.process.steps.0.image_position_x', 50)
-            ->assertJsonPath('data.sections.testimonials.items.0.detail_title', 'Một lựa chọn rõ ràng và an tâm hơn')
-            ->assertJsonPath('data.sections.testimonials.items.0.image_position_y', 50)
-            ->assertJsonPath('data.hero_image_path', null)
-            ->assertJsonPath('data.brand_story_image_path', null);
+            ->assertJsonPath('data', null);
     }
 
     public function test_admin_can_update_announcement_configuration(): void
     {
         $admin = $this->admin();
-        $sections = HomePageContent::defaultSections();
+        $sections = $this->validSections();
         $sections['hero']['title'] = 'Hero đã cập nhật từ admin';
         $sections['hero']['image_position_x'] = 36;
         $sections['hero']['image_position_y'] = 42;
@@ -92,6 +101,7 @@ class HomePageTest extends TestCase
     {
         Storage::fake('public');
         $admin = $this->admin();
+        HomePageContent::current()->update(['sections' => $this->validSections()]);
 
         $this->actingAs($admin)->post('/api/v1/admin/home-page/hero-image', [
             'image' => UploadedFile::fake()->image('hero.jpg', 1200, 900),
@@ -150,7 +160,7 @@ class HomePageTest extends TestCase
     public function test_admin_cannot_save_unsafe_home_page_links(): void
     {
         $admin = $this->admin();
-        $sections = HomePageContent::defaultSections();
+        $sections = $this->validSections();
         $sections['hero']['primary_url'] = 'javascript:alert(1)';
 
         $this->actingAs($admin)->putJson('/api/v1/admin/home-page', [

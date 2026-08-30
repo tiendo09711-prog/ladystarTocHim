@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { defaultHomePageSections } from '../../src/data/homeContent'
+import { homeSectionsFixture } from './fixtures/homeContent'
 
 const homeContent = {
   id: 1,
@@ -11,13 +11,13 @@ const homeContent = {
   hero_image_alt: 'Hero',
   brand_story_image_path: '/images/brand/ladystars-hero.svg',
   sections: {
-    ...defaultHomePageSections,
-    hero: { ...defaultHomePageSections.hero, image_position_x: 32, image_position_y: 44 },
-    brand_story: { ...defaultHomePageSections.brand_story, image_position_x: 47, image_position_y: 39 },
-    solutions: { ...defaultHomePageSections.solutions, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 61, image_position_y: 37 },
-    styles: { ...defaultHomePageSections.styles, items: defaultHomePageSections.styles.items.map((item) => ({ ...item, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 42, image_position_y: 33 })) },
-    process: { ...defaultHomePageSections.process, steps: defaultHomePageSections.process.steps.map((step) => ({ ...step, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 55, image_position_y: 41 })) },
-    testimonials: { ...defaultHomePageSections.testimonials, items: defaultHomePageSections.testimonials.items.map((item) => ({ ...item, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 46, image_position_y: 35 })) },
+    ...homeSectionsFixture,
+    hero: { ...homeSectionsFixture.hero, image_position_x: 32, image_position_y: 44 },
+    brand_story: { ...homeSectionsFixture.brand_story, image_position_x: 47, image_position_y: 39 },
+    solutions: { ...homeSectionsFixture.solutions, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 61, image_position_y: 37 },
+    styles: { ...homeSectionsFixture.styles, items: homeSectionsFixture.styles.items.map((item) => ({ ...item, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 42, image_position_y: 33 })) },
+    process: { ...homeSectionsFixture.process, steps: homeSectionsFixture.process.steps.map((step) => ({ ...step, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 55, image_position_y: 41 })) },
+    testimonials: { ...homeSectionsFixture.testimonials, items: homeSectionsFixture.testimonials.items.map((item) => ({ ...item, image_path: '/images/brand/ladystars-hero.svg', image_position_x: 46, image_position_y: 35 })) },
   },
 }
 
@@ -42,7 +42,7 @@ test('admin cắt ảnh Hero đúng tỷ lệ trước khi upload', async ({ pag
 
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')
@@ -118,7 +118,7 @@ test('mọi nhóm ảnh Home Page đều mở cùng trình crop đúng tỷ lệ
   await mockAdmin(page)
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')
@@ -174,7 +174,7 @@ test('admin lưu danh sách lợi ích theo từng dòng', async ({ page }) => {
 
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/, { timeout: 20_000 })
   await page.goto('/admin/home-page')

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { defaultHomePageSections } from '../../src/data/homeContent'
+import { homeSectionsFixture } from './fixtures/homeContent'
 
 const homeContent = {
   id: 1,
@@ -11,8 +11,8 @@ const homeContent = {
   hero_image_alt: 'Hero',
   brand_story_image_path: '/images/brand/ladystars-hero.svg',
   sections: {
-    ...defaultHomePageSections,
-    solutions: { ...defaultHomePageSections.solutions, image_path: '/images/brand/ladystars-hero.svg' },
+    ...homeSectionsFixture,
+    solutions: { ...homeSectionsFixture.solutions, image_path: '/images/brand/ladystars-hero.svg' },
   },
 }
 

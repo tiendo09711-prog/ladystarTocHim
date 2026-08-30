@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { addCompareProduct, compareIds, recentlyViewedIds, rememberProduct, rememberSearch, searchHistory } from './productMemory'
 
 describe('product memory', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => sessionStorage.clear())
 
   it('deduplicates and caps recently viewed products', () => {
     for (let id = 1; id <= 12; id += 1) rememberProduct(id)
@@ -26,9 +26,9 @@ describe('product memory', () => {
 
   it('survives corrupt storage data', () => {
     for (const value of ['{bad json', 'null', '{}', 'abc', '123', '[null]', '[{}]']) {
-      localStorage.setItem('ladystars_compare_v1', value)
-      localStorage.setItem('ladystars_recently_viewed_v1', value)
-      localStorage.setItem('ladystars_search_history_v1', value)
+      sessionStorage.setItem('ladystars_compare_v1', value)
+      sessionStorage.setItem('ladystars_recently_viewed_v1', value)
+      sessionStorage.setItem('ladystars_search_history_v1', value)
       expect(compareIds()).toEqual([])
       expect(recentlyViewedIds()).toEqual([])
       expect(searchHistory()).toEqual([])

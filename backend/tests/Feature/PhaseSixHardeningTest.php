@@ -65,12 +65,15 @@ class PhaseSixHardeningTest extends TestCase
         $this->assertNotContains($product->id, $ids);
     }
 
-    public function test_hair_finder_has_fallback_and_seeder_preserves_custom_config(): void
+    public function test_hair_finder_is_empty_without_config_and_seeder_preserves_custom_config(): void
     {
         $this->seed();
         $settings = StoreSetting::current();
         $settings->update(['hair_finder_config' => null]);
-        $this->getJson('/api/v1/hair-finder/options')->assertOk()->assertJsonPath('data.content.title', config('hair-finder.content.title'));
+        $this->getJson('/api/v1/hair-finder/options')
+            ->assertOk()
+            ->assertJsonPath('data.content', [])
+            ->assertJsonPath('data.questions', []);
 
         (new HairFinderConfigSeeder)->run();
         $custom = $settings->fresh()->hair_finder_config;
