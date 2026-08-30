@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,18 +12,21 @@ return new class extends Migration
         Schema::table('store_settings', function (Blueprint $table) {
             $table->json('hair_finder_config')->nullable();
         });
+        DB::table('store_settings')->whereNull('hair_finder_config')->update([
+            'hair_finder_config' => json_encode(config('hair-finder'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]);
 
-        Schema::table('wishlists', function (Blueprint $table) {
-            $table->index('user_id', 'wishlists_user_id_phase6_index');
-            $table->index('product_id', 'wishlists_product_id_phase6_index');
-        });
+        $this->ensureWishlistSupportIndexes();
 
+        $this->dropLegacyWishlistUnique();
         Schema::table('wishlists', function (Blueprint $table) {
-            $table->dropUnique(['user_id', 'product_id']);
             $table->foreignId('product_variant_id')->nullable()->after('product_id')->constrained('product_variants')->cascadeOnDelete();
-            $table->index(['user_id', 'product_id']);
-            $table->unique(['user_id', 'product_id', 'product_variant_id'], 'wishlists_user_product_variant_unique');
+            $table->index(['user_id', 'product_id'], 'wishlists_user_product_phase6_index');
         });
+        $expression = DB::getDriverName() === 'mysql'
+            ? '(COALESCE(product_variant_id, 0))'
+            : 'COALESCE(product_variant_id, 0)';
+        DB::statement("CREATE UNIQUE INDEX wishlists_user_product_variant_unique ON wishlists (user_id, product_id, {$expression})");
 
         Schema::create('customer_tags', function (Blueprint $table) {
             $table->id();
@@ -55,15 +59,49 @@ return new class extends Migration
 
         Schema::table('wishlists', function (Blueprint $table) {
             $table->dropUnique('wishlists_user_product_variant_unique');
-            $table->dropIndex(['user_id', 'product_id']);
+            $table->dropIndex('wishlists_user_product_phase6_index');
+        });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('DELETE w_delete FROM wishlists AS w_delete INNER JOIN wishlists AS w_keep ON w_delete.user_id = w_keep.user_id AND w_delete.product_id = w_keep.product_id AND w_delete.id > w_keep.id');
+        } else {
+            DB::statement('DELETE FROM wishlists WHERE id NOT IN (SELECT MIN(id) FROM wishlists GROUP BY user_id, product_id)');
+        }
+
+        Schema::table('wishlists', function (Blueprint $table) {
             $table->dropConstrainedForeignId('product_variant_id');
-            $table->unique(['user_id', 'product_id']);
-            $table->dropIndex('wishlists_user_id_phase6_index');
-            $table->dropIndex('wishlists_product_id_phase6_index');
+            $table->unique(['user_id', 'product_id'], 'wishlist_user_product_unique');
         });
 
         Schema::table('store_settings', function (Blueprint $table) {
             $table->dropColumn('hair_finder_config');
+        });
+    }
+
+    private function dropLegacyWishlistUnique(): void
+    {
+        foreach (Schema::getIndexes('wishlists') as $index) {
+            $columns = array_values($index['columns'] ?? []);
+            if (($index['unique'] ?? false) && $columns === ['user_id', 'product_id']) {
+                Schema::table('wishlists', fn (Blueprint $table) => $table->dropUnique($index['name']));
+
+                return;
+            }
+        }
+    }
+
+    private function ensureWishlistSupportIndexes(): void
+    {
+        $indexColumns = collect(Schema::getIndexes('wishlists'))
+            ->map(fn (array $index) => array_values($index['columns'] ?? []));
+
+        Schema::table('wishlists', function (Blueprint $table) use ($indexColumns) {
+            if (! $indexColumns->containsStrict(['user_id'])) {
+                $table->index('user_id', 'wishlists_user_id_phase6_index');
+            }
+            if (! $indexColumns->containsStrict(['product_id'])) {
+                $table->index('product_id', 'wishlists_product_id_phase6_index');
+            }
         });
     }
 };

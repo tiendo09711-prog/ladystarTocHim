@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { apiClient } from '../../api/apiClient'
 import { LoadingState } from '../../components/common/LoadingState'
-import type { ApiResponse, AttentionSummary, InventoryRow } from '../../types'
+import type { ApiResponse, InventoryRow } from '../../types'
 import { formatPrice, statusLabel } from '../../utils/format'
+import { useAdminAttention } from '../../features/admin/useAdminAttention'
 
 interface Summary { revenue: number; orders: number; customers: number; products: number; average_order_value: number }
 interface RevenuePoint { date: string; revenue: number; orders: number }
@@ -18,8 +19,7 @@ export function DashboardPage() {
   const statuses = useQuery({ queryKey: ['admin-statuses'], queryFn: async ({ signal }) => (await apiClient.get<ApiResponse<StatusPoint[]>>('/admin/dashboard/order-statuses', { signal })).data.data })
   const top = useQuery({ queryKey: ['admin-top'], queryFn: async ({ signal }) => (await apiClient.get<ApiResponse<TopProduct[]>>('/admin/dashboard/top-products', { signal })).data.data })
   const lowStock = useQuery({ queryKey: ['admin-low-stock'], queryFn: async ({ signal }) => (await apiClient.get<ApiResponse<InventoryRow[]>>('/admin/dashboard/low-stock', { signal })).data.data })
-  const dashboardReady = [summary, revenue, statuses, top, lowStock].every((query) => !query.isLoading && !query.isFetching)
-  const attention = useQuery({ queryKey: ['admin-attention'], queryFn: async ({ signal }) => (await apiClient.get<ApiResponse<AttentionSummary>>('/admin/dashboard/attention', { signal })).data.data, enabled: dashboardReady, staleTime: 60_000 })
+  const attention = useAdminAttention()
   if (summary.isLoading) return <LoadingState />
   const cards = [[formatPrice(summary.data?.revenue ?? 0), 'Doanh thu', BarChart3], [summary.data?.orders ?? 0, 'Đơn hàng', ShoppingBag], [summary.data?.customers ?? 0, 'Khách hàng', Users], [summary.data?.products ?? 0, 'Sản phẩm', Package], [formatPrice(summary.data?.average_order_value ?? 0), 'Giá trị đơn trung bình', CircleDollarSign]] as const
   return <div><div className='mb-6'><h1 className='text-3xl font-black'>Dashboard</h1><p className='muted mt-1'>Tổng quan hoạt động kinh doanh từ dữ liệu thật.</p></div><section className='card mb-6 p-5'><h2 className='text-lg font-black'>Cần xử lý</h2><div className='mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>{attention.data?.items.map((item) => <Link className='rounded-xl border bg-slate-50 p-4 transition hover:border-emerald-400 hover:bg-emerald-50' to={item.url} key={item.key}><div className='text-2xl font-black text-emerald-800'>{item.count}</div><div className='mt-1 text-sm font-bold'>{item.label}</div></Link>)}</div></section><div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5'>{cards.map(([value, label, Icon]) => <div key={label} className='card flex min-w-0 items-center gap-4 p-5'><div className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-800'><Icon /></div><div className='min-w-0'><div className='break-words text-2xl font-black'>{value}</div><div className='muted text-sm'>{label}</div></div></div>)}</div>

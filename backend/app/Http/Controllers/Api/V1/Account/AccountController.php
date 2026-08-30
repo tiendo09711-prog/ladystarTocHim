@@ -14,6 +14,7 @@ use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -146,11 +147,11 @@ class AccountController extends Controller
             throw ValidationException::withMessages(['product_variant_id' => 'Phân loại không thuộc sản phẩm đã chọn.']);
         }
 
-        $query = $request->user()->wishlistEntries()->where('product_id', $product->id);
-        $variantId ? $query->where('product_variant_id', $variantId) : $query->whereNull('product_variant_id');
-        $entry = $query->first();
-        if (! $entry) {
-            $entry = $request->user()->wishlistEntries()->create(['product_id' => $product->id, 'product_variant_id' => $variantId, 'created_at' => now()]);
+        $attributes = ['product_id' => $product->id, 'product_variant_id' => $variantId];
+        try {
+            $entry = $request->user()->wishlistEntries()->firstOrCreate($attributes, ['created_at' => now()]);
+        } catch (QueryException) {
+            $entry = $request->user()->wishlistEntries()->where($attributes)->firstOrFail();
         }
 
         return $this->success(['id' => $entry->id], 'Đã thêm vào danh sách yêu thích.', $entry->wasRecentlyCreated ? 201 : 200);

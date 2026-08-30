@@ -75,11 +75,11 @@ class HairFinderService
         ])->withAvg(['reviews' => fn ($review) => $review->where('status', 'approved')], 'rating')
             ->withCount(['reviews' => fn ($review) => $review->where('status', 'approved')])
             ->withSum(['orderItems as sold_count' => fn ($item) => $item->whereHas('order', fn ($order) => $order->where('order_status', 'completed'))], 'quantity')
-            ->whereHas('variants.inventories', fn ($inventory) => $inventory->whereColumn('quantity_on_hand', '>', 'quantity_reserved'));
+            ->whereHas('variants', fn ($variant) => $this->purchasableVariantQuery($variant));
 
         if (isset($answers['budget_min']) || isset($answers['budget_max'])) {
             $query->whereHas('variants', function ($variant) use ($answers) {
-                $variant->where('status', 'active')
+                $this->purchasableVariantQuery($variant)
                     ->when(isset($answers['budget_min']), fn ($row) => $row->whereRaw('COALESCE(sale_price, price) >= ?', [$answers['budget_min']]))
                     ->when(isset($answers['budget_max']), fn ($row) => $row->whereRaw('COALESCE(sale_price, price) <= ?', [$answers['budget_max']]));
             });
@@ -96,7 +96,13 @@ class HairFinderService
 
     private function config(): array
     {
-        return StoreSetting::current()->hair_finder_config ?? [];
+        return StoreSetting::current()->hair_finder_config ?: config('hair-finder', []);
+    }
+
+    private function purchasableVariantQuery($query)
+    {
+        return $query->where('status', 'active')
+            ->whereHas('inventories', fn ($inventory) => $inventory->whereColumn('quantity_on_hand', '>', 'quantity_reserved'));
     }
 
     private function enrichQuestion(array $question, array $config): array
@@ -178,7 +184,8 @@ class HairFinderService
         $baseRule = (array) ($scoring['base'] ?? []);
         $score = (int) ($baseRule['weight'] ?? 0);
         $reasons = filled($baseRule['reason'] ?? null) ? [(string) $baseRule['reason']] : [];
-        $prices = $product->variants->map->currentPrice();
+        $purchasableVariants = $product->variants->filter(fn ($variant) => $variant->status === 'active' && $variant->availableStock() > 0);
+        $prices = $purchasableVariants->map->currentPrice();
         $budgetRule = (array) ($scoring['budget'] ?? []);
 
         if ((isset($answers['budget_min']) || isset($answers['budget_max'])) && $prices->contains(fn ($price) => (! isset($answers['budget_min']) || $price >= $answers['budget_min']) && (! isset($answers['budget_max']) || $price <= $answers['budget_max']))) {
@@ -192,14 +199,14 @@ class HairFinderService
         }
 
         $lengthRule = (array) ($scoring['length'] ?? []);
-        if (! empty($answers['length']) && $this->matchesLength($product, (string) $answers['length'], $lengthRule)) {
+        if (! empty($answers['length']) && $this->matchesLength($purchasableVariants, (string) $answers['length'], $lengthRule)) {
             $this->applyRule($score, $reasons, $lengthRule);
         }
 
         foreach ((array) ($scoring['choice_rules'] ?? []) as $answerKey => $choiceRules) {
             foreach (Arr::wrap($answers[$answerKey] ?? []) as $choice) {
                 $rule = (array) ($choiceRules[$choice] ?? []);
-                if ($rule !== [] && $this->matchesConfiguredRule($product, $rule)) {
+                if ($rule !== [] && $this->matchesConfiguredRule($product, $purchasableVariants, $rule)) {
                     $this->applyRule($score, $reasons, $rule);
                 }
             }
@@ -223,7 +230,7 @@ class HairFinderService
         }
     }
 
-    private function matchesLength(Product $product, string $choice, array $config): bool
+    private function matchesLength($variants, string $choice, array $config): bool
     {
         $rule = (array) Arr::get($config, 'choices.'.$choice, []);
         if ($rule === []) {
@@ -231,7 +238,7 @@ class HairFinderService
         }
 
         $attributeCodes = collect($config['attribute_codes'] ?? [])->map(fn ($value) => Str::lower((string) $value));
-        $values = $product->variants->flatMap->attributeValues
+        $values = $variants->flatMap->attributeValues
             ->filter(fn ($value) => $attributeCodes->contains(Str::lower((string) $value->attribute?->code)))
             ->pluck('display_value')
             ->map(fn ($value) => Str::lower((string) $value));
@@ -252,7 +259,7 @@ class HairFinderService
         });
     }
 
-    private function matchesConfiguredRule(Product $product, array $rule): bool
+    private function matchesConfiguredRule(Product $product, $purchasableVariants, array $rule): bool
     {
         $fields = collect($rule['fields'] ?? [])->filter(fn ($field) => is_string($field) && $field !== '');
         $keywords = collect($rule['keywords'] ?? [])->filter(fn ($keyword) => is_string($keyword) && $keyword !== '')->map(fn ($keyword) => Str::lower($keyword))->all();
@@ -262,7 +269,7 @@ class HairFinderService
             'keywords' => $keywords !== [] && Str::contains(Str::lower($values->implode(' ')), $keywords),
             'fields_or_keywords' => $values->isNotEmpty() || ($keywords !== [] && Str::contains(Str::lower($values->implode(' ')), $keywords)),
             'fields_present' => $values->isNotEmpty(),
-            'sale_price' => $product->variants->contains(fn ($variant) => $variant->sale_price !== null),
+            'sale_price' => $purchasableVariants->contains(fn ($variant) => $variant->sale_price !== null),
             default => false,
         };
     }

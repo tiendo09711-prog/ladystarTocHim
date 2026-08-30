@@ -106,7 +106,10 @@ async function mockAdmin(page: Page) {
     if (path.endsWith('/admin/dashboard/top-products')) return route.fulfill({ json: { success: true, data: [] } })
     if (path.endsWith('/admin/dashboard/low-stock')) return route.fulfill({ json: { success: true, data: [] } })
     if (path.endsWith('/admin/global-search')) return route.fulfill({ json: { success: true, data: { orders: [{ id: 7, title: 'LS2608300007', subtitle: 'Khách Phase 6 · 0900000007', url: '/admin/orders/7' }], customers: [], products: [], variants: [], appointments: [] } } })
-    if (path.endsWith('/admin/orders/7')) return route.fulfill({ json: { success: true, data: { id: 7, order_number: 'LS2608300007', total_amount: 1_500_000, subtotal: 1_500_000, discount_amount: 0, shipping_fee: 0, payment_method: 'cod', payment_status: 'unpaid', order_status: 'pending', created_at: '2026-08-30T08:00:00Z', customer_name: 'Khách Phase 6', customer_phone: '0900000007', shipping_address: 'Hà Nội', admin_note: null, items: [{ id: 1, product_name: products[0].name, sku: 'LS-NATURAL-01', unit_price: 1_500_000, quantity: 1, line_total: 1_500_000 }], status_histories: [], payment: null, shipment: null } } })
+    const order = { id: 7, order_number: 'LS2608300007', total_amount: 1_500_000, subtotal: 1_500_000, discount_amount: 0, shipping_fee: 0, payment_method: 'cod', payment_status: 'unpaid', order_status: 'pending', created_at: '2026-08-30T08:00:00Z', customer_name: 'Khách Phase 6', customer_phone: '0900000007', shipping_address: 'Hà Nội', admin_note: null, items: [{ id: 1, product_name: products[0].name, sku: 'LS-NATURAL-01', variant_description: 'Tóc thật · Lace', unit_price: 1_500_000, quantity: 1, line_total: 1_500_000 }], status_histories: [], payment: null, shipment: null }
+    if (path.endsWith('/admin/orders/7/status') || path.endsWith('/admin/orders/7/payment-status')) return route.fulfill({ json: { success: true, data: order } })
+    if (path.endsWith('/admin/orders/7')) return route.fulfill({ json: { success: true, data: order } })
+    if (path.endsWith('/admin/orders')) return route.fulfill({ json: { success: true, data: { data: [order], meta: { current_page: 1, last_page: 1, per_page: 20, total: 1 }, links: {} } } })
     return route.fulfill({ status: 404, json: { message: `Unmocked ${route.request().method()} ${path}` } })
   })
 }
@@ -169,4 +172,52 @@ test('admin attention center and keyboard global search work', async ({ page }) 
   await expect(page.getByText('LS2608300007')).toBeVisible()
   await search.press('Enter')
   await expect(page).toHaveURL(/\/admin\/orders\/7$/)
+})
+
+test('hair finder exposes options and recommendation errors without losing progress', async ({ page }) => {
+  let optionsAttempts = 0
+  let recommendationAttempts = 0
+  await mockStore(page)
+  await page.route('**/api/v1/hair-finder/options', async (route) => {
+    optionsAttempts += 1
+    if (optionsAttempts === 1) return route.fulfill({ status: 500, json: { message: 'Options unavailable' } })
+    return route.fallback()
+  })
+  await page.route('**/api/v1/hair-finder/recommendations', async (route) => {
+    recommendationAttempts += 1
+    if (recommendationAttempts === 1) return route.fulfill({ status: 500, json: { message: 'Recommendation unavailable' } })
+    return route.fallback()
+  })
+
+  await page.goto('/tim-mau-toc')
+  await expect(page.getByRole('heading', { name: 'Không thể tải dữ liệu tư vấn.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Thử lại' }).click()
+  await expect(page.getByRole('heading', { name: 'Tìm mẫu tóc phù hợp với bạn' })).toBeVisible()
+  await page.getByRole('button', { name: 'Sử dụng hàng ngày' }).click()
+  for (let step = 0; step < 4; step += 1) await page.getByRole('button', { name: 'Tiếp tục' }).click()
+  await page.getByRole('button', { name: 'Xem gợi ý' }).click()
+  await expect(page.getByText('Không thể tạo gợi ý. Lựa chọn của bạn vẫn được giữ lại; hãy thử lại.')).toBeVisible()
+  await expect(page.getByLabel('Chất liệu')).toBeVisible()
+  await page.getByRole('button', { name: 'Xem gợi ý' }).click()
+  await expect(page.getByRole('heading', { name: 'Gợi ý dành cho bạn' })).toBeVisible()
+})
+
+test('admin direct orders load fetches attention, quick action works, and print header stays visible', async ({ page }) => {
+  await mockAdmin(page)
+  await page.addInitScript(() => { window.print = () => undefined })
+  await page.goto('/admin/orders')
+
+  await expect(page.getByText('Đơn chờ: 3')).toBeVisible()
+  await page.getByLabel('Thao tác đơn LS2608300007').click()
+  const statusRequest = page.waitForRequest((request) => request.url().endsWith('/admin/orders/7/status') && request.method() === 'PATCH')
+  await page.getByRole('button', { name: 'Xác nhận đơn' }).click()
+  await statusRequest
+  await expect(page.getByText('Đã xác nhận đơn hàng.')).toBeVisible()
+
+  await page.goto('/admin/orders/7')
+  await page.getByRole('button', { name: 'In phiếu đóng hàng' }).click()
+  await page.emulateMedia({ media: 'print' })
+  const printDocument = page.locator('.print-document')
+  await expect(printDocument.getByRole('heading', { name: 'PHIẾU ĐÓNG HÀNG' })).toBeVisible()
+  await expect(printDocument.getByText(/LADYSTARS · LS2608300007/)).toBeVisible()
 })

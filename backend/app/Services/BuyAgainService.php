@@ -2,16 +2,27 @@
 
 namespace App\Services;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BuyAgainService
 {
     public function __construct(private CartService $cart) {}
 
+    public function canBuyAgain(Order $order): bool
+    {
+        return in_array($order->order_status, [OrderStatus::Completed->value, OrderStatus::Cancelled->value], true);
+    }
+
     public function execute(User $user, Order $order): array
     {
+        if (! $this->canBuyAgain($order)) {
+            throw ValidationException::withMessages(['order' => 'Chỉ có thể mua lại đơn đã hoàn thành hoặc đã hủy.']);
+        }
+
         $order->loadMissing('items.variant.inventories', 'items.variant.product');
         $added = [];
         $skipped = [];

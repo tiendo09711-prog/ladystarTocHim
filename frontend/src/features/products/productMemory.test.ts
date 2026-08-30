@@ -25,7 +25,13 @@ describe('product memory', () => {
   })
 
   it('survives corrupt storage data', () => {
-    localStorage.setItem('ladystars_compare_v1', '{bad json')
-    expect(compareIds()).toEqual([])
+    for (const value of ['{bad json', 'null', '{}', 'abc', '123', '[null]', '[{}]']) {
+      localStorage.setItem('ladystars_compare_v1', value)
+      localStorage.setItem('ladystars_recently_viewed_v1', value)
+      localStorage.setItem('ladystars_search_history_v1', value)
+      expect(compareIds()).toEqual([])
+      expect(recentlyViewedIds()).toEqual([])
+      expect(searchHistory()).toEqual([])
+    }
   })
 })

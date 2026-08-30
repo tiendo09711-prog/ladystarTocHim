@@ -20,12 +20,13 @@ class OrderController extends Controller
         return $this->success($request->user()->orders()->with('items')->latest()->paginate(10));
     }
 
-    public function show(Request $request, string $orderNumber, AfterSalesEligibilityService $eligibility)
+    public function show(Request $request, string $orderNumber, AfterSalesEligibilityService $eligibility, BuyAgainService $buyAgain)
     {
         $order = $request->user()->orders()->where('order_number', $orderNumber)->with('items.product.images', 'items.product.variants', 'items.review', 'statusHistories', 'payment', 'shipment')->firstOrFail();
 
         $eligibilityByItem = $eligibility->forOrder($order);
         $order->items->each(fn ($item) => $item->setAttribute('after_sales_eligibility', $eligibilityByItem[$item->id]));
+        $order->setAttribute('can_buy_again', $buyAgain->canBuyAgain($order));
 
         return $this->success($order->makeHidden('admin_note'));
     }

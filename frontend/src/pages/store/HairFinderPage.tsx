@@ -9,13 +9,15 @@ type AnswerValue = string | string[] | number | undefined
 type HairFinderAnswers = Record<string, AnswerValue>
 
 export function HairFinderPage() {
-  const options = useQuery({ queryKey: ['hair-finder-options'], queryFn: async () => (await apiClient.get<ApiResponse<HairFinderOptions>>('/hair-finder/options')).data.data })
+  const options = useQuery({ queryKey: ['hair-finder-options'], queryFn: async () => (await apiClient.get<ApiResponse<HairFinderOptions>>('/hair-finder/options')).data.data, retry: false })
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<HairFinderAnswers>({})
   const [results, setResults] = useState<HairFinderRecommendation[]>([])
   const [loading, setLoading] = useState(false)
+  const [recommendationError, setRecommendationError] = useState(false)
 
-  if (options.isLoading || !options.data) return <div className='container-page py-12'><LoadingState /></div>
+  if (options.isLoading) return <div className='container-page py-12'><LoadingState /></div>
+  if (options.isError || !options.data) return <div className='container-page py-12'><div className='card mx-auto max-w-xl p-8 text-center'><h1 className='text-xl font-black'>Không thể tải dữ liệu tư vấn.</h1><button className='btn-primary mt-5' onClick={() => void options.refetch()}>Thử lại</button></div></div>
 
   const { actions, content, format, questions } = options.data
   const currentAnswers = Object.keys(answers).length ? answers : defaultAnswers(questions)
@@ -24,10 +26,13 @@ export function HairFinderPage() {
   const setBudget = (minimum?: number, maximum?: number) => setAnswers((current) => ({ ...(Object.keys(current).length ? current : defaultAnswers(questions)), budget_min: minimum, budget_max: maximum }))
   const finish = async () => {
     setLoading(true)
+    setRecommendationError(false)
     try {
       const response = await apiClient.post<ApiResponse<HairFinderRecommendation[]>>('/hair-finder/recommendations', currentAnswers)
       setResults(response.data.data)
       setStep(questions.length)
+    } catch {
+      setRecommendationError(true)
     } finally {
       setLoading(false)
     }
@@ -43,6 +48,7 @@ export function HairFinderPage() {
     {step < questions.length && question ? <div className='card mt-8 p-6 md:p-8'>
       <div className='mb-6 h-2 overflow-hidden rounded-full bg-slate-100'><div className='h-full bg-emerald-700 transition-all' style={{ width: `${((step + 1) / questions.length) * 100}%` }} /></div>
       <QuestionStep question={question} answers={currentAnswers} format={format} setAnswer={setAnswer} setBudget={setBudget} />
+      {recommendationError && <div className='mt-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700'>Không thể tạo gợi ý. Lựa chọn của bạn vẫn được giữ lại; hãy thử lại.</div>}
       <div className='mt-8 flex justify-between'><button className='btn-secondary' disabled={step === 0} onClick={() => setStep((current) => current - 1)}>{actions.back}</button>{step === questions.length - 1 ? <button className='btn-primary' disabled={loading} onClick={() => void finish()}>{loading ? actions.loading : actions.submit}</button> : <button className='btn-primary' onClick={() => setStep((current) => current + 1)}>{actions.next}</button>}</div>
     </div> : <section className='mt-10'>
       <div className='mb-5 flex items-center justify-between'><h2 className='text-2xl font-black'>{content.result_title}</h2><button className='btn-secondary' onClick={restart}>{actions.restart}</button></div>

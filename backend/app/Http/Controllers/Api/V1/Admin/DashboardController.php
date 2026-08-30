@@ -61,8 +61,8 @@ class DashboardController extends Controller
         return $this->success(Inventory::with('variant.product', 'branch')->whereRaw('(quantity_on_hand - quantity_reserved) <= reorder_level')->limit(20)->get());
     }
 
-    public function attention(AttentionCenterService $attention)
+    public function attention(Request $request, AttentionCenterService $attention)
     {
-        return $this->success($attention->summary());
+        return $this->success($attention->summary($request->user()));
     }
 }

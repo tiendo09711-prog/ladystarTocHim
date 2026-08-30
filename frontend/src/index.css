@@ -1076,7 +1076,7 @@ body.guide-dialog-open { overflow: hidden; }
 @media print {
   @page { size: A4; margin: 14mm; }
   body { background: #fff !important; }
-  .store-announcement, .store-header, .store-footer, aside, header, .admin-screen-content { display: none !important; }
+  .store-announcement, .store-header, .store-footer, .admin-sidebar, main > header, .no-print, .admin-screen-content { display: none !important; }
   .print-document { display: block !important; }
   main { padding: 0 !important; }
 }
