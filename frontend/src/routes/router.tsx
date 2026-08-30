@@ -24,6 +24,8 @@ import { GuidePage } from '../pages/store/GuidePage'
 import { GuideDetailPage } from '../pages/store/GuideDetailPage'
 import { ProductPage } from '../pages/store/ProductPage'
 import { ProductsPage } from '../pages/store/ProductsPage'
+import { ComparePage } from '../pages/store/ComparePage'
+import { HairFinderPage } from '../pages/store/HairFinderPage'
 import { PromotionsPage } from '../pages/store/PromotionsPage'
 import { StoreLocationsPage } from '../pages/store/StoreLocationsPage'
 import { ContactPage } from '../pages/store/ContactPage'
@@ -109,7 +111,7 @@ export const router = createBrowserRouter([
     { path: 'forbidden', element: <AdminForbiddenPage /> },
   ] }] },
   { path: '/', element: <StoreLayout />, children: [
-    { index: true, element: <HomePage /> }, { path: 'san-pham', element: <ProductsPage /> }, { path: 'san-pham/:slug', element: <ProductPage /> },
+    { index: true, element: <HomePage /> }, { path: 'san-pham', element: <ProductsPage /> }, { path: 'san-pham/:slug', element: <ProductPage /> }, { path: 'so-sanh', element: <ComparePage /> }, { path: 'tim-mau-toc', element: <HairFinderPage /> },
     { path: 'danh-muc/:slug', element: <ProductsPage /> }, { path: 'tim-kiem', element: <ProductsPage /> }, { path: 'gio-hang', element: <CartPage /> },
     { path: 'dang-nhap', element: <LoginPage /> }, { path: 'dang-ky', element: <RegisterPage /> }, { path: 'quen-mat-khau', element: <ForgotPasswordPage /> }, { path: 'dat-lai-mat-khau', element: <ResetPasswordPage /> },
     { path: 'gioi-thieu', element: <AboutPage /> },

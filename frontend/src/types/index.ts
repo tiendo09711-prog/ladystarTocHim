@@ -28,11 +28,13 @@ export interface CartData { items: CartItem[]; subtotal: number; count: number }
 export interface Address { id: number; recipient_name: string; phone: string; province: string; district: string; ward: string; address_line: string; postal_code?: string | null; is_default: boolean }
 export interface CustomerReview { id: number; rating: number; title?: string | null; content?: string | null; status: 'pending' | 'approved' | 'rejected'; admin_reply?: string | null; created_at?: string }
 export interface VariantSnapshotItem { attribute_code: string; attribute_name: string; value: string; option_code?: string | null }
-export interface OrderItem { id: number; product_id?: number; product_variant_id?: number; product_name: string; variant_description?: string; variant_snapshot?: VariantSnapshotItem[] | null; warranty_days_snapshot?: number | null; sku: string; unit_price: number; quantity: number; line_total: number; review?: CustomerReview | null; product?: Product }
+export interface EligibilityCountdown { eligible: boolean; expires_at?: string | null; days_remaining?: number | null; reason_if_not_eligible?: string | null }
+export interface AfterSalesEligibility { can_return: boolean; can_exchange: boolean; can_warranty: boolean; return?: EligibilityCountdown; exchange?: EligibilityCountdown; warranty?: EligibilityCountdown }
+export interface OrderItem { id: number; product_id?: number; product_variant_id?: number; product_name: string; variant_description?: string; variant_snapshot?: VariantSnapshotItem[] | null; warranty_days_snapshot?: number | null; sku: string; unit_price: number; quantity: number; line_total: number; review?: CustomerReview | null; product?: Product; after_sales_eligibility?: AfterSalesEligibility }
 export interface OrderStatusHistory { id: number; from_status?: string | null; to_status: string; changed_by?: number | null; note?: string | null; created_at: string }
 export interface Payment { method: string; provider: string; amount: number; status: 'pending' | 'paid' | 'partially_refunded' | 'refunded'; transaction_code?: string | null; verified_by?: number | null; paid_at?: string | null; note?: string | null }
 export interface Shipment { carrier: string; tracking_number?: string | null; shipping_fee_actual?: number | null; status: 'pending' | 'shipped' | 'delivered'; shipped_at?: string | null; delivered_at?: string | null; tracking_url?: string | null; note?: string | null }
-export interface PaymentMethods { cod: { enabled: boolean }; bank_transfer: { enabled: boolean; bank_name?: string | null; account_name?: string | null; account_number?: string | null; bank_branch?: string | null; qr_path?: string | null; instruction?: string | null } }
+export interface PaymentMethods { shipping?: { fee: number; free_from: number }; cod: { enabled: boolean }; bank_transfer: { enabled: boolean; bank_name?: string | null; account_name?: string | null; account_number?: string | null; bank_branch?: string | null; qr_path?: string | null; instruction?: string | null } }
 export interface Order { id: number; order_number: string; total_amount: number; subtotal: number; discount_amount: number; shipping_fee: number; payment_method: string; payment_status: string; order_status: string; created_at: string; customer_name: string; customer_phone: string; province?: string; district?: string; ward?: string; shipping_address: string; admin_note?: string | null; items: OrderItem[]; status_histories?: OrderStatusHistory[]; payment?: Payment | null; shipment?: Shipment | null }
 
 export interface Refund { id: number; code: string; amount: number; status: 'pending' | 'completed' | 'cancelled'; method: string; transaction_code?: string | null; completed_at?: string | null }
@@ -44,6 +46,19 @@ export interface WarrantyRequest { id: number; code: string; status: string; iss
 export interface Appointment { id: number; code: string; customer_name: string; customer_phone: string; customer_email?: string | null; start_at: string; end_at: string; status: string; source: string; customer_note?: string | null; admin_note?: string | null; confirmed_at?: string | null; checked_in_at?: string | null; completed_at?: string | null; cancelled_at?: string | null; timezone: string; branch: Pick<Branch, 'id' | 'name' | 'code'>; service: Pick<Service, 'id' | 'name' | 'duration_minutes'> }
 export interface AppointmentSlot { start_at: string; end_at: string; local_start: string; capacity: number }
 export interface AppointmentOptions { branches: Branch[]; services: Service[]; timezone: string }
+export interface WishlistEntry { id: number; product_id: number; product_variant_id?: number | null; product: Product; variant?: ProductVariant | null; created_at: string }
+export interface HairFinderChoice { value: string; label: string; min?: number; max?: number }
+export interface HairFinderField { key: string; label: string; placeholder?: string; source?: string; choices: HairFinderChoice[] }
+export interface HairFinderQuestion { key: string; type: 'single' | 'multiple' | 'budget' | 'select_group'; title: string; default_value?: string | string[]; empty_label?: string; choices?: HairFinderChoice[]; fields?: HairFinderField[] }
+export interface HairFinderOptions {
+  content: { eyebrow: string; title: string; description: string; result_title: string; empty_result: string; score_template: string }
+  actions: { back: string; next: string; submit: string; loading: string; restart: string }
+  format: { locale: string; currency: string }
+  questions: HairFinderQuestion[]
+}
+export interface HairFinderRecommendation { product: Product; score: number; reasons: string[] }
+export interface AttentionItem { key: string; label: string; count: number; url: string }
+export interface AttentionSummary { items: AttentionItem[]; counters: Record<string, number> }
 
 export interface AdminAttributeValue { id: number; attribute_id: number; value: string; display_value: string; option_code?: string | null; description?: string | null; color_code?: string | null; image_path?: string | null; image_url?: string | null; image_alt?: string | null; sort_order: number; is_active: boolean }
 export interface AdminAttribute { id: number; name: string; code: string; type: 'select' | 'color' | 'text'; display_style?: 'buttons' | 'image_swatches' | 'image_cards' | null; sort_order: number; is_filterable: boolean; is_variant_attribute: boolean; is_active: boolean; values: AdminAttributeValue[] }
@@ -54,7 +69,9 @@ export interface Branch {
 }
 export interface AdminCustomer extends User { orders_count: number; created_at: string }
 export interface CustomerInsight { completed_orders: number; net_spend: number; aov_net: number; first_purchase_at?: string | null; last_purchase_at?: string | null; completed_return_requests: number; warranty_count: number; appointment_count: number }
-export interface CustomerDetail extends User { addresses: Address[]; orders: Order[]; insights?: CustomerInsight }
+export interface CustomerTag { id: number; name: string; customers_count?: number }
+export interface CustomerNote { id: number; customer_id: number; staff_id?: number | null; content: string; created_at: string; updated_at: string; staff?: Pick<User, 'id' | 'name'> | null }
+export interface CustomerDetail extends User { addresses: Address[]; orders: Order[]; insights?: CustomerInsight; customer_tags?: CustomerTag[]; customer_notes?: CustomerNote[] }
 export interface AdminReview { id: number; rating: number; title?: string | null; content?: string | null; status: 'pending' | 'approved' | 'rejected'; admin_reply?: string | null; created_at: string; user: User; product: Pick<Product, 'id' | 'name' | 'slug'> }
 export interface Coupon { id: number; code: string; type: 'fixed' | 'percentage'; value: number; minimum_order_amount?: number | null; maximum_discount_amount?: number | null; usage_limit?: number | null; usage_limit_per_user?: number | null; used_count: number; starts_at?: string | null; expires_at?: string | null; is_active: boolean }
 export interface InventoryRow { id: number; branch_id: number; product_variant_id: number; quantity_on_hand: number; quantity_reserved: number; quantity_available: number; reorder_level: number; branch: Branch; variant: { id: number; sku: string; product: { id: number; name: string } } }

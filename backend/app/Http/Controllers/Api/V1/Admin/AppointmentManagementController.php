@@ -26,6 +26,7 @@ class AppointmentManagementController extends Controller
     public function index(Request $request)
     {
         $query = Appointment::with('branch', 'service')->latest('start_at');
+        $query->when($request->filled('appointment'), fn ($q) => $q->whereKey($request->integer('appointment')));
         $query->when($request->filled('date'), fn ($q) => $q->whereDate('start_at', $request->input('date')));
         $query->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')));
         $query->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')));

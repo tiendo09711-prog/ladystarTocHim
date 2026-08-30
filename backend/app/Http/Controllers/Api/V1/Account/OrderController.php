@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Account;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Services\AfterSalesEligibilityService;
+use App\Services\BuyAgainService;
 use App\Services\OrderLifecycleService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -38,5 +39,12 @@ class OrderController extends Controller
         $order = $orderLifecycleService->cancel($order, $request->user()->id, [OrderStatus::Pending], 'Khách hàng hủy đơn.');
 
         return $this->success($order, 'Đã hủy đơn hàng.');
+    }
+
+    public function buyAgain(Request $request, string $orderNumber, BuyAgainService $buyAgain)
+    {
+        $order = $request->user()->orders()->where('order_number', $orderNumber)->firstOrFail();
+
+        return $this->success($buyAgain->execute($request->user(), $order), 'Đã xử lý mua lại đơn hàng.');
     }
 }

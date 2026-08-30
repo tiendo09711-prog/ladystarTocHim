@@ -15,6 +15,15 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+let profileRequest: Promise<User> | null = null
+
+async function fetchProfile() {
+  profileRequest ??= csrfCookie()
+    .then(() => apiClient.get<ApiResponse<User>>('/auth/me'))
+    .then((response) => response.data.data)
+    .finally(() => { profileRequest = null })
+  return profileRequest
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -24,9 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const revision = ++authRevision.current
     try {
-      await csrfCookie()
-      const response = await apiClient.get<ApiResponse<User>>('/auth/me')
-      if (revision === authRevision.current) setUser(response.data.data)
+      const profile = await fetchProfile()
+      if (revision === authRevision.current) setUser(profile)
     } catch {
       if (revision === authRevision.current) setUser(null)
     } finally {

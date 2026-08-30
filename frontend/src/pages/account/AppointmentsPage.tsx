@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
+import { CalendarPlus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
@@ -7,6 +8,7 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { ApiResponse, Appointment, Pagination } from '../../types'
 import { statusLabel } from '../../utils/format'
+import { downloadAppointmentIcs } from '../../utils/browserActions'
 
 export function AppointmentsPage() {
   const { id } = useParams()
@@ -31,7 +33,7 @@ export function AppointmentsPage() {
       <Link className='text-sm font-bold text-emerald-800' to='/tai-khoan/lich-hen'>← Tất cả lịch hẹn</Link>
       <div className='mt-4 flex flex-wrap justify-between gap-3'><div><h1 className='text-2xl font-black'>{item.code}</h1><p className='muted mt-1'>{item.service.name} · {item.branch.name}</p></div><span className='badge'>{statusLabel[item.status] ?? item.status}</span></div>
       <dl className='mt-6 grid gap-4 rounded-2xl bg-slate-50 p-5 sm:grid-cols-2'><Info label='Bắt đầu' value={new Date(item.start_at).toLocaleString('vi-VN')} /><Info label='Kết thúc' value={new Date(item.end_at).toLocaleString('vi-VN')} /><Info label='Chi nhánh' value={item.branch.name} /><Info label='Dịch vụ' value={`${item.service.name} (${item.service.duration_minutes} phút)`} /><Info label='Ghi chú' value={item.customer_note || 'Không có'} /></dl>
-      {mutable && <div className='mt-5 flex flex-wrap items-end gap-3'><label><span className='label'>Thời gian mới</span><input className='input' type='datetime-local' value={rescheduleAt} onChange={(event) => setRescheduleAt(event.target.value)} /></label><button className='btn-primary' type='button' disabled={!rescheduleAt} onClick={() => void reschedule(item.id)}>Đổi lịch</button><button className='btn-secondary text-red-700' type='button' onClick={() => void cancel(item.id)}>Hủy lịch</button></div>}
+      <div className='mt-5 flex flex-wrap items-end gap-3'><button className='btn-secondary' type='button' onClick={() => downloadAppointmentIcs(item)}><CalendarPlus size={17} />Thêm vào lịch</button>{mutable && <><label><span className='label'>Thời gian mới</span><input className='input' type='datetime-local' value={rescheduleAt} onChange={(event) => setRescheduleAt(event.target.value)} /></label><button className='btn-primary' type='button' disabled={!rescheduleAt} onClick={() => void reschedule(item.id)}>Đổi lịch</button><button className='btn-secondary text-red-700' type='button' onClick={() => void cancel(item.id)}>Hủy lịch</button></>}</div>
     </div>
   }
 

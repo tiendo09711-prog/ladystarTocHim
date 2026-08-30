@@ -55,6 +55,21 @@ class User extends Authenticatable
         return $this->hasOne(Cart::class);
     }
 
+    public function wishlistEntries()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function customerTags()
+    {
+        return $this->belongsToMany(CustomerTag::class, 'customer_tag_user')->withTimestamps();
+    }
+
+    public function customerNotes()
+    {
+        return $this->hasMany(CustomerNote::class, 'customer_id');
+    }
+
     public function staffRoles()
     {
         return $this->belongsToMany(StaffRole::class, 'staff_role_user')->withTimestamps();

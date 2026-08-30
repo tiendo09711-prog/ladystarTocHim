@@ -23,6 +23,7 @@ class StoreSetting extends Model
             'warranty_enabled' => 'boolean',
             'appointments_enabled' => 'boolean',
             'appointment_cancel_before_hours' => 'integer',
+            'hair_finder_config' => 'array',
         ];
     }
 

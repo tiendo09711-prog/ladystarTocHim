@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
-import { useState, type FormEvent } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
 import { EmptyState } from '../../components/common/EmptyState'
@@ -17,7 +17,8 @@ export function ReturnsAdminPage() {
   const canManageRefunds = can(user, 'refunds.manage')
   const { id } = useParams()
   const client = useQueryClient()
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = Object.fromEntries(searchParams.entries())
   const query = useQuery({ queryKey: ['admin-returns', id, filters], queryFn: async () => id ? (await apiClient.get<ApiResponse<ReturnRequest>>(`/admin/returns/${id}`)).data.data : (await apiClient.get<ApiResponse<Pagination<ReturnRequest>>>('/admin/returns', { params: filters })).data.data })
   const refundSummary = useQuery({ queryKey: ['admin-return-refund-summary', id], enabled: Boolean(canViewRefunds && id && (query.data as ReturnRequest | undefined)?.request_type === 'return' && ['received', 'completed'].includes((query.data as ReturnRequest).status)), queryFn: async () => (await apiClient.get<ApiResponse<{ suggested: number; already_refunded: number; remaining_payment: number }>>(`/admin/returns/${id}/refund-summary`)).data.data })
   if (query.isLoading) return <LoadingState />
@@ -27,7 +28,7 @@ export function ReturnsAdminPage() {
 
   if (!id) {
     const page = query.data as Pagination<ReturnRequest>
-    return <AdminList title='Đổi / Trả' filters={<ReturnFilters onSubmit={setFilters} />}>{page?.data.length ? page.data.map((item) => <tr key={item.id}><td><Link className='font-bold text-emerald-800' to={`/admin/returns/${item.id}`}>{item.code}</Link></td><td>{item.order?.order_number}</td><td>{item.customer?.customer_name}</td><td>{item.request_type === 'exchange' ? 'Đổi hàng' : 'Trả hàng'}</td><td>{statusLabel[item.status] ?? item.status}</td><td>{new Date(item.requested_at).toLocaleDateString('vi-VN')}</td></tr>) : <tr><td colSpan={6}><EmptyState title='Không có yêu cầu' description='Không tìm thấy yêu cầu đổi / trả phù hợp.' /></td></tr>}</AdminList>
+    return <AdminList title='Đổi / Trả' filters={<ReturnFilters values={filters} onSubmit={(next) => setSearchParams(next)} />}>{page?.data.length ? page.data.map((item) => <tr key={item.id}><td><Link className='font-bold text-emerald-800' to={`/admin/returns/${item.id}`}>{item.code}</Link></td><td>{item.order?.order_number}</td><td>{item.customer?.customer_name}</td><td>{item.request_type === 'exchange' ? 'Đổi hàng' : 'Trả hàng'}</td><td>{statusLabel[item.status] ?? item.status}</td><td>{new Date(item.requested_at).toLocaleDateString('vi-VN')}</td></tr>) : <tr><td colSpan={6}><EmptyState title='Không có yêu cầu' description='Không tìm thấy yêu cầu đổi / trả phù hợp.' /></td></tr>}</AdminList>
   }
 
   const item = query.data as ReturnRequest
@@ -52,7 +53,8 @@ export function WarrantiesAdminPage() {
   const { user } = useAuth(); const canManage = can(user, 'warranties.manage')
   const { id } = useParams()
   const client = useQueryClient()
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = Object.fromEntries(searchParams.entries())
   const query = useQuery({ queryKey: ['admin-warranties', id, filters], queryFn: async () => id ? (await apiClient.get<ApiResponse<WarrantyRequest>>(`/admin/warranties/${id}`)).data.data : (await apiClient.get<ApiResponse<Pagination<WarrantyRequest>>>('/admin/warranties', { params: filters })).data.data })
   if (query.isLoading) return <LoadingState />
   const refresh = async () => client.invalidateQueries({ queryKey: ['admin-warranties'] })
@@ -60,7 +62,7 @@ export function WarrantiesAdminPage() {
 
   if (!id) {
     const page = query.data as Pagination<WarrantyRequest>
-    return <AdminList title='Bảo hành' filters={<WarrantyFilters onSubmit={setFilters} />}>{page?.data.length ? page.data.map((item) => <tr key={item.id}><td><Link className='font-bold text-emerald-800' to={`/admin/warranties/${item.id}`}>{item.code}</Link></td><td>{item.order?.order_number}</td><td>{item.customer?.customer_name ?? item.order_item?.product_name}</td><td>{item.order_item?.product_name}</td><td>{statusLabel[item.status] ?? item.status}</td><td>{new Date(item.requested_at).toLocaleDateString('vi-VN')}</td></tr>) : <tr><td colSpan={6}><EmptyState title='Không có yêu cầu' description='Không tìm thấy yêu cầu bảo hành phù hợp.' /></td></tr>}</AdminList>
+    return <AdminList title='Bảo hành' filters={<WarrantyFilters values={filters} onSubmit={(next) => setSearchParams(next)} />}>{page?.data.length ? page.data.map((item) => <tr key={item.id}><td><Link className='font-bold text-emerald-800' to={`/admin/warranties/${item.id}`}>{item.code}</Link></td><td>{item.order?.order_number}</td><td>{item.customer?.customer_name ?? item.order_item?.product_name}</td><td>{item.order_item?.product_name}</td><td>{statusLabel[item.status] ?? item.status}</td><td>{new Date(item.requested_at).toLocaleDateString('vi-VN')}</td></tr>) : <tr><td colSpan={6}><EmptyState title='Không có yêu cầu' description='Không tìm thấy yêu cầu bảo hành phù hợp.' /></td></tr>}</AdminList>
   }
 
   const item = query.data as WarrantyRequest
@@ -77,8 +79,8 @@ export function WarrantiesAdminPage() {
   </AdminDetail>
 }
 
-function ReturnFilters({ onSubmit }: { onSubmit: (filters: Record<string, string>) => void }) { return <form className='card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-8' onSubmit={(event) => { event.preventDefault(); onSubmit(cleanForm(event.currentTarget)) }}><input className='input' name='code' placeholder='Mã yêu cầu' /><input className='input' name='order_number' placeholder='Mã đơn' /><input className='input' name='customer' placeholder='Khách hàng' /><input className='input' name='phone' placeholder='Điện thoại' /><select className='input' name='request_type'><option value=''>Tất cả loại</option><option value='return'>Trả hàng</option><option value='exchange'>Đổi hàng</option></select><select className='input' name='status'><option value=''>Tất cả trạng thái</option>{['requested', 'reviewing', 'approved', 'returning', 'received', 'completed', 'rejected', 'cancelled'].map((status) => <option key={status} value={status}>{statusLabel[status] ?? status}</option>)}</select><input className='input' type='date' name='from' /><button className='btn-primary'>Lọc</button></form> }
-function WarrantyFilters({ onSubmit }: { onSubmit: (filters: Record<string, string>) => void }) { return <form className='card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-5' onSubmit={(event) => { event.preventDefault(); onSubmit(cleanForm(event.currentTarget)) }}><input className='input' name='code' placeholder='Mã yêu cầu' /><input className='input' name='customer' placeholder='Khách hàng' /><input className='input' name='phone' placeholder='Điện thoại' /><select className='input' name='status'><option value=''>Tất cả trạng thái</option>{['requested', 'reviewing', 'approved', 'received', 'processing', 'ready', 'completed', 'rejected', 'cancelled'].map((status) => <option key={status} value={status}>{statusLabel[status] ?? status}</option>)}</select><button className='btn-primary'>Lọc</button></form> }
+function ReturnFilters({ values, onSubmit }: { values: Record<string, string>; onSubmit: (filters: Record<string, string>) => void }) { return <form className='card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-8' onSubmit={(event) => { event.preventDefault(); onSubmit(cleanForm(event.currentTarget)) }}><input className='input' name='code' defaultValue={values.code} placeholder='Mã yêu cầu' /><input className='input' name='order_number' defaultValue={values.order_number} placeholder='Mã đơn' /><input className='input' name='customer' defaultValue={values.customer} placeholder='Khách hàng' /><input className='input' name='phone' defaultValue={values.phone} placeholder='Điện thoại' /><select className='input' name='request_type' defaultValue={values.request_type}><option value=''>Tất cả loại</option><option value='return'>Trả hàng</option><option value='exchange'>Đổi hàng</option></select><select className='input' name='status' defaultValue={values.status}><option value=''>Tất cả trạng thái</option>{['requested', 'reviewing', 'approved', 'returning', 'received', 'completed', 'rejected', 'cancelled'].map((status) => <option key={status} value={status}>{statusLabel[status] ?? status}</option>)}</select><input className='input' type='date' name='from' defaultValue={values.from} /><button className='btn-primary'>Lọc</button></form> }
+function WarrantyFilters({ values, onSubmit }: { values: Record<string, string>; onSubmit: (filters: Record<string, string>) => void }) { return <form className='card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-5' onSubmit={(event) => { event.preventDefault(); onSubmit(cleanForm(event.currentTarget)) }}><input className='input' name='code' defaultValue={values.code} placeholder='Mã yêu cầu' /><input className='input' name='customer' defaultValue={values.customer} placeholder='Khách hàng' /><input className='input' name='phone' defaultValue={values.phone} placeholder='Điện thoại' /><select className='input' name='status' defaultValue={values.status}><option value=''>Tất cả trạng thái</option>{['requested', 'reviewing', 'approved', 'received', 'processing', 'ready', 'completed', 'rejected', 'cancelled'].map((status) => <option key={status} value={status}>{statusLabel[status] ?? status}</option>)}</select><button className='btn-primary'>Lọc</button></form> }
 function cleanForm(form: HTMLFormElement) { return Object.fromEntries([...new FormData(form).entries()].filter(([, value]) => value !== '')) as Record<string, string> }
 function AdminList({ title, filters, children }: { title: string; filters: React.ReactNode; children: React.ReactNode }) { return <div><h1 className='mb-6 text-3xl font-black'>{title}</h1>{filters}<div className='table-wrap'><table className='table'><thead><tr><th>Mã</th><th>Đơn hàng</th><th>Khách hàng</th><th>Loại / Sản phẩm</th><th>Trạng thái</th><th>Ngày</th></tr></thead><tbody>{children}</tbody></table></div></div> }
 function AdminDetail({ back, title, status, children }: { back: string; title: string; status: string; children: React.ReactNode }) { return <div className='card p-6'><Link className='text-sm font-bold text-emerald-800' to={back}>← Quay lại danh sách</Link><div className='mt-4 flex justify-between gap-3'><h1 className='text-2xl font-black'>{title}</h1><span className='badge'>{statusLabel[status] ?? status}</span></div><div className='mt-5 grid gap-4'>{children}</div></div> }

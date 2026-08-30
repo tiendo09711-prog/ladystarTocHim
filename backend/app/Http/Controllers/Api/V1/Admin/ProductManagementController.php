@@ -9,6 +9,7 @@ use App\Models\AttributeValue;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Services\ProductDuplicationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,10 @@ class ProductManagementController extends Controller
 
     public function index(Request $request)
     {
-        $products = Product::with('category', 'brand', 'images', 'variants.inventories')->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->input('search').'%')->orWhere('base_sku', 'like', '%'.$request->input('search').'%'))->latest()->paginate(15);
+        $products = Product::with('category', 'brand', 'images', 'variants.inventories')
+            ->when($request->filled('search'), fn ($query) => $query->where(fn ($search) => $search->where('name', 'like', '%'.$request->input('search').'%')->orWhere('base_sku', 'like', '%'.$request->input('search').'%')))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+            ->latest()->paginate(15);
 
         return $this->success(AdminProductResource::collection($products)->response()->getData(true));
     }
@@ -88,6 +92,11 @@ class ProductManagementController extends Controller
         $product->update($request->validate(['status' => ['required', Rule::in(['draft', 'active', 'inactive'])]]));
 
         return $this->success($product);
+    }
+
+    public function duplicate(Request $request, Product $product, ProductDuplicationService $duplication)
+    {
+        return $this->success(new AdminProductResource($duplication->duplicate($product, $request->user())), 'Đã nhân bản sản phẩm.', 201);
     }
 
     public function uploadImages(Request $request, Product $product)

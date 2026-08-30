@@ -10,6 +10,11 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getActiveAdminNavigation, getVisibleAdminNavigation, type AdminNavigationItem } from '../config/adminNavigation'
 import { PermissionProtectedRoute } from '../routes/PermissionProtectedRoute'
 import { useAuth } from '../stores/AuthContext'
+import { AdminGlobalSearch } from '../components/admin/AdminGlobalSearch'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../api/apiClient'
+import type { ApiResponse, AttentionSummary } from '../types'
+import { can } from '../features/auth/permissions'
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -21,6 +26,7 @@ export function AdminLayout() {
   const { user, logout } = useAuth()
   const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user])
   const navigate = useNavigate()
+  const attention = useQuery({ queryKey: ['admin-attention'], queryFn: async ({ signal }) => (await apiClient.get<ApiResponse<AttentionSummary>>('/admin/dashboard/attention', { signal })).data.data, enabled: false, staleTime: 60_000 })
 
   useEffect(() => {
     if (!activeGroupId) return
@@ -119,6 +125,7 @@ export function AdminLayout() {
             )
           })}
         </nav>
+        {!collapsed && attention.data && <div className='mt-3 hidden rounded-xl bg-white/10 p-3 text-xs lg:block'><strong>Cần xử lý</strong><div className='mt-2 grid gap-1'><span>Đơn chờ: {attention.data.counters.pending_orders ?? 0}</span><span>Đổi trả: {attention.data.counters.returns_requested ?? 0}</span><span>Bảo hành: {attention.data.counters.warranties_requested ?? 0}</span></div></div>}
       </aside>
       <div className={[collapsed ? 'lg:ml-20' : 'lg:ml-72', 'min-w-0 flex-1 transition-all'].join(' ')}>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-5">
@@ -131,6 +138,7 @@ export function AdminLayout() {
               <div className="font-bold">{user?.name}</div>
             </div>
           </div>
+          {can(user, 'dashboard.view') && <AdminGlobalSearch />}
           <button className="btn-secondary" onClick={signOut}>
             <LogOut size={18} />
             <span className="hidden sm:inline">Đăng xuất</span>

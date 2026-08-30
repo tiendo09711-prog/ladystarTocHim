@@ -27,6 +27,10 @@ class AfterSalesEligibilityService
             $canExchange = $returnable > 0 && $this->canExchange($order);
             $canWarranty = $warrantyable > 0 && $this->canClaimWarranty($order, $item);
 
+            $returnReason = $canReturn ? null : $this->disabledReason((bool) $settings->returns_enabled, $order, $returnable, $returnUntil);
+            $exchangeReason = $canExchange ? null : $this->disabledReason((bool) $settings->exchange_enabled, $order, $returnable, $exchangeUntil);
+            $warrantyReason = $canWarranty ? null : $this->disabledReason((bool) $settings->warranty_enabled, $order, $warrantyable, $warrantyUntil);
+
             return [$item->id => [
                 'can_return' => $canReturn,
                 'return_quantity' => $returnable,
@@ -37,9 +41,12 @@ class AfterSalesEligibilityService
                 'can_warranty' => $canWarranty,
                 'warranty_quantity' => $warrantyable,
                 'warranty_until' => $warrantyUntil?->toIso8601String(),
-                'return_disabled_reason' => $canReturn ? null : $this->disabledReason((bool) $settings->returns_enabled, $order, $returnable, $returnUntil),
-                'exchange_disabled_reason' => $canExchange ? null : $this->disabledReason((bool) $settings->exchange_enabled, $order, $returnable, $exchangeUntil),
-                'warranty_disabled_reason' => $canWarranty ? null : $this->disabledReason((bool) $settings->warranty_enabled, $order, $warrantyable, $warrantyUntil),
+                'return_disabled_reason' => $returnReason,
+                'exchange_disabled_reason' => $exchangeReason,
+                'warranty_disabled_reason' => $warrantyReason,
+                'return' => $this->countdown($canReturn, $returnUntil, $returnReason),
+                'exchange' => $this->countdown($canExchange, $exchangeUntil, $exchangeReason),
+                'warranty' => $this->countdown($canWarranty, $warrantyUntil, $warrantyReason),
             ]];
         })->all();
     }
@@ -106,5 +113,15 @@ class AfterSalesEligibilityService
             now()->gt($until) => 'window_expired',
             default => 'not_eligible',
         };
+    }
+
+    private function countdown(bool $eligible, ?CarbonInterface $expiresAt, ?string $reason): array
+    {
+        return [
+            'eligible' => $eligible,
+            'expires_at' => $expiresAt?->toIso8601String(),
+            'days_remaining' => $expiresAt ? max(0, now()->startOfDay()->diffInDays($expiresAt->copy()->startOfDay(), false)) : null,
+            'reason_if_not_eligible' => $reason,
+        ];
     }
 }

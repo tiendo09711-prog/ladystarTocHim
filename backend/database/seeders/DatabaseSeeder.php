@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RbacSeeder::class);
+        $this->call(HairFinderConfigSeeder::class);
 
         if ($this->container->environment(['local', 'testing'])) {
             $this->call(DemoDataSeeder::class);

@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\ReportingService;
+use App\Services\AttentionCenterService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,5 +59,10 @@ class DashboardController extends Controller
     public function lowStock()
     {
         return $this->success(Inventory::with('variant.product', 'branch')->whereRaw('(quantity_on_hand - quantity_reserved) <= reorder_level')->limit(20)->get());
+    }
+
+    public function attention(AttentionCenterService $attention)
+    {
+        return $this->success($attention->summary());
     }
 }

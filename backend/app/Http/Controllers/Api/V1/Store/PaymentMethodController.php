@@ -16,6 +16,7 @@ class PaymentMethodController extends Controller
         $settings = StoreSetting::current();
 
         return $this->success([
+            'shipping' => ['fee' => (float) $settings->shipping_fee, 'free_from' => (float) $settings->free_shipping_from],
             'cod' => ['enabled' => true],
             'bank_transfer' => [
                 'enabled' => (bool) $settings->bank_transfer_enabled,

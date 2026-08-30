@@ -158,6 +158,9 @@ final class PermissionRegistry
         if (Str::startsWith($uri, 'dashboard/')) {
             return ['dashboard.view'];
         }
+        if (Str::startsWith($uri, 'global-search')) {
+            return ['dashboard.view'];
+        }
         if (Str::startsWith($uri, 'reports/')) {
             return ['reports.view'];
         }
@@ -240,6 +243,9 @@ final class PermissionRegistry
             return [$read ? 'consultations.view' : 'consultations.manage'];
         }
         if (Str::startsWith($uri, 'customers')) {
+            return [$read ? 'customers.view' : 'customers.status.manage'];
+        }
+        if (Str::startsWith($uri, 'customer-tags')) {
             return [$read ? 'customers.view' : 'customers.status.manage'];
         }
         if (Str::startsWith($uri, 'reviews')) {

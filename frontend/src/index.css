@@ -1072,3 +1072,11 @@ body.guide-dialog-open { overflow: hidden; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
   .home-hero-copy, .home-hero-visual { animation: none !important; }
 }
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body { background: #fff !important; }
+  .store-announcement, .store-header, .store-footer, aside, header, .admin-screen-content { display: none !important; }
+  .print-document { display: block !important; }
+  main { padding: 0 !important; }
+}

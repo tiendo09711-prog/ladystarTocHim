@@ -70,6 +70,10 @@ class ProductController extends Controller
 
     private function applyFilters(Builder $query, Request $request): void
     {
+        if ($request->filled('ids')) {
+            $ids = collect(explode(',', (string) $request->input('ids')))->map(fn ($id) => (int) $id)->filter()->unique()->take(12);
+            $query->whereIn('id', $ids);
+        }
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('base_sku', 'like', "%{$search}%"));
         }

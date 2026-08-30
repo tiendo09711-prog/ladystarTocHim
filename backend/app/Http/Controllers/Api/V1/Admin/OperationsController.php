@@ -53,6 +53,9 @@ class OperationsController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->integer('branch_id'));
         }
+        if ($request->boolean('low_stock')) {
+            $query->whereRaw('(quantity_on_hand - quantity_reserved) <= reorder_level');
+        }
         if ($request->filled('search')) {
             $query->whereHas('variant', fn ($q) => $q->where('sku', 'like', '%'.$request->input('search').'%')->orWhereHas('product', fn ($p) => $p->where('name', 'like', '%'.$request->input('search').'%')));
         }
@@ -288,7 +291,7 @@ class OperationsController extends Controller
     {
         abort_unless($user->isCustomer(), 404);
 
-        $customer = $user->load('addresses', 'orders.items');
+        $customer = $user->load('addresses', 'orders.items', 'customerTags', 'customerNotes.staff:id,name');
         $customer->setAttribute('insights', $this->reports->customerInsight($user));
 
         return $this->success($customer);
