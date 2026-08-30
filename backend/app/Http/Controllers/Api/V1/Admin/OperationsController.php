@@ -23,6 +23,7 @@ use App\Services\PaymentService;
 use App\Services\ReportingService;
 use App\Services\ShipmentService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -102,8 +103,17 @@ class OperationsController extends Controller
     {
         $query = Order::with('user', 'items', 'payment', 'shipment');
         $query->when($request->filled('search'), function ($query) use ($request) {
-            $value = '%'.$request->input('search').'%';
-            $query->where(fn ($search) => $search->where('order_number', 'like', $value)->orWhere('customer_name', 'like', $value)->orWhere('customer_phone', 'like', $value)->orWhere('customer_email', 'like', $value));
+            $raw = trim((string) $request->input('search'));
+            $value = '%'.$raw.'%';
+            $phone = PhoneNormalizer::normalizeIfPossible($raw);
+            $query->where(function ($search) use ($value, $phone) {
+                $search->where('order_number', 'like', $value)
+                    ->orWhere('customer_name', 'like', $value)
+                    ->orWhere('customer_email', 'like', $value);
+                if ($phone !== null) {
+                    $search->orWhere('customer_phone', 'like', '%'.$phone.'%');
+                }
+            });
         });
         $query->when($request->filled('order_status'), fn ($q) => $q->where('order_status', $request->input('order_status')));
         $query->when($request->filled('status'), fn ($q) => $q->where('order_status', $request->input('status')));
@@ -258,7 +268,20 @@ class OperationsController extends Controller
 
     public function customers(Request $request)
     {
-        return $this->success(User::where('role', 'user')->withCount('orders')->when($request->filled('search'), fn ($q) => $q->where(fn ($search) => $search->where('name', 'like', '%'.$request->input('search').'%')->orWhere('email', 'like', '%'.$request->input('search').'%')->orWhere('phone', 'like', '%'.$request->input('search').'%')))->latest()->paginate(20));
+        $query = User::where('role', 'user')->withCount('orders');
+        $query->when($request->filled('search'), function ($query) use ($request) {
+            $raw = trim((string) $request->input('search'));
+            $value = '%'.$raw.'%';
+            $phone = PhoneNormalizer::normalizeIfPossible($raw);
+            $query->where(function ($search) use ($value, $phone) {
+                $search->where('name', 'like', $value)->orWhere('email', 'like', $value);
+                if ($phone !== null) {
+                    $search->orWhere('phone', 'like', '%'.$phone.'%');
+                }
+            });
+        });
+
+        return $this->success($query->latest()->paginate(20));
     }
 
     public function showCustomer(User $user)

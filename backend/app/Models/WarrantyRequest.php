@@ -15,7 +15,7 @@ class WarrantyRequest extends Model
         return [
             'requested_at' => 'datetime', 'reviewed_at' => 'datetime', 'approved_at' => 'datetime', 'received_at' => 'datetime',
             'completed_at' => 'datetime', 'cancelled_at' => 'datetime', 'replacement_reserved_at' => 'datetime',
-            'replacement_released_at' => 'datetime', 'replacement_consumed_at' => 'datetime',
+            'replacement_released_at' => 'datetime', 'replacement_consumed_at' => 'datetime', 'replacement_restocked_at' => 'datetime',
         ];
     }
 

@@ -92,11 +92,16 @@ class PhaseThreeRefundExchangeTest extends TestCase
         $beforeReserved = $inventory->quantity_reserved;
         $service = app(ReturnRequestService::class);
         $return = $service->createRequest($order, $this->exchangePayload($item->id, $replacement->id), $order->user_id);
+        $this->assertNull($return->items()->firstOrFail()->replacement_value);
         $service->startReview($return);
         $service->approve($return, $order->branch_id);
+        $line = $return->items()->firstOrFail()->refresh();
+        $this->assertSame((float) $item->unit_price, (float) $line->original_value);
+        $this->assertSame((float) $item->unit_price, (float) $line->replacement_value);
+        $this->assertSame(0.0, (float) $line->price_difference);
+        $replacement->update(['price' => (float) $item->unit_price + 300000]);
         $this->assertSame($beforeReserved + 1, $inventory->refresh()->quantity_reserved);
 
-        $line = $return->items()->firstOrFail();
         $service->receive($return, [['id' => $line->id, 'condition_status' => 'used', 'restockable' => false]], $admin->id);
         $shipment = app(AfterSalesShipmentService::class)->save($return, 'exchange_outbound', ['carrier' => 'manual'], $admin->id);
         $service->updateExchangeShipmentStatus($shipment, 'shipped', $admin->id);
@@ -117,7 +122,10 @@ class PhaseThreeRefundExchangeTest extends TestCase
         $sameProduct->update(['status' => 'inactive']);
         $this->expectValidation(fn () => app(ReturnRequestService::class)->createRequest($order, $this->exchangePayload($item->id, $sameProduct->id), $order->user_id));
         $sameProduct->update(['status' => 'active', 'price' => (float) $item->unit_price + 1, 'sale_price' => null]);
-        $this->expectValidation(fn () => app(ReturnRequestService::class)->createRequest($order, $this->exchangePayload($item->id, $sameProduct->id), $order->user_id));
+        $priceMismatch = app(ReturnRequestService::class)->createRequest($order, $this->exchangePayload($item->id, $sameProduct->id), $order->user_id);
+        app(ReturnRequestService::class)->startReview($priceMismatch);
+        $this->expectValidation(fn () => app(ReturnRequestService::class)->approve($priceMismatch, $order->branch_id));
+        $priceMismatch->update(['status' => 'cancelled']);
 
         $sameProduct->update(['price' => $item->unit_price]);
         $inventory = Inventory::where('branch_id', $order->branch_id)->where('product_variant_id', $sameProduct->id)->firstOrFail();
@@ -130,6 +138,43 @@ class PhaseThreeRefundExchangeTest extends TestCase
         app(ReturnRequestService::class)->approve($return->refresh(), $order->branch_id);
         app(ReturnRequestService::class)->cancel($return->refresh());
         $this->assertSame(0, $inventory->refresh()->quantity_reserved);
+    }
+
+    public function test_exchange_failed_returned_and_retry_reconcile_inventory_once(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $order = $this->order();
+        $item = $order->items()->firstOrFail();
+        $replacement = ProductVariant::where('product_id', $item->product_id)->whereKeyNot($item->product_variant_id)->firstOrFail();
+        $replacement->update(['price' => $item->unit_price, 'sale_price' => null, 'status' => 'active']);
+        $inventory = Inventory::where('branch_id', $order->branch_id)->where('product_variant_id', $replacement->id)->firstOrFail();
+        $before = $inventory->quantity_on_hand;
+        $service = app(ReturnRequestService::class);
+        $return = $service->createRequest($order, $this->exchangePayload($item->id, $replacement->id), $order->user_id);
+        $service->startReview($return);
+        $service->approve($return, $order->branch_id);
+        $line = $return->items()->firstOrFail();
+        $service->receive($return, [['id' => $line->id, 'condition_status' => 'used', 'restockable' => false]], $admin->id);
+        $shipment = app(AfterSalesShipmentService::class)->save($return, 'exchange_outbound', ['carrier' => 'manual'], $admin->id);
+
+        $service->updateExchangeShipmentStatus($shipment, 'shipped', $admin->id);
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'delivery_failed', $admin->id, 'Recipient unavailable');
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'shipped', $admin->id);
+        $this->assertSame($before - 1, $inventory->refresh()->quantity_on_hand);
+        $this->assertDatabaseHas('return_requests', ['id' => $return->id, 'status' => 'received']);
+
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'delivery_failed', $admin->id);
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'returned', $admin->id, 'Returned to branch');
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'returned', $admin->id);
+        $this->assertSame($before, $inventory->refresh()->quantity_on_hand);
+        $this->assertSame(0, $inventory->quantity_reserved);
+        $this->assertDatabaseHas('return_requests', ['id' => $return->id, 'status' => 'received']);
+
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'shipped', $admin->id);
+        $this->assertSame($before - 1, $inventory->refresh()->quantity_on_hand);
+        $this->assertSame(0, $inventory->quantity_reserved);
+        $service->updateExchangeShipmentStatus($shipment->refresh(), 'delivered', $admin->id);
+        $this->assertDatabaseHas('return_requests', ['id' => $return->id, 'status' => 'completed']);
     }
 
     private function refundableReturn(): array

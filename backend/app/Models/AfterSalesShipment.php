@@ -10,7 +10,13 @@ class AfterSalesShipment extends Model
 
     protected function casts(): array
     {
-        return ['shipping_fee_actual' => 'decimal:2', 'shipped_at' => 'datetime', 'delivered_at' => 'datetime'];
+        return [
+            'shipping_fee_actual' => 'decimal:2',
+            'shipped_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'failed_at' => 'datetime',
+            'returned_at' => 'datetime',
+        ];
     }
 
     public function order()

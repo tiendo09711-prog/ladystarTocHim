@@ -19,11 +19,17 @@ class AfterSalesShipmentService
         return AfterSalesShipment::updateOrCreate($keys + ['purpose' => $purpose], $data + ['order_id' => $context->order_id, 'created_by' => $actorId]);
     }
 
-    public function updateStatus(AfterSalesShipment $shipment, string $status): AfterSalesShipment
+    public function updateStatus(AfterSalesShipment $shipment, string $status, ?string $reason = null): AfterSalesShipment
     {
-        return DB::transaction(function () use ($shipment, $status) {
+        return DB::transaction(function () use ($shipment, $status, $reason) {
             $locked = AfterSalesShipment::lockForUpdate()->findOrFail($shipment->id);
-            $allowed = ['pending' => ['shipped'], 'shipped' => ['delivered'], 'delivered' => []];
+            $allowed = [
+                'pending' => ['shipped'],
+                'shipped' => ['delivered', 'delivery_failed'],
+                'delivery_failed' => ['shipped', 'returned'],
+                'returned' => ['shipped'],
+                'delivered' => [],
+            ];
             if ($locked->status === $status) {
                 return $locked;
             }
@@ -36,6 +42,14 @@ class AfterSalesShipmentService
             }
             if ($status === 'delivered') {
                 $updates['delivered_at'] = now();
+            }
+            if ($status === 'delivery_failed') {
+                $updates['failed_at'] = now();
+                $updates['failure_reason'] = $reason;
+            }
+            if ($status === 'returned') {
+                $updates['returned_at'] = now();
+                $updates['return_reason'] = $reason;
             }
             $locked->update($updates);
 

@@ -9,6 +9,7 @@ use App\Models\ReturnRequest;
 use App\Services\AfterSalesShipmentService;
 use App\Services\ReturnRequestService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,10 @@ class ReturnManagementController extends Controller
         $query->when($request->filled('code'), fn ($q) => $q->where('code', 'like', '%'.$request->string('code').'%'));
         $query->when($request->filled('order_number'), fn ($q) => $q->whereHas('order', fn ($o) => $o->where('order_number', 'like', '%'.$request->string('order_number').'%')));
         $query->when($request->filled('customer'), fn ($q) => $q->whereHas('order', fn ($o) => $o->where('customer_name', 'like', '%'.$request->string('customer').'%')));
-        $query->when($request->filled('phone'), fn ($q) => $q->whereHas('order', fn ($o) => $o->where('customer_phone', 'like', '%'.$request->string('phone').'%')));
+        $query->when($request->filled('phone'), function ($q) use ($request) {
+            $phone = PhoneNormalizer::normalizeIfPossible($request->input('phone')) ?? trim((string) $request->input('phone'));
+            $q->whereHas('order', fn ($order) => $order->where('customer_phone', 'like', '%'.$phone.'%'));
+        });
         $query->when($request->filled('request_type'), fn ($q) => $q->where('request_type', $request->input('request_type')));
         $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')));
         $query->when($request->filled('from'), fn ($q) => $q->whereDate('requested_at', '>=', $request->input('from')));
@@ -101,10 +105,16 @@ class ReturnManagementController extends Controller
     public function shipmentStatus(Request $request, ReturnRequest $returnRequest, AfterSalesShipment $shipment)
     {
         abort_unless($shipment->return_request_id === $returnRequest->id, 404);
-        $status = $request->validate(['status' => ['required', Rule::in(['shipped', 'delivered'])]])['status'];
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['shipped', 'delivered', 'delivery_failed', 'returned'])],
+            'failure_reason' => ['nullable', 'string', 'max:2000'],
+            'return_reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $status = $data['status'];
+        $reason = $status === 'delivery_failed' ? ($data['failure_reason'] ?? null) : ($data['return_reason'] ?? null);
         $updated = $shipment->purpose === 'exchange_outbound'
-            ? $this->service->updateExchangeShipmentStatus($shipment, $status, $request->user()->id)
-            : $this->shipments->updateStatus($shipment, $status);
+            ? $this->service->updateExchangeShipmentStatus($shipment, $status, $request->user()->id, $reason)
+            : $this->shipments->updateStatus($shipment, $status, $reason);
 
         return $this->success($updated);
     }

@@ -15,6 +15,7 @@ class ReturnItem extends Model
             'original_value' => 'decimal:2', 'replacement_value' => 'decimal:2', 'price_difference' => 'decimal:2',
             'restocked_at' => 'datetime', 'replacement_reserved_at' => 'datetime',
             'replacement_released_at' => 'datetime', 'replacement_consumed_at' => 'datetime',
+            'replacement_restocked_at' => 'datetime',
         ];
     }
 

@@ -25,8 +25,13 @@ class StaffManagementController extends Controller
     {
         $query = User::where('role', 'staff')->with('staffRoles:id,name,slug')->latest();
         $query->when($request->filled('search'), fn ($builder) => $builder->where(function ($search) use ($request) {
-            $value = '%'.$request->string('search').'%';
-            $search->where('name', 'like', $value)->orWhere('email', 'like', $value)->orWhere('phone', 'like', $value);
+            $raw = trim((string) $request->input('search'));
+            $value = '%'.$raw.'%';
+            $phone = PhoneNormalizer::normalizeIfPossible($raw);
+            $search->where('name', 'like', $value)->orWhere('email', 'like', $value);
+            if ($phone !== null) {
+                $search->orWhere('phone', 'like', '%'.$phone.'%');
+            }
         }));
         $query->when($request->filled('status'), fn ($builder) => $builder->where('status', $request->string('status')));
         $query->when($request->filled('role'), fn ($builder) => $builder->whereHas('staffRoles', fn ($roles) => $roles->where('slug', $request->string('role'))));

@@ -133,6 +133,43 @@ class PhaseThreeWarrantyTest extends TestCase
         $this->withHeader('X-Guest-Token', $token)->postJson('/api/v1/guest/warranties', $payload)->assertCreated();
     }
 
+    public function test_replacement_failed_returned_and_retry_reconcile_inventory_once(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $service = app(WarrantyService::class);
+        $order = $this->order();
+        $item = $order->items()->firstOrFail();
+        $item->update(['warranty_days_snapshot' => 30]);
+        $replacement = ProductVariant::whereKeyNot($item->product_variant_id)->where('status', 'active')->firstOrFail();
+        $inventory = Inventory::where('branch_id', $order->branch_id)->where('product_variant_id', $replacement->id)->firstOrFail();
+        $before = $inventory->quantity_on_hand;
+        $claim = $service->create($order, $item, $this->payload('replacement'), $order->user_id);
+        $service->review($claim);
+        $service->approve($claim, 'replacement', $replacement->id, $order->branch_id);
+        $service->receive($claim);
+        $service->startProcessing($claim);
+        $service->markReady($claim);
+        $shipment = app(AfterSalesShipmentService::class)->save($claim, 'warranty_outbound', ['carrier' => 'manual'], $admin->id);
+
+        $service->updateShipmentStatus($shipment, 'shipped', $admin->id);
+        $service->updateShipmentStatus($shipment->refresh(), 'delivery_failed', $admin->id, 'Recipient unavailable');
+        $service->updateShipmentStatus($shipment->refresh(), 'shipped', $admin->id);
+        $this->assertSame($before - 1, $inventory->refresh()->quantity_on_hand);
+        $this->assertDatabaseMissing('warranty_requests', ['id' => $claim->id, 'status' => 'completed']);
+
+        $service->updateShipmentStatus($shipment->refresh(), 'delivery_failed', $admin->id);
+        $service->updateShipmentStatus($shipment->refresh(), 'returned', $admin->id, 'Returned to branch');
+        $service->updateShipmentStatus($shipment->refresh(), 'returned', $admin->id);
+        $this->assertSame($before, $inventory->refresh()->quantity_on_hand);
+        $this->assertSame(0, $inventory->quantity_reserved);
+        $this->assertDatabaseMissing('warranty_requests', ['id' => $claim->id, 'status' => 'completed']);
+
+        $service->updateShipmentStatus($shipment->refresh(), 'shipped', $admin->id);
+        $this->assertSame($before - 1, $inventory->refresh()->quantity_on_hand);
+        $service->updateShipmentStatus($shipment->refresh(), 'delivered', $admin->id);
+        $this->assertDatabaseHas('warranty_requests', ['id' => $claim->id, 'status' => 'completed']);
+    }
+
     private function order(): Order
     {
         return Order::where('order_number', 'NH-DEMO-001')->with('items.product')->firstOrFail();

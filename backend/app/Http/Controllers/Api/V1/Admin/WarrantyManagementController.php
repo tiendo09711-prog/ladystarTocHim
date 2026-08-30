@@ -9,6 +9,7 @@ use App\Models\WarrantyRequest;
 use App\Services\AfterSalesShipmentService;
 use App\Services\WarrantyService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -24,6 +25,10 @@ class WarrantyManagementController extends Controller
         $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')));
         $query->when($request->filled('code'), fn ($q) => $q->where('code', 'like', '%'.$request->string('code').'%'));
         $query->when($request->filled('customer'), fn ($q) => $q->whereHas('order', fn ($o) => $o->where('customer_name', 'like', '%'.$request->string('customer').'%')));
+        $query->when($request->filled('phone'), function ($q) use ($request) {
+            $phone = PhoneNormalizer::normalizeIfPossible($request->input('phone')) ?? trim((string) $request->input('phone'));
+            $q->whereHas('order', fn ($order) => $order->where('customer_phone', 'like', '%'.$phone.'%'));
+        });
         $rows = $query->paginate(20);
         $rows->setCollection($rows->getCollection()->map(fn ($row) => (new AdminWarrantyResource($row))->resolve()));
 
@@ -91,9 +96,15 @@ class WarrantyManagementController extends Controller
     public function shipmentStatus(Request $request, WarrantyRequest $warrantyRequest, AfterSalesShipment $shipment)
     {
         abort_unless($shipment->warranty_request_id === $warrantyRequest->id, 404);
-        $status = $request->validate(['status' => ['required', Rule::in(['shipped', 'delivered'])]])['status'];
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['shipped', 'delivered', 'delivery_failed', 'returned'])],
+            'failure_reason' => ['nullable', 'string', 'max:2000'],
+            'return_reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $status = $data['status'];
+        $reason = $status === 'delivery_failed' ? ($data['failure_reason'] ?? null) : ($data['return_reason'] ?? null);
 
-        return $this->success($this->service->updateShipmentStatus($shipment, $status, $request->user()->id));
+        return $this->success($this->service->updateShipmentStatus($shipment, $status, $request->user()->id, $reason));
     }
 
     private function result(WarrantyRequest $claim)

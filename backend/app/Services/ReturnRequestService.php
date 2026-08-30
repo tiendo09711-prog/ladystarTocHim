@@ -51,9 +51,6 @@ class ReturnRequestService
                     if ($replacement->status !== 'active' || $replacement->product->status !== 'active') {
                         throw ValidationException::withMessages(['replacement_variant_id' => 'Replacement variant is inactive.']);
                     }
-                    if ($this->minor($replacement->currentPrice()) !== $this->minor($item->unit_price)) {
-                        throw ValidationException::withMessages(['replacement_variant_id' => 'Phase 3 only supports same-price exchanges.']);
-                    }
                 }
             }
 
@@ -65,20 +62,13 @@ class ReturnRequestService
             foreach ($data['items'] as $line) {
                 $orderItem = $items[(int) $line['order_item_id']];
                 $originalValue = $this->minor($orderItem->unit_price) * (int) $line['quantity'];
-                $replacementValue = null;
-                $priceDifference = null;
-                if ($data['request_type'] === 'exchange') {
-                    $replacement = ProductVariant::findOrFail($line['replacement_variant_id']);
-                    $replacementValue = $this->minor($replacement->currentPrice()) * (int) $line['quantity'];
-                    $priceDifference = $replacementValue - $originalValue;
-                }
                 $request->items()->create([
                     'order_item_id' => $line['order_item_id'], 'quantity' => $line['quantity'],
                     'reason_code' => $line['reason_code'], 'reason_detail' => $line['reason_detail'] ?? null,
                     'replacement_variant_id' => $line['replacement_variant_id'] ?? null,
                     'original_value' => $this->decimal($originalValue),
-                    'replacement_value' => $replacementValue === null ? null : $this->decimal($replacementValue),
-                    'price_difference' => $priceDifference === null ? null : $this->decimal($priceDifference),
+                    'replacement_value' => null,
+                    'price_difference' => null,
                 ]);
             }
 
@@ -103,12 +93,32 @@ class ReturnRequestService
             }
             if ($locked->request_type === 'exchange') {
                 foreach ($locked->items as $item) {
+                    $replacement = ProductVariant::with('product')->whereKey($item->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                    if ($replacement->product_id !== $item->orderItem->product_id) {
+                        throw ValidationException::withMessages(['replacement_variant_id' => 'Replacement must belong to the same product.']);
+                    }
+                    if ($replacement->status !== 'active' || $replacement->product->status !== 'active') {
+                        throw ValidationException::withMessages(['replacement_variant_id' => 'Replacement variant is inactive.']);
+                    }
+                    $originalValue = $this->minor($item->orderItem->unit_price) * (int) $item->quantity;
+                    $replacementValue = $this->minor($replacement->currentPrice()) * (int) $item->quantity;
+                    $priceDifference = $replacementValue - $originalValue;
+                    if ($priceDifference !== 0) {
+                        throw ValidationException::withMessages(['replacement_variant_id' => 'Price differences are not supported for exchanges.']);
+                    }
                     $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->first();
                     if (! $inventory) {
                         throw ValidationException::withMessages(['stock' => 'Replacement inventory is unavailable.']);
                     }
                     $this->inventoryService->reserveForReference($inventory, (int) $item->quantity, 'exchange_reserve', null, $locked, $locked->code);
-                    $item->update(['replacement_reserved_at' => now(), 'replacement_released_at' => null]);
+                    $item->update([
+                        'original_value' => $this->decimal($originalValue),
+                        'replacement_value' => $this->decimal($replacementValue),
+                        'price_difference' => $this->decimal($priceDifference),
+                        'replacement_reserved_at' => now(),
+                        'replacement_released_at' => null,
+                        'replacement_restocked_at' => null,
+                    ]);
                 }
             }
             $locked->update(array_filter(['status' => 'approved', 'approved_at' => now(), 'receiving_branch_id' => $branchId, 'admin_note' => $adminNote], fn ($value) => $value !== null));
@@ -209,15 +219,27 @@ class ReturnRequestService
                 throw ValidationException::withMessages(['status' => 'Exchange must be received before handover.']);
             }
             foreach ($locked->items as $item) {
-                if ($item->replacement_consumed_at) {
+                if ($item->replacement_consumed_at && ! $item->replacement_restocked_at) {
+                    continue;
+                }
+                $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                if ($item->replacement_restocked_at) {
+                    $this->inventoryService->reserveForReference($inventory, (int) $item->quantity, 'exchange_retry_reserve', $actorId, $locked, $locked->code);
+                    $this->inventoryService->consumeReservation($inventory->refresh(), (int) $item->quantity, 'exchange_retry_consume', $actorId, $locked, $locked->code);
+                    $item->update([
+                        'replacement_reserved_at' => now(),
+                        'replacement_released_at' => null,
+                        'replacement_consumed_at' => now(),
+                        'replacement_restocked_at' => null,
+                    ]);
+
                     continue;
                 }
                 if (! $item->replacement_reserved_at || $item->replacement_released_at) {
                     throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
                 }
-                $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
                 $this->inventoryService->consumeReservation($inventory, (int) $item->quantity, 'exchange_consume', $actorId, $locked, $locked->code);
-                $item->update(['replacement_consumed_at' => now()]);
+                $item->update(['replacement_consumed_at' => now(), 'replacement_restocked_at' => null]);
             }
             $locked->update(['status' => 'completed', 'completed_at' => now()]);
 
@@ -225,9 +247,9 @@ class ReturnRequestService
         });
     }
 
-    public function updateExchangeShipmentStatus(AfterSalesShipment $shipment, string $status, int $actorId): AfterSalesShipment
+    public function updateExchangeShipmentStatus(AfterSalesShipment $shipment, string $status, int $actorId, ?string $reason = null): AfterSalesShipment
     {
-        return DB::transaction(function () use ($shipment, $status, $actorId) {
+        return DB::transaction(function () use ($shipment, $status, $actorId, $reason) {
             $lockedShipment = AfterSalesShipment::lockForUpdate()->findOrFail($shipment->id);
             if ($lockedShipment->purpose !== 'exchange_outbound') {
                 throw ValidationException::withMessages(['purpose' => 'Shipment is not an exchange outbound shipment.']);
@@ -237,19 +259,36 @@ class ReturnRequestService
                 return $lockedShipment;
             }
             if ($status === 'shipped') {
-                if ($lockedShipment->status !== 'pending' || $return->status !== 'received') {
+                if (! in_array($lockedShipment->status, ['pending', 'delivery_failed', 'returned'], true) || $return->status !== 'received') {
                     throw ValidationException::withMessages(['status' => 'Exchange shipment cannot be dispatched yet.']);
                 }
-                foreach ($return->items as $item) {
-                    if ($item->replacement_consumed_at) {
-                        continue;
+                if ($lockedShipment->status !== 'delivery_failed') {
+                    foreach ($return->items as $item) {
+                        $inventory = Inventory::where('branch_id', $return->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                        if ($lockedShipment->status === 'returned') {
+                            if (! $item->replacement_restocked_at) {
+                                throw ValidationException::withMessages(['stock' => 'Returned replacement inventory was not reconciled.']);
+                            }
+                            $this->inventoryService->reserveForReference($inventory, (int) $item->quantity, 'exchange_retry_reserve', $actorId, $lockedShipment, $return->code);
+                            $this->inventoryService->consumeReservation($inventory->refresh(), (int) $item->quantity, 'exchange_retry_consume', $actorId, $lockedShipment, $return->code);
+                            $item->update([
+                                'replacement_reserved_at' => now(),
+                                'replacement_released_at' => null,
+                                'replacement_consumed_at' => now(),
+                                'replacement_restocked_at' => null,
+                            ]);
+
+                            continue;
+                        }
+                        if ($item->replacement_consumed_at) {
+                            continue;
+                        }
+                        if (! $item->replacement_reserved_at || $item->replacement_released_at) {
+                            throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
+                        }
+                        $this->inventoryService->consumeReservation($inventory, (int) $item->quantity, 'exchange_consume', $actorId, $return, $return->code);
+                        $item->update(['replacement_consumed_at' => now(), 'replacement_restocked_at' => null]);
                     }
-                    if (! $item->replacement_reserved_at || $item->replacement_released_at) {
-                        throw ValidationException::withMessages(['stock' => 'Replacement reservation is missing.']);
-                    }
-                    $inventory = Inventory::where('branch_id', $return->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
-                    $this->inventoryService->consumeReservation($inventory, (int) $item->quantity, 'exchange_consume', $actorId, $return, $return->code);
-                    $item->update(['replacement_consumed_at' => now()]);
                 }
                 $lockedShipment->update(['status' => 'shipped', 'shipped_at' => now()]);
             } elseif ($status === 'delivered') {
@@ -258,6 +297,24 @@ class ReturnRequestService
                 }
                 $lockedShipment->update(['status' => 'delivered', 'delivered_at' => now()]);
                 $return->update(['status' => 'completed', 'completed_at' => now()]);
+            } elseif ($status === 'delivery_failed') {
+                if ($lockedShipment->status !== 'shipped') {
+                    throw ValidationException::withMessages(['status' => 'Only a shipped exchange can fail delivery.']);
+                }
+                $lockedShipment->update(['status' => 'delivery_failed', 'failed_at' => now(), 'failure_reason' => $reason]);
+            } elseif ($status === 'returned') {
+                if ($lockedShipment->status !== 'delivery_failed') {
+                    throw ValidationException::withMessages(['status' => 'Only a failed exchange shipment can be returned.']);
+                }
+                foreach ($return->items as $item) {
+                    if (! $item->replacement_consumed_at || $item->replacement_restocked_at) {
+                        continue;
+                    }
+                    $inventory = Inventory::where('branch_id', $return->order->branch_id)->where('product_variant_id', $item->replacement_variant_id)->lockForUpdate()->firstOrFail();
+                    $this->inventoryService->adjust($inventory, (int) $item->quantity, 'exchange_return_restock', $actorId, $return->code, $lockedShipment, 'exchange_returned');
+                    $item->update(['replacement_restocked_at' => now()]);
+                }
+                $lockedShipment->update(['status' => 'returned', 'returned_at' => now(), 'return_reason' => $reason]);
             } else {
                 throw ValidationException::withMessages(['status' => 'Invalid exchange shipment status.']);
             }

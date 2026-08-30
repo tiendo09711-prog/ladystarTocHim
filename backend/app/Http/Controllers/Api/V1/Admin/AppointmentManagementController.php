@@ -11,6 +11,7 @@ use App\Models\ConsultationRequest;
 use App\Models\StoreSetting;
 use App\Services\AppointmentService;
 use App\Support\ApiResponse;
+use App\Support\PhoneNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +31,10 @@ class AppointmentManagementController extends Controller
         $query->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')));
         $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')));
         $query->when($request->filled('customer'), fn ($q) => $q->where('customer_name', 'like', '%'.$request->string('customer').'%'));
-        $query->when($request->filled('phone'), fn ($q) => $q->where('customer_phone', 'like', '%'.$request->string('phone').'%'));
+        $query->when($request->filled('phone'), function ($q) use ($request) {
+            $phone = PhoneNormalizer::normalizeIfPossible($request->input('phone')) ?? trim((string) $request->input('phone'));
+            $q->where('customer_phone', 'like', '%'.$phone.'%');
+        });
         $rows = $query->paginate(30);
         $rows->setCollection($rows->getCollection()->map(fn ($row) => (new AdminAppointmentResource($row))->resolve()));
 
@@ -186,6 +190,11 @@ class AppointmentManagementController extends Controller
                 && $start->format('H:i:s') >= $replacement['start_time'].':00'
                 && $end->format('H:i:s') <= $replacement['end_time'].':00';
             if (! $withinReplacement) {
+                return true;
+            }
+
+            $scheduleStart = CarbonImmutable::parse($start->format('Y-m-d').' '.$replacement['start_time'], $timezone);
+            if ($scheduleStart->diffInMinutes($start) % (int) $replacement['slot_minutes'] !== 0) {
                 return true;
             }
 

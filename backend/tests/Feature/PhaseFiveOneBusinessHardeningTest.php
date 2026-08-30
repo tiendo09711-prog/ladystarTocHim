@@ -26,6 +26,7 @@ use App\Support\PhoneNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -83,6 +84,12 @@ class PhaseFiveOneBusinessHardeningTest extends TestCase
 
         $this->assertDatabaseHas('refunds', ['order_id' => $order->id, 'source' => 'order_cancellation', 'status' => 'pending']);
         $this->assertSame(1, Refund::where('order_id', $order->id)->where('source', 'order_cancellation')->count());
+        $refund = Refund::where('order_id', $order->id)->where('source', 'order_cancellation')->firstOrFail();
+        $this->expectValidation(fn () => app(RefundService::class)->cancel($refund, $this->admin->id));
+        app(RefundService::class)->complete($refund->refresh(), $this->admin->id, 'CANCEL-REFUND');
+        $this->assertDatabaseHas('refunds', ['id' => $refund->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'refunded']);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'payment_status' => 'refunded']);
         $this->assertSame(0, $this->inventory->refresh()->quantity_reserved);
 
         $unpaid = $this->pendingOrder('cod', 1);
@@ -181,6 +188,31 @@ class PhaseFiveOneBusinessHardeningTest extends TestCase
         $paidToken = app(GuestScopeTokenService::class)->issue('guest_order_after_sales', $paid->id, $paid->customer_phone);
         $this->withHeader('X-Guest-Token', $paidToken)->postJson('/api/v1/guest/orders/'.$paid->id.'/cancel')->assertUnprocessable();
         $this->assertSame('0901234567', PhoneNormalizer::normalize('+84 901-234-567'));
+        $this->assertSame('0901234567', PhoneNormalizer::normalize('84 901234567'));
+        $this->assertSame('0901234567', PhoneNormalizer::normalize('090-123-4567'));
+    }
+
+    public function test_phone_backfill_collision_and_formatted_admin_search(): void
+    {
+        $legacyOrder = $this->pendingOrder('cod', 1, true, '0903334444');
+        DB::table('orders')->where('id', $legacyOrder->id)->update(['customer_phone' => '+84 903-334-444']);
+        $now = now();
+        DB::table('users')->insert([
+            ['name' => 'Collision A', 'email' => 'collision-a@example.com', 'phone' => '0927654321', 'password' => Hash::make('Password1'), 'role' => 'user', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now],
+            ['name' => 'Collision B', 'email' => 'collision-b@example.com', 'phone' => '+84927654321', 'password' => Hash::make('Password1'), 'role' => 'user', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        $this->artisan('app:normalize-existing-phones', ['--dry-run' => true])->assertFailed();
+        $this->assertSame('+84 903-334-444', DB::table('orders')->where('id', $legacyOrder->id)->value('customer_phone'));
+        DB::table('users')->where('email', 'collision-b@example.com')->delete();
+        $this->artisan('app:normalize-existing-phones')->assertSuccessful();
+        $this->assertSame('0903334444', DB::table('orders')->where('id', $legacyOrder->id)->value('customer_phone'));
+
+        $query = http_build_query(['search' => '+84 903-334-444']);
+        $this->actingAs($this->admin)->getJson('/api/v1/admin/orders?'.$query)->assertOk()->assertJsonFragment(['id' => $legacyOrder->id]);
+        $customer = User::factory()->create(['role' => 'user', 'status' => 'active', 'phone' => '0907778888']);
+        $query = http_build_query(['search' => '+84 907 778 888']);
+        $this->actingAs($this->admin)->getJson('/api/v1/admin/customers?'.$query)->assertOk()->assertJsonFragment(['id' => $customer->id]);
     }
 
     public function test_guest_warranty_media_is_private_and_token_scoped(): void
@@ -207,17 +239,31 @@ class PhaseFiveOneBusinessHardeningTest extends TestCase
         $branch = $this->inventory->branch;
         $serviceModel = Service::firstOrCreate(['slug' => 'phase-five-one'], ['name' => 'Phase 5.1 Service', 'price' => 0, 'duration_minutes' => 30, 'status' => 'active']);
         $date = Carbon::parse('2026-09-01', 'Asia/Ho_Chi_Minh');
+        AppointmentSchedule::where('branch_id', $branch->id)->where('day_of_week', $date->dayOfWeek)->delete();
         $schedule = AppointmentSchedule::create(['branch_id' => $branch->id, 'day_of_week' => $date->dayOfWeek, 'start_time' => '09:00', 'end_time' => '12:00', 'slot_minutes' => 30, 'capacity' => 1, 'is_active' => true]);
-        $appointment = app(AppointmentService::class)->create(['branch_id' => $branch->id, 'service_id' => $serviceModel->id, 'start_at' => '2026-09-01T09:00:00+07:00', 'customer_name' => 'Conflict', 'customer_phone' => '090 222 2222']);
-        $this->actingAs($this->admin)->postJson('/api/v1/admin/appointment-blocks', ['branch_id' => $branch->id, 'start_at' => '2026-09-01T08:30:00+07:00', 'end_at' => '2026-09-01T09:30:00+07:00'])->assertUnprocessable();
-        $this->actingAs($this->admin)->putJson('/api/v1/admin/appointment-schedules/'.$schedule->id, ['branch_id' => $branch->id, 'day_of_week' => $date->dayOfWeek, 'start_time' => '10:00', 'end_time' => '12:00', 'slot_minutes' => 30, 'capacity' => 1, 'is_active' => true])->assertUnprocessable();
+        $appointment = app(AppointmentService::class)->create(['branch_id' => $branch->id, 'service_id' => $serviceModel->id, 'start_at' => '2026-09-01T09:30:00+07:00', 'customer_name' => 'Conflict', 'customer_phone' => '090 222 2222']);
+        $this->actingAs($this->admin)->postJson('/api/v1/admin/appointment-blocks', ['branch_id' => $branch->id, 'start_at' => '2026-09-01T09:00:00+07:00', 'end_at' => '2026-09-01T10:00:00+07:00'])->assertUnprocessable();
+        $baseSchedule = ['branch_id' => $branch->id, 'day_of_week' => $date->dayOfWeek, 'start_time' => '09:00', 'end_time' => '12:00', 'capacity' => 1, 'is_active' => true];
+        $this->actingAs($this->admin)->putJson('/api/v1/admin/appointment-schedules/'.$schedule->id, $baseSchedule + ['slot_minutes' => 40])->assertUnprocessable();
+        $this->actingAs($this->admin)->putJson('/api/v1/admin/appointment-schedules/'.$schedule->id, $baseSchedule + ['slot_minutes' => 15])->assertOk();
+        $this->actingAs($this->admin)->putJson('/api/v1/admin/appointment-schedules/'.$schedule->id, array_merge($baseSchedule, ['start_time' => '09:05', 'slot_minutes' => 15]))->assertUnprocessable();
         $this->actingAs($this->admin)->deleteJson('/api/v1/admin/appointment-schedules/'.$schedule->id)->assertUnprocessable();
         $this->assertDatabaseHas('appointments', ['id' => $appointment->id]);
+        $query = http_build_query(['phone' => '+84 902 222 222']);
+        $this->actingAs($this->admin)->getJson('/api/v1/admin/appointments?'.$query)->assertOk()->assertJsonFragment(['id' => $appointment->id]);
 
         $staff = User::factory()->create(['role' => 'staff', 'status' => 'active', 'password' => 'Oldpass1']);
+        config(['session.driver' => 'database']);
+        DB::table('sessions')->insert([
+            ['id' => 'staff-session-a', 'user_id' => $staff->id, 'ip_address' => null, 'user_agent' => null, 'payload' => '', 'last_activity' => now()->timestamp],
+            ['id' => 'staff-session-b', 'user_id' => $staff->id, 'ip_address' => null, 'user_agent' => null, 'payload' => '', 'last_activity' => now()->timestamp],
+        ]);
         $this->actingAs($staff)->patchJson('/api/v1/admin/account/password', ['current_password' => 'wrong', 'new_password' => 'Newpass2', 'new_password_confirmation' => 'Newpass2'])->assertUnprocessable();
         $this->actingAs($staff)->patchJson('/api/v1/admin/account/password', ['current_password' => 'Oldpass1', 'new_password' => 'Newpass2', 'new_password_confirmation' => 'Newpass2'])->assertOk();
         $this->assertTrue(Hash::check('Newpass2', $staff->refresh()->password));
+        $this->assertDatabaseMissing('sessions', ['id' => 'staff-session-a']);
+        $this->assertDatabaseMissing('sessions', ['id' => 'staff-session-b']);
+        config(['session.driver' => 'array']);
         $this->actingAs($this->customer)->patchJson('/api/v1/admin/account/password', ['current_password' => 'password', 'new_password' => 'Newpass2', 'new_password_confirmation' => 'Newpass2'])->assertForbidden();
 
         $beforeReserved = $this->inventory->refresh()->quantity_reserved;

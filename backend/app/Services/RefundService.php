@@ -115,6 +115,11 @@ class RefundService
     {
         return DB::transaction(function () use ($refund, $actorId) {
             $locked = Refund::lockForUpdate()->findOrFail($refund->id);
+            if ($locked->source === 'order_cancellation') {
+                throw ValidationException::withMessages([
+                    'status' => 'Refunds created for paid order cancellations cannot be cancelled.',
+                ]);
+            }
             if ($locked->status === 'cancelled') {
                 return $locked;
             }
