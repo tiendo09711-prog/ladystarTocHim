@@ -89,8 +89,11 @@ class WarrantyManagementController extends Controller
         $data = $request->validate(['purpose' => ['required', Rule::in(['warranty_inbound', 'warranty_outbound'])], 'carrier' => ['nullable', 'string', 'max:190'], 'tracking_number' => ['nullable', 'string', 'max:190'], 'shipping_fee_actual' => ['nullable', 'numeric', 'min:0'], 'tracking_url' => ['nullable', 'url', 'max:1000'], 'note' => ['nullable', 'string', 'max:2000']]);
         $purpose = $data['purpose'];
         unset($data['purpose']);
+        $auditAction = $warrantyRequest->shipments()->where('purpose', $purpose)->exists() ? 'updated' : 'created';
+        $shipment = $this->shipments->save($warrantyRequest, $purpose, $data, $request->user()->id);
+        $request->attributes->set('audit.after_sales_shipment_action', $auditAction);
 
-        return $this->success($this->shipments->save($warrantyRequest, $purpose, $data, $request->user()->id));
+        return $this->success($shipment);
     }
 
     public function shipmentStatus(Request $request, WarrantyRequest $warrantyRequest, AfterSalesShipment $shipment)

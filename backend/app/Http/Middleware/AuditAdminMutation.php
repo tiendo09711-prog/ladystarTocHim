@@ -38,7 +38,7 @@ class AuditAdminMutation
             }
         }
 
-        [$action, $module] = AdminAuditRegistry::resolve($request);
+        [$action, $module, $additionalActions] = array_pad(AdminAuditRegistry::resolve($request), 3, []);
         $this->audit->record($action, $module, $subject, $before, $after, [
             'controller_action' => $request->route()?->getActionName(),
             'route_uri' => $request->route()?->uri(),
@@ -46,6 +46,15 @@ class AuditAdminMutation
             'request_fields' => $request->except([]),
             'response_status' => $response->getStatusCode(),
         ]);
+        foreach ($additionalActions as [$additionalAction, $additionalModule]) {
+            $this->audit->record($additionalAction, $additionalModule, $subject, $before, $after, [
+                'controller_action' => $request->route()?->getActionName(),
+                'route_uri' => $request->route()?->uri(),
+                'route_parameters' => $request->route()?->parameters(),
+                'request_fields' => $request->except([]),
+                'response_status' => $response->getStatusCode(),
+            ]);
+        }
 
         return $response;
     }

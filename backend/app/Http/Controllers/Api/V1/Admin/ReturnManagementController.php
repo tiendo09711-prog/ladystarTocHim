@@ -98,8 +98,11 @@ class ReturnManagementController extends Controller
         ]);
         $purpose = $data['purpose'];
         unset($data['purpose']);
+        $auditAction = $returnRequest->shipments()->where('purpose', $purpose)->exists() ? 'updated' : 'created';
+        $shipment = $this->shipments->save($returnRequest, $purpose, $data, $request->user()->id);
+        $request->attributes->set('audit.after_sales_shipment_action', $auditAction);
 
-        return $this->success($this->shipments->save($returnRequest, $purpose, $data, $request->user()->id));
+        return $this->success($shipment);
     }
 
     public function shipmentStatus(Request $request, ReturnRequest $returnRequest, AfterSalesShipment $shipment)

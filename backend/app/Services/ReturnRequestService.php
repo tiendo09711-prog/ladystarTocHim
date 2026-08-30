@@ -218,6 +218,14 @@ class ReturnRequestService
             if ($locked->request_type !== 'exchange' || $locked->status !== 'received') {
                 throw ValidationException::withMessages(['status' => 'Exchange must be received before handover.']);
             }
+            $outbound = AfterSalesShipment::where('return_request_id', $locked->id)
+                ->where('purpose', 'exchange_outbound')->lockForUpdate()->first();
+            if ($outbound && in_array($outbound->status, ['pending', 'shipped', 'delivery_failed'], true)) {
+                throw ValidationException::withMessages(['shipment' => 'Cannot hand over replacement while an outbound shipment is active.']);
+            }
+            if ($outbound?->status === 'delivered') {
+                throw ValidationException::withMessages(['shipment' => 'Replacement was already delivered.']);
+            }
             foreach ($locked->items as $item) {
                 if ($item->replacement_consumed_at && ! $item->replacement_restocked_at) {
                     continue;
@@ -255,6 +263,9 @@ class ReturnRequestService
                 throw ValidationException::withMessages(['purpose' => 'Shipment is not an exchange outbound shipment.']);
             }
             $return = ReturnRequest::with('order', 'items.orderItem')->lockForUpdate()->findOrFail($lockedShipment->return_request_id);
+            if ($lockedShipment->warranty_request_id !== null || $lockedShipment->order_id !== $return->order_id || $return->request_type !== 'exchange') {
+                throw ValidationException::withMessages(['shipment' => 'Shipment does not belong to this exchange request.']);
+            }
             if ($lockedShipment->status === $status) {
                 return $lockedShipment;
             }
@@ -294,6 +305,12 @@ class ReturnRequestService
             } elseif ($status === 'delivered') {
                 if ($lockedShipment->status !== 'shipped') {
                     throw ValidationException::withMessages(['status' => 'Exchange shipment must be shipped first.']);
+                }
+                if ($return->status !== 'received') {
+                    throw ValidationException::withMessages(['status' => 'Exchange request is not ready for delivery completion.']);
+                }
+                if ($return->items->contains(fn ($item) => ! $item->replacement_consumed_at || $item->replacement_restocked_at)) {
+                    throw ValidationException::withMessages(['stock' => 'All exchange replacement items must be consumed before delivery completion.']);
                 }
                 $lockedShipment->update(['status' => 'delivered', 'delivered_at' => now()]);
                 $return->update(['status' => 'completed', 'completed_at' => now()]);

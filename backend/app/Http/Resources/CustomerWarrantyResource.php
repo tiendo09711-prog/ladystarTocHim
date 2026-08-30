@@ -19,7 +19,10 @@ class CustomerWarrantyResource extends JsonResource
             'order_item' => $this->orderItem?->only(['id', 'product_name', 'variant_description', 'sku', 'warranty_days_snapshot']),
             'replacement_variant' => $this->replacementVariant?->only(['id', 'sku']),
             'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($medium) => ['id' => $medium->id, 'url' => $medium->urlFor($request)])),
-            'shipments' => $this->whenLoaded('shipments', fn () => $this->shipments->map->only(['id', 'purpose', 'carrier', 'tracking_number', 'status', 'shipped_at', 'delivered_at', 'tracking_url'])),
+            'shipments' => $this->whenLoaded('shipments', fn () => $this->shipments->map->only([
+                'id', 'purpose', 'carrier', 'tracking_number', 'status', 'shipped_at', 'delivered_at',
+                'failed_at', 'failure_reason', 'returned_at', 'return_reason', 'tracking_url',
+            ])),
         ];
     }
 }

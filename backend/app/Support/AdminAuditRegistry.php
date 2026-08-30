@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AfterSalesShipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -27,9 +28,18 @@ final class AdminAuditRegistry
             Str::contains($uri, '/shipment/status') && Str::startsWith($uri, 'orders/') => ['shipment.status_changed', 'shipments'],
             Str::contains($uri, '/shipment') && Str::startsWith($uri, 'orders/') => ['shipment.updated', 'shipments'],
             Str::endsWith($uri, '/refund') => ['refund.created', 'refunds'],
-            Str::startsWith($uri, 'returns/') => [self::afterSalesAction('return', $last), 'returns'],
+            Str::startsWith($uri, ['returns/', 'warranties/']) && $last === 'shipment' => [
+                'after_sales_shipment.'.($request->attributes->get('audit.after_sales_shipment_action') ?? 'updated'),
+                'shipments',
+            ],
+            Str::startsWith($uri, ['returns/', 'warranties/']) && $last === 'status' => [
+                self::afterSalesShipmentAction($request),
+                'shipments',
+                self::afterSalesShipmentAdditionalActions($request),
+            ],
+            Str::startsWith($uri, 'returns/') => [self::afterSalesAction('return', $last), 'returns', self::afterSalesAdditionalActions('return', $last)],
             Str::startsWith($uri, 'refunds/') => [self::afterSalesAction('refund', $last), 'refunds'],
-            Str::startsWith($uri, 'warranties/') => [self::afterSalesAction('warranty', $last), 'warranties'],
+            Str::startsWith($uri, 'warranties/') => [self::afterSalesAction('warranty', $last), 'warranties', self::afterSalesAdditionalActions('warranty', $last)],
             Str::startsWith($uri, 'appointments/') => [self::appointmentAction($last), 'appointments'],
             Str::startsWith($uri, 'appointment-schedules') => [self::crudAction('appointment_schedule', $method), 'appointments'],
             Str::startsWith($uri, 'appointment-blocks') => [self::crudAction('appointment_block', $method), 'appointments'],
@@ -56,6 +66,10 @@ final class AdminAuditRegistry
 
     private static function afterSalesAction(string $prefix, string $last): string
     {
+        if ($last === 'handover') {
+            return ($prefix === 'return' ? 'exchange' : $prefix).'.replacement_handover';
+        }
+
         $action = match ($last) {
             'review' => 'reviewed', 'approve' => 'approved', 'reject' => 'rejected', 'receive' => 'received',
             'complete' => 'completed', 'cancel' => 'cancelled', 'processing' => 'processing', 'ready' => 'ready',
@@ -64,6 +78,48 @@ final class AdminAuditRegistry
         };
 
         return $prefix.'.'.$action;
+    }
+
+    private static function afterSalesShipmentAction(Request $request): string
+    {
+        $status = (string) $request->input('status');
+        $shipment = $request->route('shipment');
+        if ($status === 'shipped' && $shipment instanceof AfterSalesShipment && in_array($shipment->status, ['delivery_failed', 'returned'], true)) {
+            return 'after_sales_shipment.retried';
+        }
+
+        return 'after_sales_shipment.'.match ($status) {
+            'shipped' => 'shipped',
+            'delivery_failed' => 'delivery_failed',
+            'returned' => 'returned',
+            'delivered' => 'delivered',
+            default => 'updated',
+        };
+    }
+
+    private static function afterSalesShipmentAdditionalActions(Request $request): array
+    {
+        if ($request->input('status') !== 'delivered') {
+            return [];
+        }
+        $shipment = $request->route('shipment');
+
+        return match ($shipment?->purpose) {
+            'warranty_outbound' => [['warranty.completed', 'warranties']],
+            'exchange_outbound' => [['exchange.completed', 'returns']],
+            default => [],
+        };
+    }
+
+    private static function afterSalesAdditionalActions(string $prefix, string $last): array
+    {
+        if ($last !== 'handover') {
+            return [];
+        }
+
+        return $prefix === 'return'
+            ? [['exchange.completed', 'returns']]
+            : [['warranty.completed', 'warranties']];
     }
 
     private static function appointmentAction(string $last): string

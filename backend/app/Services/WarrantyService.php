@@ -113,14 +113,14 @@ class WarrantyService
     {
         return DB::transaction(function () use ($claim) {
             $locked = WarrantyRequest::lockForUpdate()->findOrFail($claim->id);
+            if ($locked->actual_resolution === 'replacement') {
+                throw ValidationException::withMessages(['status' => 'Replacement warranty must be completed by delivery or handover.']);
+            }
             if ($locked->status === 'completed') {
                 return $this->load($locked);
             }
             if (! in_array($locked->status, ['ready', 'processing'], true)) {
                 throw ValidationException::withMessages(['status' => 'Invalid warranty lifecycle transition.']);
-            }
-            if ($locked->actual_resolution === 'replacement' && ! $locked->replacement_consumed_at) {
-                throw ValidationException::withMessages(['stock' => 'Replacement warranty cannot complete before stock is fulfilled.']);
             }
             if ($locked->replacement_reserved_at && ! $locked->replacement_released_at && ! $locked->replacement_consumed_at) {
                 throw ValidationException::withMessages(['stock' => 'Warranty cannot complete with a dangling reservation.']);
@@ -138,8 +138,16 @@ class WarrantyService
             if ($locked->status === 'completed') {
                 return $this->load($locked);
             }
-            if ($locked->actual_resolution !== 'replacement' || ! in_array($locked->status, ['processing', 'ready'], true)) {
+            if ($locked->actual_resolution !== 'replacement' || $locked->status !== 'ready') {
                 throw ValidationException::withMessages(['status' => 'Replacement is not ready for handover.']);
+            }
+            $outbound = AfterSalesShipment::where('warranty_request_id', $locked->id)
+                ->where('purpose', 'warranty_outbound')->lockForUpdate()->first();
+            if ($outbound && in_array($outbound->status, ['pending', 'shipped', 'delivery_failed'], true)) {
+                throw ValidationException::withMessages(['shipment' => 'Cannot hand over replacement while an outbound shipment is active.']);
+            }
+            if ($outbound?->status === 'delivered') {
+                throw ValidationException::withMessages(['shipment' => 'Replacement was already delivered.']);
             }
             if ($locked->replacement_restocked_at) {
                 $inventory = Inventory::where('branch_id', $locked->order->branch_id)->where('product_variant_id', $locked->replacement_variant_id)->lockForUpdate()->firstOrFail();
@@ -170,12 +178,18 @@ class WarrantyService
         return DB::transaction(function () use ($shipment, $status, $actorId, $reason) {
             $lockedShipment = AfterSalesShipment::lockForUpdate()->findOrFail($shipment->id);
             $claim = WarrantyRequest::with('order')->lockForUpdate()->findOrFail($lockedShipment->warranty_request_id);
+            if ($lockedShipment->return_request_id !== null || $lockedShipment->order_id !== $claim->order_id) {
+                throw ValidationException::withMessages(['shipment' => 'Shipment does not belong to this warranty claim.']);
+            }
             if ($lockedShipment->status === $status) {
                 return $lockedShipment;
             }
             if ($status === 'shipped') {
                 if (! in_array($lockedShipment->status, ['pending', 'delivery_failed', 'returned'], true)) {
                     throw ValidationException::withMessages(['status' => 'Shipment was already dispatched.']);
+                }
+                if ($lockedShipment->purpose === 'warranty_outbound' && ($claim->status !== 'ready' || ! in_array($claim->actual_resolution, ['repair', 'replacement'], true))) {
+                    throw ValidationException::withMessages(['status' => 'Warranty outbound shipment can only be dispatched when the claim is ready.']);
                 }
                 if ($lockedShipment->purpose === 'warranty_outbound' && $claim->actual_resolution === 'replacement' && $lockedShipment->status !== 'delivery_failed') {
                     $inventory = Inventory::where('branch_id', $claim->order->branch_id)->where('product_variant_id', $claim->replacement_variant_id)->lockForUpdate()->firstOrFail();
@@ -203,6 +217,14 @@ class WarrantyService
             } elseif ($status === 'delivered') {
                 if ($lockedShipment->status !== 'shipped') {
                     throw ValidationException::withMessages(['status' => 'Shipment must be shipped first.']);
+                }
+                if ($lockedShipment->purpose === 'warranty_outbound') {
+                    if ($claim->status !== 'ready' || ! in_array($claim->actual_resolution, ['repair', 'replacement'], true)) {
+                        throw ValidationException::withMessages(['status' => 'Warranty claim is not ready for delivery completion.']);
+                    }
+                    if ($claim->actual_resolution === 'replacement' && (! $claim->replacement_consumed_at || $claim->replacement_restocked_at)) {
+                        throw ValidationException::withMessages(['stock' => 'Replacement stock must be consumed before delivery completion.']);
+                    }
                 }
                 $lockedShipment->update(['status' => 'delivered', 'delivered_at' => now()]);
                 if ($lockedShipment->purpose === 'warranty_outbound') {

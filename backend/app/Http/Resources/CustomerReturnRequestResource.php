@@ -26,7 +26,10 @@ class CustomerReturnRequestResource extends JsonResource
                 'replacement_variant' => $item->replacementVariant?->only(['id', 'sku']),
             ])),
             'media' => $this->whenLoaded('media', fn () => $this->media->map(fn ($medium) => ['id' => $medium->id, 'url' => $medium->urlFor($request), 'mime_type' => $medium->mime_type])),
-            'shipments' => $this->whenLoaded('shipments', fn () => $this->shipments->map->only(['id', 'purpose', 'carrier', 'tracking_number', 'status', 'shipped_at', 'delivered_at', 'tracking_url'])),
+            'shipments' => $this->whenLoaded('shipments', fn () => $this->shipments->map->only([
+                'id', 'purpose', 'carrier', 'tracking_number', 'status', 'shipped_at', 'delivered_at',
+                'failed_at', 'failure_reason', 'returned_at', 'return_reason', 'tracking_url',
+            ])),
             'refunds' => $this->whenLoaded('refunds', fn () => $this->refunds->map->only(['id', 'code', 'amount', 'status', 'method', 'transaction_code', 'completed_at'])),
         ];
     }

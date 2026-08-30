@@ -16,7 +16,25 @@ class AfterSalesShipmentService
         $this->assertContextPurpose($context, $purpose);
         $keys = $context instanceof ReturnRequest ? ['return_request_id' => $context->id] : ['warranty_request_id' => $context->id];
 
-        return AfterSalesShipment::updateOrCreate($keys + ['purpose' => $purpose], $data + ['order_id' => $context->order_id, 'created_by' => $actorId]);
+        return DB::transaction(function () use ($context, $purpose, $data, $actorId, $keys) {
+            $shipment = AfterSalesShipment::where($keys + ['purpose' => $purpose])->lockForUpdate()->first();
+            if ($shipment) {
+                if (! in_array($shipment->status, ['pending', 'delivery_failed'], true)) {
+                    throw ValidationException::withMessages(['shipment' => 'Shipment metadata cannot be edited after dispatch.']);
+                }
+                $shipment->update($data);
+
+                return $shipment->refresh();
+            }
+            if (in_array($purpose, ['exchange_outbound', 'warranty_outbound'], true) && $context->status === 'completed') {
+                throw ValidationException::withMessages(['shipment' => 'Outbound shipment cannot be created after fulfilment is completed.']);
+            }
+
+            return AfterSalesShipment::create($keys + ['purpose' => $purpose] + $data + [
+                'order_id' => $context->order_id,
+                'created_by' => $actorId,
+            ]);
+        });
     }
 
     public function updateStatus(AfterSalesShipment $shipment, string $status, ?string $reason = null): AfterSalesShipment
@@ -63,6 +81,9 @@ class AfterSalesShipmentService
             : ($context instanceof WarrantyRequest ? ['warranty_inbound', 'warranty_outbound'] : []);
         if (! in_array($purpose, $valid, true)) {
             throw ValidationException::withMessages(['purpose' => 'Mục đích vận chuyển không phù hợp.']);
+        }
+        if ($context instanceof ReturnRequest && $purpose === 'exchange_outbound' && $context->request_type !== 'exchange') {
+            throw ValidationException::withMessages(['purpose' => 'Only exchange requests can have an exchange outbound shipment.']);
         }
     }
 }
