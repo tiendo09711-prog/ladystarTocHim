@@ -6,11 +6,16 @@ use App\Models\CatalogPageContent;
 use App\Models\PageSeo;
 use App\Models\Product;
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class CatalogContentSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment('testing')) {
+            throw new LogicException('CatalogContentSeeder is restricted to the testing environment.');
+        }
+
         CatalogPageContent::firstOrCreate(['page_key' => 'products'], [
             'eyebrow' => 'Bộ sưu tập LADYSTARS',
             'title' => 'Sản phẩm LADYSTARS',

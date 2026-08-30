@@ -96,7 +96,7 @@ class HairFinderService
 
     private function config(): array
     {
-        return StoreSetting::current()->hair_finder_config ?: config('hair-finder', []);
+        return StoreSetting::query()->value('hair_finder_config') ?: [];
     }
 
     private function purchasableVariantQuery($query)

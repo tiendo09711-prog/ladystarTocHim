@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Storage;
 
 class CatalogContentController extends Controller
 {
-    private const FALLBACK_TITLE = 'Catalog';
     use ApiResponse;
 
     public function products()
@@ -46,25 +45,24 @@ class CatalogContentController extends Controller
 
     private function payload(?CatalogPageContent $content, string $pageKey, ?Category $category = null): array
     {
-        $fallbackTitle = $pageKey === 'hair-guide' ? 'Dịch vụ chăm sóc tóc phù hợp với bạn' : self::FALLBACK_TITLE;
-        $title = $content?->title ?? $category?->name ?? $fallbackTitle;
-        $subtitle = $content?->subtitle ?? $category?->description ?? 'Discover a tailored LADYSTARS solution for your style and everyday comfort.';
+        $title = $content?->title ?? $category?->name;
+        $subtitle = $content?->subtitle ?? $category?->description;
 
         return [
             'page_key' => $pageKey,
-            'eyebrow' => $content?->eyebrow ?? ($category ? 'LADYSTARS category' : 'LADYSTARS collection'),
+            'eyebrow' => $content?->eyebrow,
             'title' => $title,
             'subtitle' => $subtitle,
             'hero_image_path' => $this->url($content?->hero_image_path ?? $category?->image_path),
-            'hero_image_alt' => $content?->hero_image_alt ?? $title,
-            'editorial_title' => $content?->editorial_title ?? $title,
-            'editorial_intro' => $content?->editorial_intro ?? $subtitle,
+            'hero_image_alt' => $content?->hero_image_alt,
+            'editorial_title' => $content?->editorial_title,
+            'editorial_intro' => $content?->editorial_intro,
             'editorial_sections' => $content?->editorial_sections_json ?? [],
-            'consultation_title' => $content?->consultation_title ?? 'Get a personal consultation',
-            'consultation_body' => $content?->consultation_body ?? 'Leave your details and our team will help you find a suitable product.',
+            'consultation_title' => $content?->consultation_title,
+            'consultation_body' => $content?->consultation_body,
             'consultation_image_path' => $this->url($content?->consultation_image_path),
-            'consultation_image_alt' => $content?->consultation_image_alt ?? 'LADYSTARS consultation',
-            'consultation_cta_label' => $content?->consultation_cta_label ?? 'Request consultation',
+            'consultation_image_alt' => $content?->consultation_image_alt,
+            'consultation_cta_label' => $content?->consultation_cta_label,
             'settings' => $content?->settings_json ?? [],
             'seo' => PageSeo::where('page_key', $pageKey)->first(['title', 'description', 'og_image_path']),
         ];

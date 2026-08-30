@@ -14,22 +14,10 @@ class NewsPageController extends Controller
 {
     use ApiResponse;
 
-    private const DEFAULTS = [
-        'eyebrow' => 'TIN TỨC & CẨM NANG',
-        'title' => 'Bản tin LADYSTARS',
-        'description' => 'Cẩm nang lựa chọn và chăm sóc tóc, câu chuyện thương hiệu cùng những cập nhật mới nhất từ LADYSTARS.',
-        'featured_badge_label' => 'Bài viết nổi bật',
-        'list_eyebrow' => 'KHÁM PHÁ LADYSTARS',
-        'list_title' => 'Bài viết mới nhất',
-        'list_description' => 'Những chia sẻ giúp bạn lựa chọn, sử dụng và chăm sóc mái tóc tự tin hơn mỗi ngày.',
-        'show_cta' => true,
-        'cta_eyebrow' => 'ĐỒNG HÀNH CÙNG LADYSTARS',
-        'cta_title' => 'Bạn cần một lựa chọn phù hợp hơn với chính mình?',
-        'cta_description' => 'Đội ngũ LADYSTARS luôn sẵn sàng lắng nghe và tư vấn theo nhu cầu, phong cách và thói quen sử dụng của bạn.',
-        'cta_primary_label' => 'Nhận tư vấn riêng',
-        'cta_primary_url' => '/lien-he',
-        'cta_secondary_label' => 'Khám phá sản phẩm',
-        'cta_secondary_url' => '/san-pham',
+    private const CONTENT_FIELDS = [
+        'eyebrow', 'title', 'description', 'featured_badge_label', 'list_eyebrow', 'list_title', 'list_description',
+        'cta_eyebrow', 'cta_title', 'cta_description', 'cta_primary_label', 'cta_primary_url', 'cta_secondary_label',
+        'cta_secondary_url', 'cta_image_alt',
     ];
 
     public function index(Request $request)
@@ -51,7 +39,7 @@ class NewsPageController extends Controller
 
         return $this->success([
             'content' => $this->contentPayload($content),
-            'seo' => $seo ?? ['title' => self::DEFAULTS['title'], 'description' => self::DEFAULTS['description']],
+            'seo' => $seo,
             'featured' => $featured ? $this->articleSummary($featured) : null,
             'articles' => $articles,
         ]);
@@ -84,10 +72,10 @@ class NewsPageController extends Controller
     private function contentPayload(?NewsPageContent $content): array
     {
         $values = [];
-        foreach (['eyebrow', 'title', 'description', 'featured_badge_label', 'list_eyebrow', 'list_title', 'list_description', 'cta_eyebrow', 'cta_title', 'cta_description', 'cta_primary_label', 'cta_primary_url', 'cta_secondary_label', 'cta_secondary_url', 'cta_image_alt'] as $key) {
-            $values[$key] = $content?->{$key} ?? self::DEFAULTS[$key] ?? null;
+        foreach (self::CONTENT_FIELDS as $key) {
+            $values[$key] = $content?->{$key};
         }
-        $values['show_cta'] = $content?->show_cta ?? self::DEFAULTS['show_cta'];
+        $values['show_cta'] = (bool) ($content?->show_cta ?? false);
         $values['cta_image_path'] = $this->assetUrl($content?->cta_image_path);
 
         return $values;

@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 async function login(page: Page) {
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).not.toHaveURL(/admin\/login$/)
 }

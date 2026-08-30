@@ -1,10 +1,11 @@
 import { Check, ChevronRight, Phone } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHairGuide } from '../../api/contentApi'
 import { ServiceCard } from '../../components/services/ServiceCard'
 import { ConsultationDialog } from '../../components/store/ConsultationDialog'
+import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import type { Service } from '../../types'
 
 const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`
@@ -24,13 +25,7 @@ export function HairGuidePage() {
   const [generalOpen, setGeneralOpen] = useState(false)
   const content = query.data
 
-  useEffect(() => {
-    if (!content) return
-    document.title = content.seo?.title || content.title
-    let description = document.head.querySelector<HTMLMetaElement>('meta[name="description"]')
-    if (!description) { description = document.createElement('meta'); description.name = 'description'; document.head.append(description) }
-    description.content = content.seo?.description || content.subtitle
-  }, [content])
+  useDocumentMeta(content?.seo?.title ?? content?.title ?? null, content?.seo?.description ?? content?.subtitle ?? null)
 
   if (query.isLoading) return <ServicePageSkeleton />
   if (query.isError || !content) return <main className="service-page"><div className="container-page service-state"><h1>Chưa thể tải danh sách dịch vụ.</h1><p>Vui lòng thử lại sau.</p><button className="btn-primary" type="button" onClick={() => void query.refetch()}>Thử lại</button></div></main>

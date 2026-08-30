@@ -20,7 +20,7 @@ export function PromotionsPage() {
   const query = useQuery({ queryKey: ['promotions-page', page], queryFn: () => getPromotionsPage({ page }) })
   const content = query.data?.content
   const articles = query.data?.articles.data ?? []
-  useDocumentMeta(query.data?.seo.title ?? content?.title ?? null, query.data?.seo.description ?? content?.description)
+  useDocumentMeta(query.data?.seo?.title ?? content?.title ?? null, query.data?.seo?.description ?? content?.description ?? null)
 
   useEffect(() => {
     if (previousPage.current !== page) listHeadingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })

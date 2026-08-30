@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { homeContentFixture } from './fixtures/homeContent'
 
 test('nút ưu đãi mở trang ưu đãi riêng', async ({ page }) => {
   await page.goto('/')
@@ -9,6 +10,7 @@ test('nút ưu đãi mở trang ưu đãi riêng', async ({ page }) => {
 })
 
 test('hệ thống cửa hàng là liên kết đơn đến trang trống', async ({ page }) => {
+  await page.route('**/api/v1/store-page', (route) => route.fulfill({ json: { success: true, data: { content: null, steps: [], policies: [], branches: [], seo: null } } }))
   await page.goto('/')
   const storeSystemLink = page.getByRole('link', { name: 'Hệ thống cửa hàng', exact: true })
 
@@ -17,10 +19,7 @@ test('hệ thống cửa hàng là liên kết đơn đến trang trống', asyn
   await expect(page.getByRole('link', { name: 'Cơ sở Hồ Chí Minh', exact: true })).toHaveCount(0)
   await storeSystemLink.click()
   await expect(page).toHaveURL('/he-thong-cua-hang')
-  await expect(page.getByRole('heading', { level: 1, name: 'Tìm điểm tư vấn gần bạn' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Quy trình tư vấn và đặt hàng' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Cam kết dành cho bạn' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Gửi yêu cầu tư vấn' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Trang đang được cập nhật' })).toBeVisible()
   await page.screenshot({ path: '../artifacts/store-locations-desktop.png', fullPage: true })
 
   await page.setViewportSize({ width: 390, height: 844 })
@@ -32,11 +31,12 @@ test('hệ thống cửa hàng là liên kết đơn đến trang trống', asyn
   for (const location of ['ha-noi', 'ho-chi-minh']) {
     await page.goto(`/lien-he?location=${location}`)
     await expect(page).toHaveURL(`/lien-he?location=${location}`)
-    await expect(page.getByRole('heading', { level: 1, name: 'Mỗi lựa chọn đẹp bắt đầu từ một cuộc trò chuyện' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: 'Trang liên hệ chưa có nội dung' })).toBeVisible({ timeout: 20_000 })
   }
 })
 
 test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
+  await page.route('**/api/v1/home-page', (route) => route.fulfill({ json: { success: true, data: homeContentFixture } }))
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Vẻ đẹp tự nhiên, được thiết kế riêng cho bạn/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Danh mục sản phẩm và dịch vụ' })).toBeVisible()
@@ -65,7 +65,7 @@ test('khách khám phá trang chủ và thêm vào giỏ', async ({ page }) => {
 test('admin đăng nhập và xem dashboard', async ({ page }) => {
   await page.goto('/admin/login')
   await page.getByLabel('Email').fill('admin@namhair.local')
-  await page.getByLabel('Mật khẩu').fill('Admin@123456')
+  await page.getByLabel('Mật khẩu').fill(process.env.E2E_ADMIN_PASSWORD!)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(/admin\/dashboard/)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()

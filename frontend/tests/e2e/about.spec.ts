@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { aboutFallbackSections } from '../../src/data/aboutContent'
+import { aboutSectionsFixture } from './fixtures/aboutContent'
 
 test.describe.configure({ timeout: 60_000 })
 
@@ -59,7 +59,7 @@ test('ảnh About luôn fill khung cố định với mọi tỷ lệ nguồn', 
     body: JSON.stringify({
       success: true,
       data: {
-        sections: aboutFallbackSections.map((section) => section.image_path ? { ...section, image_path: activeImagePath } : section),
+        sections: aboutSectionsFixture.map((section) => section.image_path ? { ...section, image_path: activeImagePath } : section),
         seo: { title: 'Câu chuyện thương hiệu | LADYSTARS', description: null },
       },
     }),

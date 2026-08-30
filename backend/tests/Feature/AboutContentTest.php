@@ -32,10 +32,12 @@ class AboutContentTest extends TestCase
         $this->assertArrayNotHasKey('is_active', $sections[0]);
     }
 
-    public function test_public_about_has_fallback_when_database_is_empty(): void
+    public function test_public_about_is_empty_when_database_is_empty(): void
     {
-        $response = $this->getJson('/api/v1/about')->assertOk();
-        $this->assertCount(10, $response->json('data.sections'));
+        $this->getJson('/api/v1/about')
+            ->assertOk()
+            ->assertJsonPath('data.sections', [])
+            ->assertJsonPath('data.seo', null);
     }
 
     public function test_admin_can_update_section_and_reorder(): void

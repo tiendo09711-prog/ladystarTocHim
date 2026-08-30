@@ -5,11 +5,16 @@ namespace Database\Seeders;
 use App\Models\NewsPageContent;
 use App\Models\PageSeo;
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class NewsPageContentSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment('testing')) {
+            throw new LogicException('NewsPageContentSeeder is restricted to the testing environment.');
+        }
+
         NewsPageContent::firstOrCreate(['page_key' => 'news'], [
             'eyebrow' => 'TIN TỨC & CẨM NANG',
             'title' => 'Bản tin LADYSTARS',

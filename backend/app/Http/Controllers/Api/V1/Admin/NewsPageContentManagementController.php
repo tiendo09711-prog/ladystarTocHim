@@ -52,7 +52,7 @@ class NewsPageContentManagementController extends Controller
         $seo = $request->validatedSeo();
         if ($seo !== null) {
             PageSeo::updateOrCreate(['page_key' => self::SEO_KEY], [
-                'title' => $seo['title'] ?: ($content->title ?: 'Bản tin LADYSTARS'),
+                'title' => $seo['title'] ?: ($content->title ?: null),
                 'description' => $seo['description'] ?? null,
             ]);
         }

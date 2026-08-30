@@ -117,7 +117,7 @@ async function mockAdmin(page: Page) {
 test('compare and recently viewed stay usable on mobile', async ({ page }) => {
   await mockStore(page)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.addInitScript(() => localStorage.setItem('ladystars_recently_viewed_v1', JSON.stringify([{ productId: 2, viewedAt: '2026-08-30T08:00:00Z' }])))
+  await page.addInitScript(() => sessionStorage.setItem('ladystars_recently_viewed_v1', JSON.stringify([{ productId: 2, viewedAt: '2026-08-30T08:00:00Z' }])))
   await page.goto('/san-pham/toc-mai-tu-nhien')
 
   await expect(page.getByRole('heading', { name: 'Tóc mái tự nhiên' })).toBeVisible()

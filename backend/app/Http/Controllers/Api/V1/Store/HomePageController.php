@@ -14,7 +14,10 @@ class HomePageController extends Controller
 
     public function show()
     {
-        $content = HomePageContent::current();
+        $content = HomePageContent::where('page_key', 'home')->first();
+        if (! $content) {
+            return $this->success(null);
+        }
 
         return $this->success([
             ...$content->toArray(),

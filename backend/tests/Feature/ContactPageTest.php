@@ -14,17 +14,15 @@ class ContactPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_contact_page_uses_database_store_and_branch_data(): void
+    public function test_public_contact_page_is_empty_until_configured(): void
     {
         $this->seed();
-        Branch::firstOrFail()->update(['opening_hours' => '09:00 - 19:30', 'map_url' => 'https://maps.example.test']);
 
         $this->getJson('/api/v1/contact-page')
             ->assertOk()
-            ->assertJsonPath('data.content.hero_title', 'Mỗi lựa chọn đẹp bắt đầu từ một cuộc trò chuyện')
-            ->assertJsonPath('data.store.store_name', 'Nam Hair')
-            ->assertJsonPath('data.branches.0.opening_hours', '09:00 - 19:30')
-            ->assertJsonPath('data.content.settings.commitments.0.title', 'Tư vấn theo nhu cầu');
+            ->assertJsonPath('data.content', null)
+            ->assertJsonPath('data.store', null)
+            ->assertJsonPath('data.branches', []);
     }
 
     public function test_admin_can_update_contact_page_and_upload_images(): void

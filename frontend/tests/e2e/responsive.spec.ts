@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { homeContentFixture } from './fixtures/homeContent'
 
 test.use({ viewport: { width: 390, height: 844 } })
 
@@ -16,6 +17,7 @@ test('menu cửa hàng hoạt động trên mobile', async ({ page }) => {
 })
 
 test('trang chủ không tràn ngang và dock hỗ trợ mở được', async ({ page }) => {
+  await page.route('**/api/v1/home-page', (route) => route.fulfill({ json: { success: true, data: homeContentFixture } }))
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Vẻ đẹp tự nhiên/ })).toBeVisible()
   await page.getByRole('button', { name: 'Mở hỗ trợ' }).click()
