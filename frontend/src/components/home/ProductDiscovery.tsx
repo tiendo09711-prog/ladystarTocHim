@@ -28,7 +28,7 @@ export function ProductDiscovery({ content }: { content: HomePageSections['produ
         {categories.data?.slice(0, 5).map((category) => <button type="button" role="tab" aria-selected={activeCategory === category.slug} className={activeCategory === category.slug ? 'is-active' : ''} onClick={() => setActiveCategory(category.slug)} key={category.id}>{category.name}</button>)}
       </div>
       <div id="product-discovery-panel" role="tabpanel" className="home-product-panel">
-        {products.isLoading ? <LoadingState label="Đang chọn những sản phẩm phù hợp..." /> : products.isError ? <EmptyState title="Chưa thể tải sản phẩm" description="Vui lòng thử lại sau ít phút." /> : products.data?.data.length ? <div className="home-product-grid">{products.data.data.slice(0, 4).map((product) => <ProductCard key={product.id} product={product} />)}</div> : <EmptyState title="Chưa có sản phẩm trong danh mục này" description="Bạn có thể khám phá thêm những sản phẩm khác của LADYSTARS." />}
+        {products.isLoading ? <LoadingState label="Đang chọn những sản phẩm phù hợp..." /> : products.isError ? <EmptyState title="Chưa thể tải sản phẩm" description="Vui lòng thử lại sau ít phút." /> : products.data?.data.length ? <div className="home-product-grid">{products.data.data.slice(0, 4).map((product) => <ProductCard key={product.id} product={product} />)}</div> : <EmptyState title="Chưa có sản phẩm trong danh mục này" description="Bạn có thể khám phá thêm các danh mục sản phẩm khác." />}
       </div>
       <div className="home-center-action"><Link to={content.view_all_url} className="home-text-link">{content.view_all_label} <ChevronRight size={18} /></Link></div>
     </>}

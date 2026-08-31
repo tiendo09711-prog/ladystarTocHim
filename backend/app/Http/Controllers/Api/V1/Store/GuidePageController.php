@@ -16,14 +16,12 @@ class GuidePageController extends Controller
 
     private const PAGE_KEY = 'guides';
     private const SEO_KEY = 'huong-dan';
-    private const CATEGORY = 'Hướng dẫn';
-
     public function index(Request $request)
     {
         $content = NewsPageContent::where('page_key', self::PAGE_KEY)->first();
         $featured = $this->resolveFeatured($content);
         $articles = NewsArticle::published()
-            ->where('category', self::CATEGORY)
+            ->ofType(NewsArticle::TYPE_GUIDE)
             ->when($featured, fn ($query) => $query->where('id', '!=', $featured->id))
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
@@ -46,7 +44,7 @@ class GuidePageController extends Controller
         if ($featured && $this->isPublishedGuide($featured)) return $featured;
 
         return NewsArticle::published()
-            ->where('category', self::CATEGORY)
+            ->ofType(NewsArticle::TYPE_GUIDE)
             ->orderByDesc('published_at')
             ->orderBy('sort_order')
             ->first();
@@ -96,7 +94,7 @@ class GuidePageController extends Controller
 
     private function isPublishedGuide(NewsArticle $article): bool
     {
-        return $article->category === self::CATEGORY
+        return $article->content_type === NewsArticle::TYPE_GUIDE
             && $article->status === 'published'
             && ($article->published_at === null || $article->published_at <= now());
     }

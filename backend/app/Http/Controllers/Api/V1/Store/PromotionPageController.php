@@ -16,8 +16,6 @@ class PromotionPageController extends Controller
 
     private const PAGE_KEY = 'promotions';
     private const SEO_KEY = 'uu-dai';
-    private const CATEGORY = 'Ưu đãi';
-
     private const CONTENT_FIELDS = [
         'eyebrow', 'title', 'description', 'featured_badge_label', 'list_eyebrow', 'list_title', 'list_description',
         'cta_eyebrow', 'cta_title', 'cta_description', 'cta_primary_label', 'cta_primary_url', 'cta_secondary_label',

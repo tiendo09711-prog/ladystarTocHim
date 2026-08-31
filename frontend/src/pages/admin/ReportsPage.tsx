@@ -6,7 +6,7 @@ import { apiClient } from '../../api/apiClient'
 import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { ApiResponse, Pagination } from '../../types'
-import { formatPrice } from '../../utils/format'
+import { useFormatCompactPrice, useFormatPrice } from '../../utils/format'
 
 type Tab = 'overview' | 'sales' | 'products' | 'inventory' | 'customers'
 interface BranchOption { id: number; name: string; code: string }
@@ -66,6 +66,7 @@ export function ReportsPage() {
 }
 
 function ReportContent({ tab, overview, sales, products, inventory, customers, page, setPage }: { tab: Tab; overview?: Overview; sales: SalesRow[]; products?: Pagination<ProductRow>; inventory?: { summary: InventorySummary; rows: Pagination<InventoryRow> }; customers?: Pagination<CustomerRow>; page: number; setPage: (page: number) => void }) {
+  const formatPrice = useFormatPrice()
   if ((tab === 'overview' || tab === 'sales') && !overview) return <EmptyState title="Chưa có dữ liệu" description="Không có KPI trong khoảng thời gian đã chọn." />
   if (tab === 'overview') {
     const cards = [[overview!.gross_sales, 'Doanh thu gộp', BarChart3], [overview!.refunds, 'Hoàn tiền', RefreshCcw], [overview!.net_revenue, 'Doanh thu thuần', BarChart3], [overview!.completed_orders, 'Đơn hoàn thành', Package], [overview!.aov_net, 'AOV thuần', Users], [overview!.gross_profit_estimate, 'Lợi nhuận gộp ước tính', Boxes]] as const
@@ -78,7 +79,9 @@ function ReportContent({ tab, overview, sales, products, inventory, customers, p
 }
 
 function SalesChart({ rows }: { rows: SalesRow[] }) {
-  return <section className="card mt-5 p-5"><h2 className="text-lg font-black">Doanh thu theo ngày</h2><div className="mt-4 h-80"><ResponsiveContainer width="100%" height="100%"><LineChart data={rows}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tickFormatter={(value: number) => `${Math.round(value / 1000000)}tr`} /><Tooltip formatter={(value) => formatPrice(Number(value))} /><Legend /><Line type="monotone" dataKey="gross_sales" name="Gross Sales" stroke="#4f8b6b" strokeWidth={2} dot={false} /><Line type="monotone" dataKey="refunds" name="Refund" stroke="#b85042" strokeWidth={2} dot={false} /><Line type="monotone" dataKey="net_revenue" name="Net Revenue" stroke="#245c43" strokeWidth={3} dot={false} /></LineChart></ResponsiveContainer></div></section>
+  const formatPrice = useFormatPrice()
+  const formatCompactPrice = useFormatCompactPrice()
+  return <section className="card mt-5 p-5"><h2 className="text-lg font-black">Doanh thu theo ngày</h2><div className="mt-4 h-80"><ResponsiveContainer width="100%" height="100%"><LineChart data={rows}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tickFormatter={(value: number) => formatCompactPrice(value)} /><Tooltip formatter={(value) => formatPrice(Number(value))} /><Legend /><Line type="monotone" dataKey="gross_sales" name="Gross Sales" stroke="#4f8b6b" strokeWidth={2} dot={false} /><Line type="monotone" dataKey="refunds" name="Refund" stroke="#b85042" strokeWidth={2} dot={false} /><Line type="monotone" dataKey="net_revenue" name="Net Revenue" stroke="#245c43" strokeWidth={3} dot={false} /></LineChart></ResponsiveContainer></div></section>
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) { return <div className="card p-5"><div className="text-2xl font-black">{value}</div><div className="muted text-sm">{label}</div></div> }

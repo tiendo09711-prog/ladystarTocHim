@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { EmptyState } from '../../components/common/EmptyState'
 import { useCart } from '../../stores/CartContext'
-import { formatPrice } from '../../utils/format'
+import { useFormatPrice } from '../../utils/format'
 import { apiClient } from '../../api/apiClient'
 import type { ApiResponse, PaymentMethods } from '../../types'
 
 export function CartPage() {
+  const formatPrice = useFormatPrice()
   const { items, subtotal, updateItem, removeItem, clear } = useCart()
   const navigate = useNavigate()
   const settings = useQuery({ queryKey: ['payment-methods'], queryFn: async () => (await apiClient.get<ApiResponse<PaymentMethods>>('/payment-methods')).data.data })

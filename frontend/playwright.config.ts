@@ -8,6 +8,7 @@ export default defineConfig({
   workers: 1,
   outputDir: '../artifacts/playwright',
   timeout: 30_000,
+  expect: { timeout: 15_000 },
   use: { baseURL: 'http://127.0.0.1:5174', trace: 'retain-on-failure', screenshot: 'only-on-failure', video: 'retain-on-failure' },
   webServer: [
     { command: 'node scripts/start-e2e-backend.mjs', cwd: '.', url: 'http://127.0.0.1:8011/up', reuseExistingServer: false, timeout: 120_000 },

@@ -6,11 +6,12 @@ import { apiClient } from '../../api/apiClient'
 import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { ApiResponse, Coupon, Pagination } from '../../types'
-import { formatPrice } from '../../utils/format'
+import { useFormatPrice } from '../../utils/format'
 
 const dateTimeValue = (value?: string | null) => value ? new Date(value).toISOString().slice(0, 16) : ''
 
 export function CouponsAdminPage() {
+  const formatPrice = useFormatPrice()
   const client = useQueryClient()
   const [draft, setDraft] = useState<Partial<Coupon> | null>(null)
   const query = useQuery({ queryKey: ['admin-coupons'], queryFn: async () => (await apiClient.get<ApiResponse<Pagination<Coupon>>>('/admin/coupons')).data.data })

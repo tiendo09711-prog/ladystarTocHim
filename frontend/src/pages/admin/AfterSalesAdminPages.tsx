@@ -6,11 +6,12 @@ import { apiClient } from '../../api/apiClient'
 import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { AfterSalesShipment, ApiResponse, Pagination, ReturnRequest, WarrantyRequest } from '../../types'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 import { useAuth } from '../../stores/AuthContext'
 import { can } from '../../features/auth/permissions'
 
 export function ReturnsAdminPage() {
+  const formatPrice = useFormatPrice()
   const { user } = useAuth()
   const canManage = can(user, 'returns.manage')
   const canViewRefunds = can(user, 'refunds.view')

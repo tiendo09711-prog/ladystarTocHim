@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
+import { getCatalogContent } from '../../api/contentApi'
 import { getProduct, getProducts } from '../../api/storeApi'
 import { ConsultationDialog } from '../../components/store/ConsultationDialog'
 import { ProductDetailSections } from '../../components/products/ProductDetailSections'
@@ -16,11 +17,13 @@ import { resolveProductVariant, type SelectedOptions } from '../../features/prod
 import { addCompareProduct, rememberProduct } from '../../features/products/productMemory'
 import { useAuth } from '../../stores/AuthContext'
 import { useCart } from '../../stores/CartContext'
-import { formatPrice } from '../../utils/format'
+import { usePublicSettings } from '../../stores/CurrencyContext'
+import { useFormatPrice } from '../../utils/format'
 import { shareProduct } from '../../utils/browserActions'
 import './ProductPage.css'
 
 export function ProductPage() {
+  const formatPrice = useFormatPrice()
   const { slug = '' } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
@@ -28,6 +31,8 @@ export function ProductPage() {
   const query = useQuery({ queryKey: ['product', slug], queryFn: () => getProduct(slug) })
   const product = query.data
   const relatedQuery = useQuery({ queryKey: ['related-products', product?.id], enabled: Boolean(product?.category?.slug), queryFn: () => getProducts({ category: product?.category?.slug, per_page: 8 }) })
+  const contentQuery = useQuery({ queryKey: ['catalog-content', 'products'], queryFn: getCatalogContent })
+  const settings = usePublicSettings().data
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({})
   const [quantity, setQuantity] = useState(1)
   const [missingOptionId, setMissingOptionId] = useState<number | null>(null)
@@ -40,6 +45,7 @@ export function ProductPage() {
   useEffect(() => setQuantity(1), [selectedVariant?.id])
   useEffect(() => { if (product?.id) rememberProduct(product.id, selectedVariant?.id) }, [product?.id, selectedVariant?.id])
   const related = useMemo(() => (relatedQuery.data?.data ?? []).filter((item) => item.id !== product?.id).slice(0, 8), [relatedQuery.data, product?.id])
+  const appointmentsEnabled = settings?.appointments_enabled === true
 
   if (query.isLoading) return <div className='container-page product-detail-page'><ProductDetailSkeleton /></div>
   if (!product) return <div className='container-page py-16 text-center'>Không tìm thấy sản phẩm.</div>
@@ -94,11 +100,11 @@ export function ProductPage() {
         <button type='button' className='product-reset' onClick={reset}><RotateCcw size={16} />Chọn lại</button>
         <div className='product-option-groups'>{optionGroups.map((option) => <ProductOptionGroup key={option.id} option={option} variants={product.variants} selection={selectedOptions} error={missingOptionId === option.id} onSelect={chooseOption} />)}</div>
         <div className='product-quantity-row'><span>Số lượng</span><div><button type='button' aria-label='Giảm số lượng' onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus size={17} /></button><strong>{quantity}</strong><button type='button' aria-label='Tăng số lượng' disabled={!selectedVariant || quantity >= selectedVariant.stock} onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 1, quantity + 1))}><Plus size={17} /></button></div><small>{selectedVariant ? selectedVariant.stock > 0 ? 'Còn ' + selectedVariant.stock + ' sản phẩm' : 'Hết hàng' : 'Chọn đủ cấu hình để xem tồn kho'}</small></div>
-        <div className='product-cta-row'><button type='button' className='btn-primary' onClick={buyNow}><ShoppingBag size={18} />ĐẶT MUA NGAY</button><button type='button' className='btn-secondary' onClick={() => setConsultationOpen(true)}>ĐẶT LỊCH TƯ VẤN</button><button type='button' className='product-wishlist' onClick={addWishlist} aria-label='Thêm vào yêu thích'><Heart size={20} /></button></div><div className='mt-3 flex flex-wrap gap-4'><button type='button' className='flex items-center gap-2 text-sm font-bold text-emerald-800' onClick={compare}><GitCompareArrows size={17} />Thêm vào so sánh</button><button type='button' className='flex items-center gap-2 text-sm font-bold text-emerald-800' onClick={() => void share()}><Share2 size={17} />Chia sẻ</button></div>
+        <div className='product-cta-row'><button type='button' className='btn-primary' onClick={buyNow}><ShoppingBag size={18} />ĐẶT MUA NGAY</button>{appointmentsEnabled && <button type='button' className='btn-secondary' onClick={() => setConsultationOpen(true)}>ĐẶT LỊCH TƯ VẤN</button>}<button type='button' className='product-wishlist' onClick={addWishlist} aria-label='Thêm vào yêu thích'><Heart size={20} /></button></div><div className='mt-3 flex flex-wrap gap-4'><button type='button' className='flex items-center gap-2 text-sm font-bold text-emerald-800' onClick={compare}><GitCompareArrows size={17} />Thêm vào so sánh</button><button type='button' className='flex items-center gap-2 text-sm font-bold text-emerald-800' onClick={() => void share()}><Share2 size={17} />Chia sẻ</button></div>
       </section>
     </div>
-    <ProductDetailSections product={product} related={related} onConsult={() => setConsultationOpen(true)} />
+    <ProductDetailSections product={product} related={related} content={contentQuery.data} appointmentsEnabled={appointmentsEnabled} onConsult={() => setConsultationOpen(true)} />
     <RecentlyViewedProducts excludeProductId={product.id} />
-    <ConsultationDialog open={consultationOpen} onClose={() => setConsultationOpen(false)} productId={product.id} context={selectedVariant?.attributes.map((item) => (item.attribute_name || '') + ': ' + item.value).join(' · ')} />
+    {appointmentsEnabled && <ConsultationDialog open={consultationOpen} onClose={() => setConsultationOpen(false)} productId={product.id} context={selectedVariant?.attributes.map((item) => (item.attribute_name || '') + ': ' + item.value).join(' · ')} />}
   </div>
 }

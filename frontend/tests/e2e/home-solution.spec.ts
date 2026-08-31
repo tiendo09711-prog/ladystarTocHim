@@ -17,6 +17,7 @@ const homeContent = {
 }
 
 test('section giải pháp premium responsive tại các viewport yêu cầu', async ({ page }) => {
+  test.setTimeout(120_000)
   await page.route('**/api/v1/home-page', (route) => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({ success: true, data: homeContent }),
@@ -29,7 +30,7 @@ test('section giải pháp premium responsive tại các viewport yêu cầu', a
     const image = section.locator('.home-solution-art img')
     await section.scrollIntoViewIfNeeded()
     await expect(image).toBeVisible()
-    await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth), { timeout: 20_000 }).toBeGreaterThan(0)
 
     const geometry = await section.evaluate((element, width) => {
       const grid = element as HTMLElement

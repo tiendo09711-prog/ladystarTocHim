@@ -30,8 +30,8 @@ class ContentPageController extends Controller
         if (! is_string($value)) return $value;
 
         $tokens = [
-            '{{shipping_fee}}' => $settings ? number_format((float) $settings->shipping_fee, 0, ',', '.') . 'đ' : '',
-            '{{free_shipping_from}}' => $settings ? number_format((float) $settings->free_shipping_from, 0, ',', '.') . 'đ' : '',
+            '{{shipping_fee}}' => $this->formatMoney($settings?->shipping_fee, $settings?->currency),
+            '{{free_shipping_from}}' => $this->formatMoney($settings?->free_shipping_from, $settings?->currency),
             '{{return_window_days}}' => $settings ? (string) $settings->return_window_days : '',
             '{{exchange_window_days}}' => $settings ? (string) $settings->exchange_window_days : '',
         ];
@@ -39,11 +39,18 @@ class ContentPageController extends Controller
         return strtr($value, $tokens);
     }
 
+    private function formatMoney(mixed $value, ?string $currency): string
+    {
+        if ($value === null || blank($currency)) return '';
+
+        return number_format((float) $value, 0, ',', '.').' '.strtoupper($currency);
+    }
+
     private function businessRules(string $pageKey, ?StoreSetting $settings): array
     {
         if (! $settings) return ['configured' => false];
         return match ($pageKey) {
-            'chinh-sach-giao-hang' => ['configured' => true, 'shipping_fee' => (float) $settings->shipping_fee, 'free_shipping_from' => (float) $settings->free_shipping_from],
+            'chinh-sach-giao-hang' => ['configured' => true, 'currency' => $settings->currency, 'shipping_fee' => (float) $settings->shipping_fee, 'free_shipping_from' => (float) $settings->free_shipping_from],
             'chinh-sach-doi-tra' => ['configured' => true, 'returns_enabled' => (bool) $settings->returns_enabled, 'return_window_days' => (int) $settings->return_window_days, 'exchange_enabled' => (bool) $settings->exchange_enabled, 'exchange_window_days' => (int) $settings->exchange_window_days],
             default => ['configured' => true],
         };

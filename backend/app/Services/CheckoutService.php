@@ -118,8 +118,11 @@ class CheckoutService
         if (! $settings->isConfigured()) {
             throw ValidationException::withMessages(['settings' => 'Cửa hàng chưa được cấu hình để nhận đơn hàng.']);
         }
+        if (($payload['payment_method'] ?? 'cod') === 'cod' && ! $settings->cod_enabled) {
+            throw ValidationException::withMessages(['payment_method' => 'Thanh toán COD hiện không khả dụng.']);
+        }
         if (($payload['payment_method'] ?? 'cod') === 'bank_transfer' && ! $settings->bank_transfer_enabled) {
-            throw ValidationException::withMessages(['payment_method' => 'Bank transfer is currently unavailable.']);
+            throw ValidationException::withMessages(['payment_method' => 'Chuyển khoản ngân hàng hiện không khả dụng.']);
         }
         $attributes = Arr::only($payload, [
             'customer_name', 'customer_email', 'customer_phone', 'province', 'district', 'ward',

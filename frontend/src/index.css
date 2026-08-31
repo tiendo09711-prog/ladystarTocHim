@@ -104,6 +104,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .store-header-main { position: relative; display: grid; height: 90px; min-height: 90px; overflow: hidden; transition: height .25s ease, min-height .25s ease, opacity .2s ease; grid-template-columns: 1fr auto 1fr; align-items: center; }
 .store-header-note { color: var(--color-text-muted); font-size: 11px; font-weight: 800; letter-spacing: .14em; }
 .store-brand { display: inline-flex; align-items: center; justify-self: center; }
+.store-brand > span { color: var(--color-brand-deep); font-size: 24px; font-weight: 900; letter-spacing: .08em; line-height: 1; }
 .store-brand img { display: block; width: 174px; height: 33px; object-fit: contain; }
 .store-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .store-icon-button { position: relative; display: inline-grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--color-text); transition: background .2s ease, color .2s ease; }
@@ -348,6 +349,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .store-footer { background: #342126; color: #eadadd; padding-top: 68px; }
 .store-footer-grid { display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 46px; }
 .store-footer-brand img { width: 185px; filter: brightness(0) invert(1); }
+.store-footer-brand > strong { color: white; font-size: 22px; font-weight: 900; letter-spacing: .06em; }
 .store-footer p { margin: 15px 0 0; color: #cbb7bd; font-size: 14px; line-height: 1.7; }
 .store-footer h2 { margin: 0 0 17px; color: white; font-size: 15px; }
 .store-footer-grid > div:not(.store-footer-brand) { display: grid; align-content: start; gap: 10px; }

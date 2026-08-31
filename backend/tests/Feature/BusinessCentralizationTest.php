@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\ContentPage;
+use App\Models\ProductVariant;
 use App\Models\StoreSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,14 +22,15 @@ class BusinessCentralizationTest extends TestCase
         $payload = ['title' => 'Chính sách giao hàng', 'summary' => 'Thông tin giao hàng hiện tại.', 'content' => ['intro' => 'Phí hiện tại: {{shipping_fee}}.', 'sections' => [['title' => 'Quy định', 'body' => 'Miễn phí từ {{free_shipping_from}}.', 'items' => ['Theo dõi trong tài khoản.']]]], 'is_active' => true];
         $this->actingAs($admin)->putJson('/api/v1/admin/content-pages/chinh-sach-giao-hang', $payload)->assertOk();
 
-        StoreSetting::create(['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 40000, 'free_shipping_from' => 1200000, 'low_stock_threshold' => 0, 'bank_transfer_enabled' => false, 'returns_enabled' => false, 'return_window_days' => 0, 'exchange_enabled' => false, 'exchange_window_days' => 0, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => false, 'appointments_enabled' => false, 'appointment_cancel_before_hours' => 0, 'store_timezone' => 'Asia/Ho_Chi_Minh']);
-        $this->getJson('/api/v1/content-pages/chinh-sach-giao-hang')->assertOk()->assertJsonPath('data.content.intro', 'Phí hiện tại: 40.000đ.')->assertJsonPath('data.content.sections.0.body', 'Miễn phí từ 1.200.000đ.');
+        StoreSetting::create(['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 40000, 'free_shipping_from' => 1200000, 'low_stock_threshold' => 0, 'cod_enabled' => false, 'bank_transfer_enabled' => false, 'returns_enabled' => false, 'return_window_days' => 0, 'exchange_enabled' => false, 'exchange_window_days' => 0, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => false, 'appointments_enabled' => false, 'appointment_cancel_before_hours' => 0, 'store_timezone' => 'Asia/Ho_Chi_Minh']);
+        $this->getJson('/api/v1/payment-methods')->assertOk()->assertJsonPath('data.shipping.fee', 40000)->assertJsonPath('data.shipping.free_from', 1200000);
+        $this->getJson('/api/v1/content-pages/chinh-sach-giao-hang')->assertOk()->assertJsonPath('data.content.intro', 'Phí hiện tại: 40.000 VND.')->assertJsonPath('data.content.sections.0.body', 'Miễn phí từ 1.200.000 VND.');
     }
 
     public function test_public_settings_hide_internal_fields_and_empty_database_stays_unconfigured(): void
     {
         $this->getJson('/api/v1/settings/public')->assertOk()->assertJsonPath('data.configured', false)->assertJsonMissingPath('data.shipping_fee');
-        StoreSetting::create(['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 40000, 'free_shipping_from' => 1200000, 'low_stock_threshold' => 0, 'bank_transfer_enabled' => true, 'returns_enabled' => true, 'return_window_days' => 7, 'exchange_enabled' => true, 'exchange_window_days' => 7, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => true, 'appointments_enabled' => true, 'appointment_cancel_before_hours' => 4, 'store_timezone' => 'Asia/Ho_Chi_Minh']);
+        StoreSetting::create(['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 40000, 'free_shipping_from' => 1200000, 'low_stock_threshold' => 0, 'cod_enabled' => true, 'bank_transfer_enabled' => true, 'returns_enabled' => true, 'return_window_days' => 7, 'exchange_enabled' => true, 'exchange_window_days' => 7, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => true, 'appointments_enabled' => true, 'appointment_cancel_before_hours' => 4, 'store_timezone' => 'Asia/Ho_Chi_Minh']);
         $this->getJson('/api/v1/settings/public')->assertOk()->assertJsonPath('data.configured', true)->assertJsonMissingPath('data.bank_account_number');
     }
 
@@ -40,6 +42,36 @@ class BusinessCentralizationTest extends TestCase
         $this->actingAs($admin)->putJson('/api/v1/admin/settings', $payload)->assertOk()->assertJsonPath('data.currency', 'USD');
         $this->getJson('/api/v1/settings/public')->assertOk()->assertJsonPath('data.currency', 'USD');
         $this->actingAs($admin)->putJson('/api/v1/admin/settings', [...$payload, 'currency' => 'US'])->assertUnprocessable()->assertJsonValidationErrors('currency');
+    }
+
+    public function test_cod_availability_is_database_driven_and_enforced_by_checkout(): void
+    {
+        $this->seed();
+        $settings = StoreSetting::query()->firstOrFail();
+        $settings->update(['cod_enabled' => false, 'bank_transfer_enabled' => false]);
+
+        $this->getJson('/api/v1/payment-methods')->assertOk()->assertJsonPath('data.cod.enabled', false);
+        $variant = ProductVariant::query()->firstOrFail();
+        $payload = [
+            'items' => [['product_variant_id' => $variant->id, 'quantity' => 1]],
+            'customer_name' => 'Checkout Test',
+            'customer_email' => 'checkout@example.com',
+            'customer_phone' => '0900000000',
+            'province' => 'Test',
+            'district' => 'Test',
+            'ward' => 'Test',
+            'shipping_address' => 'Test address',
+            'payment_method' => 'cod',
+        ];
+        $this->postJson('/api/v1/guest-checkout/place-order', $payload)->assertUnprocessable()->assertJsonValidationErrors('payment_method');
+
+        $settings->update(['cod_enabled' => true]);
+        $this->getJson('/api/v1/payment-methods')->assertOk()->assertJsonPath('data.cod.enabled', true);
+    }
+
+    public function test_backend_root_returns_json_health_response(): void
+    {
+        $this->get('/')->assertOk()->assertJson(['status' => 'ok']);
     }
     public function test_import_requires_existing_active_category_and_branch_without_leaking_exception(): void
     {
@@ -56,10 +88,32 @@ class BusinessCentralizationTest extends TestCase
         $this->getJson('/api/v1/categories')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.slug', 'visible');
     }
 
+    public function test_admin_show_in_menu_changes_public_category_navigation(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $created = $this->actingAs($admin)->postJson('/api/v1/admin/categories', [
+            'name' => 'Dynamic category',
+            'slug' => 'dynamic-category',
+            'is_active' => true,
+            'show_in_menu' => true,
+            'sort_order' => 1,
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/categories')->assertOk()->assertJsonPath('data.0.slug', 'dynamic-category');
+        $this->actingAs($admin)->putJson('/api/v1/admin/categories/'.$created->json('data.id'), [
+            'name' => 'Dynamic category',
+            'slug' => 'dynamic-category',
+            'is_active' => true,
+            'show_in_menu' => false,
+            'sort_order' => 1,
+        ])->assertOk();
+        $this->getJson('/api/v1/categories')->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_admin_can_persist_validated_hair_finder_configuration(): void
     {
         $admin = User::factory()->admin()->create();
-        $payload = ['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 0, 'free_shipping_from' => 0, 'low_stock_threshold' => 0, 'bank_transfer_enabled' => false, 'returns_enabled' => false, 'return_window_days' => 0, 'exchange_enabled' => false, 'exchange_window_days' => 0, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => false, 'appointments_enabled' => false, 'appointment_cancel_before_hours' => 0, 'store_timezone' => 'Asia/Ho_Chi_Minh', 'hair_finder_config' => ['content' => ['title' => 'Finder'], 'actions' => ['next' => 'Tiếp tục'], 'format' => ['locale' => 'vi-VN', 'currency' => 'VND'], 'questions' => [['key' => 'usage', 'type' => 'single', 'title' => 'Nhu cầu?', 'choices' => [['value' => 'daily', 'label' => 'Hàng ngày']]]], 'budget' => ['labels' => ['Cân bằng'], 'minimum_step' => 100000, 'rounding_step' => 100000], 'scoring' => ['result_limit' => 5]]];
+        $payload = ['store_name' => 'LADYSTARS', 'order_prefix' => 'LS', 'currency' => 'VND', 'shipping_fee' => 0, 'free_shipping_from' => 0, 'low_stock_threshold' => 0, 'cod_enabled' => false, 'bank_transfer_enabled' => false, 'returns_enabled' => false, 'return_window_days' => 0, 'exchange_enabled' => false, 'exchange_window_days' => 0, 'refund_shipping_on_full_return' => false, 'warranty_enabled' => false, 'appointments_enabled' => false, 'appointment_cancel_before_hours' => 0, 'store_timezone' => 'Asia/Ho_Chi_Minh', 'hair_finder_config' => ['content' => ['title' => 'Finder'], 'actions' => ['next' => 'Tiếp tục'], 'format' => ['locale' => 'vi-VN', 'currency' => 'VND'], 'questions' => [['key' => 'usage', 'type' => 'single', 'title' => 'Nhu cầu?', 'choices' => [['value' => 'daily', 'label' => 'Hàng ngày']]]], 'budget' => ['labels' => ['Cân bằng'], 'minimum_step' => 100000, 'rounding_step' => 100000], 'scoring' => ['result_limit' => 5]]];
         $this->actingAs($admin)->putJson('/api/v1/admin/settings', $payload)->assertOk()->assertJsonPath('data.hair_finder_config.content.title', 'Finder')->assertJsonMissingPath('data.hair_finder_config.format.currency');
         $this->getJson('/api/v1/hair-finder/options')->assertOk()->assertJsonPath('data.format.currency', 'VND')->assertJsonPath('data.questions.0.choices.0.value', 'daily');
     }

@@ -6,9 +6,10 @@ import { apiClient } from '../../api/apiClient'
 import { OrderTimeline } from '../../components/orders/OrderTimeline'
 import { PaymentSummary, ShipmentSummary } from '../../components/orders/OrderSummaries'
 import type { ApiResponse, Order, PaymentMethods } from '../../types'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 
 export function OrderTrackingPage() {
+  const formatPrice = useFormatPrice()
   const [searchParams] = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
   const [error, setError] = useState('')

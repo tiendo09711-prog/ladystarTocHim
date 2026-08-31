@@ -82,7 +82,7 @@ export function AdminLayout() {
       )}
       <aside className={[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-72', 'admin-sidebar fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[#193b2d] p-3 text-white transition-all lg:translate-x-0'].join(' ')}>
         <div className="mb-5 flex items-center justify-between px-2 py-3">
-          <span className={[collapsed ? 'lg:hidden' : '', 'text-xl font-black'].join(' ')}>LADYSTARS</span>
+          <span className={[collapsed ? 'lg:hidden' : '', 'text-xl font-black'].join(' ')}>Quản trị</span>
           <button className="hidden lg:block" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}>
             <ChevronLeft className={collapsed ? 'rotate-180' : ''} />
           </button>

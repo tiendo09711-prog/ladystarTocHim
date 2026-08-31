@@ -5,9 +5,10 @@ import { apiClient } from '../../api/apiClient'
 import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { ApiResponse, Pagination, ReturnRequest, WarrantyRequest } from '../../types'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 
 export function ReturnsPage() {
+  const formatPrice = useFormatPrice()
   const { id } = useParams()
   const client = useQueryClient()
   const query = useQuery({ queryKey: ['account-returns', id], queryFn: async () => id ? (await apiClient.get<ApiResponse<ReturnRequest>>(`/account/returns/${id}`)).data.data : (await apiClient.get<ApiResponse<Pagination<ReturnRequest>>>('/account/returns')).data.data })

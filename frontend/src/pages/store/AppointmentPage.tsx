@@ -3,14 +3,18 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { apiClient } from '../../api/apiClient'
 import { LoadingState } from '../../components/common/LoadingState'
+import { EmptyState } from '../../components/common/EmptyState'
 import { useAuth } from '../../stores/AuthContext'
+import { usePublicSettings } from '../../stores/CurrencyContext'
 import type { ApiResponse, Appointment, AppointmentOptions, AppointmentSlot } from '../../types'
 import { statusLabel } from '../../utils/format'
 
 export function AppointmentPage() {
   const { user } = useAuth()
+  const publicSettings = usePublicSettings()
+  const appointmentsEnabled = publicSettings.data?.appointments_enabled === true
   const today = new Intl.DateTimeFormat('en-CA').format(new Date())
-  const options = useQuery({ queryKey: ['appointment-options'], queryFn: async () => (await apiClient.get<ApiResponse<AppointmentOptions>>('/appointment-options')).data.data })
+  const options = useQuery({ queryKey: ['appointment-options'], enabled: appointmentsEnabled, queryFn: async () => (await apiClient.get<ApiResponse<AppointmentOptions>>('/appointment-options')).data.data })
   const [branchId, setBranchId] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [date, setDate] = useState('')
@@ -21,7 +25,8 @@ export function AppointmentPage() {
   const enabled = Boolean(branchId && serviceId && date)
   const availability = useQuery({ queryKey: ['appointment-slots', branchId, serviceId, date], enabled, queryFn: async () => (await apiClient.get<ApiResponse<{ slots: AppointmentSlot[] }>>('/appointment-availability', { params: { branch_id: branchId, service_id: serviceId, date } })).data.data })
   const chosenService = useMemo(() => options.data?.services.find((item) => item.id === Number(serviceId)), [options.data, serviceId])
-  if (options.isLoading) return <LoadingState />
+  if (publicSettings.isLoading || (appointmentsEnabled && options.isLoading)) return <LoadingState />
+  if (!appointmentsEnabled) return <div className='container-page py-12'><EmptyState title='Đặt lịch hiện không khả dụng' description='Cửa hàng đang tạm ngưng tiếp nhận lịch hẹn trực tuyến.' /></div>
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -53,7 +58,7 @@ export function AppointmentPage() {
     } catch { toast.error('Không thể cập nhật lịch hẹn theo chính sách hiện tại.') }
   }
 
-  return <div className='container-page py-10'><div className='mx-auto max-w-4xl'><div className='mb-7'><p className='text-sm font-bold uppercase tracking-widest text-emerald-700'>LADYSTARS Care</p><h1 className='mt-2 text-4xl font-black'>Đặt lịch dịch vụ</h1><p className='muted mt-2'>Chọn chi nhánh, dịch vụ, ngày và khung giờ còn khả dụng.</p></div>
+  return <div className='container-page py-10'><div className='mx-auto max-w-4xl'><div className='mb-7'><p className='text-sm font-bold uppercase tracking-widest text-emerald-700'>Lịch hẹn</p><h1 className='mt-2 text-4xl font-black'>Đặt lịch dịch vụ</h1><p className='muted mt-2'>Chọn chi nhánh, dịch vụ, ngày và khung giờ còn khả dụng.</p></div>
     {booked ? <div className='card p-7'><h2 className='text-2xl font-black'>Đã ghi nhận lịch hẹn</h2><p className='mt-3'>Mã lịch: <strong>{booked.code}</strong></p><p>Thời gian: {new Date(booked.start_at).toLocaleString('vi-VN')}</p><p>Chi nhánh: {booked.branch.name}</p><p>Trạng thái: {statusLabel[booked.status] ?? booked.status}</p>{guestToken && ['pending', 'confirmed'].includes(booked.status) && <div className='mt-5 flex flex-wrap items-end gap-3'><label><span className='label'>Thời gian mới</span><input className='input' type='datetime-local' value={rescheduleAt} onChange={(event) => setRescheduleAt(event.target.value)} /></label><button className='btn-primary' disabled={!rescheduleAt} onClick={() => void guestAction('reschedule')}>Đổi lịch</button><button className='btn-secondary text-red-700' onClick={() => void guestAction('cancel')}>Hủy lịch</button></div>}<p className='muted mt-4'>Quyền quản lý lịch khách chỉ được giữ trong bộ nhớ trang hiện tại, không lưu vào localStorage.</p></div> : <form className='card grid gap-5 p-6 md:grid-cols-2' onSubmit={submit}>
       <label><span className='label'>1. Chi nhánh</span><select className='input' value={branchId} onChange={(event) => { setBranchId(event.target.value); setSlot('') }} required><option value=''>Chọn chi nhánh</option>{options.data?.branches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label><span className='label'>2. Dịch vụ</span><select className='input' value={serviceId} onChange={(event) => { setServiceId(event.target.value); setSlot('') }} required><option value=''>Chọn dịch vụ</option>{options.data?.services.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.duration_minutes} phút)</option>)}</select></label>

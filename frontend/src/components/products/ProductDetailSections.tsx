@@ -1,17 +1,10 @@
-import { CreditCard, Headphones, RefreshCcw, Truck } from 'lucide-react'
 import { useState } from 'react'
-import type { Product } from '../../types'
+import type { CatalogContent, Product } from '../../types'
 import { ProductCard } from './ProductCard'
 
-export function ProductDetailSections({ product, related, onConsult }: { product: Product; related: Product[]; onConsult: () => void }) {
+export function ProductDetailSections({ product, related, content, appointmentsEnabled, onConsult }: { product: Product; related: Product[]; content?: CatalogContent | null; appointmentsEnabled: boolean; onConsult: () => void }) {
   const [tab, setTab] = useState<'info' | 'guide' | 'reviews'>('info')
   return <>
-    <section className='product-usp-grid' aria-label='Cam kết mua hàng'>
-      <article><Truck /><div><strong>Giao hàng toàn quốc</strong><span>Đóng gói cẩn thận</span></div></article>
-      <article><CreditCard /><div><strong>Thanh toán linh hoạt</strong><span>COD hoặc chuyển khoản</span></div></article>
-      <article><RefreshCcw /><div><strong>Hỗ trợ đổi trả</strong><span>Theo chính sách LADYSTARS</span></div></article>
-      <article><Headphones /><div><strong>Tư vấn tận tâm</strong><span>Đồng hành sau mua</span></div></article>
-    </section>
     <section className='product-tabs'>
       <div role='tablist' aria-label='Thông tin sản phẩm'>{[['info', 'THÔNG TIN SẢN PHẨM'], ['guide', 'HƯỚNG DẪN SỬ DỤNG'], ['reviews', 'PHẢN HỒI KHÁCH HÀNG']].map(([id, label]) => <button type='button' role='tab' aria-selected={tab === id} key={id} onClick={() => setTab(id as typeof tab)}>{label}</button>)}</div>
       <div className='product-tab-panel' role='tabpanel'>
@@ -21,6 +14,6 @@ export function ProductDetailSections({ product, related, onConsult }: { product
       </div>
     </section>
     {related.length > 0 && <section className='product-related'><h2>CÓ THỂ BẠN SẼ THÍCH</h2><div>{related.map((item) => <ProductCard product={item} key={item.id} />)}</div></section>}
-    <section className='product-consultation'><div><p>LADYSTARS CARE</p><h2>Chọn giải pháp tóc phù hợp cùng chuyên viên</h2><span>Đặt lịch để được tư vấn riêng về kích thước, màu tóc và loại đế.</span><button className='btn-primary' type='button' onClick={onConsult}>Đặt lịch tư vấn</button></div><img src='/images/brand/ladystars-hero.svg' alt='Tư vấn sản phẩm tóc LADYSTARS' /></section>
+    {appointmentsEnabled && content?.consultation_title && <section className='product-consultation'><div>{content.eyebrow && <p>{content.eyebrow}</p>}<h2>{content.consultation_title}</h2>{content.consultation_body && <span>{content.consultation_body}</span>}<button className='btn-primary' type='button' onClick={onConsult}>{content.consultation_cta_label || 'Đặt lịch tư vấn'}</button></div>{content.consultation_image_path && <img src={content.consultation_image_path} alt={content.consultation_image_alt || content.consultation_title} />}</section>}
   </>
 }

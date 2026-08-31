@@ -25,6 +25,7 @@ class GuidePageTest extends TestCase
             'slug' => $slug,
             'excerpt' => 'Tóm tắt hướng dẫn.',
             'content' => 'Nội dung hướng dẫn đầy đủ.',
+            'content_type' => NewsArticle::TYPE_GUIDE,
             'category' => 'Hướng dẫn',
             'status' => 'published',
             'published_at' => now(),
@@ -35,7 +36,7 @@ class GuidePageTest extends TestCase
     {
         $this->seed();
         $guide = $this->publishedGuide();
-        NewsArticle::create(['title' => 'Bản nháp', 'slug' => 'huong-dan-nhap', 'content' => 'Nội dung', 'category' => 'Hướng dẫn', 'status' => 'draft']);
+        NewsArticle::create(['title' => 'Bản nháp', 'slug' => 'huong-dan-nhap', 'content' => 'Nội dung', 'content_type' => NewsArticle::TYPE_GUIDE, 'category' => 'Hướng dẫn', 'status' => 'draft']);
         NewsArticle::create(['title' => 'Tin thường', 'slug' => 'tin-thuong-guide-test', 'content' => 'Nội dung', 'category' => 'Cẩm nang', 'status' => 'published', 'published_at' => now()]);
 
         $response = $this->getJson('/api/v1/guides-page')->assertOk();
@@ -51,6 +52,22 @@ class GuidePageTest extends TestCase
         $guide = $this->publishedGuide();
 
         $this->assertNotContains($guide->slug, collect($this->getJson('/api/v1/news')->assertOk()->json('data.data'))->pluck('slug'));
+        $this->getJson('/api/v1/news/'.$guide->slug)->assertNotFound();
+    }
+
+    public function test_guide_classification_does_not_depend_on_display_category(): void
+    {
+        $guide = NewsArticle::create([
+            'title' => 'Guide with editable label',
+            'slug' => 'guide-editable-label',
+            'content' => 'Guide content.',
+            'content_type' => NewsArticle::TYPE_GUIDE,
+            'category' => 'Nhãn hiển thị tùy chỉnh',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        $this->getJson('/api/v1/guides/'.$guide->slug)->assertOk()->assertJsonPath('data.category', 'Nhãn hiển thị tùy chỉnh');
         $this->getJson('/api/v1/news/'.$guide->slug)->assertNotFound();
     }
 

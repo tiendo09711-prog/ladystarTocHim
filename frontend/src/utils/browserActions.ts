@@ -29,10 +29,10 @@ function icsDate(value: string) {
 export function downloadAppointmentIcs(appointment: Appointment) {
   const location = appointment.branch.name
   const content = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LADYSTARS//Appointment//VI', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Store//Appointment//VI', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VEVENT', `UID:ladystars-appointment-${appointment.id}@local`, `DTSTAMP:${icsDate(new Date().toISOString())}`,
     `DTSTART:${icsDate(appointment.start_at)}`, `DTEND:${icsDate(appointment.end_at)}`,
-    `SUMMARY:${escapeIcs(`LADYSTARS - ${appointment.service.name}`)}`,
+    `SUMMARY:${escapeIcs(`Appointment - ${appointment.service.name}`)}`,
     `LOCATION:${escapeIcs(location)}`, `DESCRIPTION:${escapeIcs(`Mã lịch hẹn: ${appointment.code}`)}`,
     'END:VEVENT', 'END:VCALENDAR', '',
   ].join('\r\n')

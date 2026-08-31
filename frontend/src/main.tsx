@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import App from './App'
 import { AuthProvider } from './stores/AuthContext'
 import { CartProvider } from './stores/CartContext'
+import { CurrencyProvider } from './stores/CurrencyContext'
 import './index.css'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
@@ -12,12 +13,14 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <App />
-          <Toaster position="top-right" richColors />
-        </CartProvider>
-      </AuthProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <CartProvider>
+            <App />
+            <Toaster position="top-right" richColors />
+          </CartProvider>
+        </AuthProvider>
+      </CurrencyProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

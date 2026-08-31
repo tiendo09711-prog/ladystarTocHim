@@ -4,6 +4,7 @@ import { apiClient } from '../../api/apiClient'
 import { LoadingState } from '../../components/common/LoadingState'
 import { ProductCard } from '../../components/products/ProductCard'
 import type { ApiResponse, HairFinderChoice, HairFinderOptions, HairFinderQuestion, HairFinderRecommendation } from '../../types'
+import { formatPrice } from '../../utils/format'
 
 type AnswerValue = string | string[] | number | undefined
 type HairFinderAnswers = Record<string, AnswerValue>
@@ -71,8 +72,7 @@ function QuestionStep({ question, answers, format, setAnswer, setBudget }: { que
   if (question.type === 'budget') {
     const choices = question.choices ?? []
     const selected = choices.find((choice) => choice.min === answers.budget_min && choice.max === answers.budget_max)?.value ?? ''
-    const formatter = new Intl.NumberFormat(format.locale, { style: 'currency', currency: format.currency, maximumFractionDigits: 0 })
-    const displayChoices = choices.map((choice) => ({ ...choice, label: `${choice.label}: ${formatter.format(choice.min ?? 0)} – ${formatter.format(choice.max ?? 0)}` }))
+    const displayChoices = choices.map((choice) => ({ ...choice, label: `${choice.label}: ${formatPrice(choice.min ?? 0, format.currency, format.locale)} – ${formatPrice(choice.max ?? 0, format.currency, format.locale)}` }))
     if (question.empty_label) displayChoices.push({ value: '', label: question.empty_label })
 
     return <ChoiceStep title={question.title} value={selected} choices={displayChoices} onChange={(value) => {

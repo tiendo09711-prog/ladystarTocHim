@@ -6,16 +6,17 @@ import { LoadingState } from '../../components/common/LoadingState'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import type { PromotionProduct } from '../../types'
 import { resolveAssetUrl } from '../../utils/assetUrl'
-import { formatPrice } from '../../utils/format'
+import { useFormatPrice } from '../../utils/format'
 import { NotFoundPage } from '../NotFoundPage'
 
 const dateFormatter = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 export function PromotionDetailPage() {
+  const formatPrice = useFormatPrice()
   const { slug } = useParams()
   const query = useQuery({ queryKey: ['promotion', slug], queryFn: () => getPromotionArticle(slug!), enabled: Boolean(slug), retry: false })
   const promotion = query.data
-  useDocumentMeta(promotion ? (promotion.seo_title || `${promotion.title} | LADYSTARS`) : null, promotion?.seo_description ?? promotion?.excerpt ?? null)
+  useDocumentMeta(promotion ? (promotion.seo_title || promotion.title) : null, promotion?.seo_description ?? promotion?.excerpt ?? null)
 
   if (query.isLoading) return <div className='container-page py-12'><LoadingState label='Đang tải ưu đãi...' /></div>
   if (!promotion) return <NotFoundPage />

@@ -1,8 +1,9 @@
 import type { Payment, PaymentMethods, Shipment } from '../../types'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 import { resolveAssetUrl } from '../../utils/assetUrl'
 
 export function PaymentSummary({ payment, method, status, methods }: { payment?: Payment | null; method: string; status: string; methods?: PaymentMethods }) {
+  const formatPrice = useFormatPrice()
   const bank = methods?.bank_transfer
   return <div className='grid gap-2 text-sm'><p><strong>Phương thức:</strong> {method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản ngân hàng'}</p><p><strong>Trạng thái:</strong> {statusLabel[status] ?? status}</p>{payment && <p><strong>Số tiền:</strong> {formatPrice(payment.amount)}</p>}{payment?.transaction_code && <p><strong>Mã giao dịch:</strong> {payment.transaction_code}</p>}{payment?.paid_at && <p><strong>Ngày thanh toán:</strong> {new Date(payment.paid_at).toLocaleString('vi-VN')}</p>}{method === 'bank_transfer' && status === 'unpaid' && bank?.enabled && <div className='mt-2 rounded-xl bg-emerald-50 p-4'><p><strong>{bank.bank_name || 'Ngân hàng'}</strong></p><p>Số tài khoản: {bank.account_number || 'Đang cập nhật'}</p><p>Chủ tài khoản: {bank.account_name || 'Đang cập nhật'}</p>{bank.qr_path && <img className='mt-3 max-h-56 rounded-xl bg-white object-contain p-2' src={resolveAssetUrl(bank.qr_path)} alt='QR chuyển khoản ngân hàng' />}{bank.instruction && <p className='mt-2'>{bank.instruction}</p>}</div>}</div>
 }

@@ -21,7 +21,7 @@ export function HomeHero({ content, imagePath, imageAlt }: { content: HomePageSe
       <div className="home-hero-visual">
         <div className="home-hero-visual-decoration" aria-hidden="true" />
         <div className="home-hero-media">
-          <FixedMediaFrame mediaKey="hero" className="home-hero-image-frame" src={imagePath} fallback="/images/brand/ladystars-hero.svg" alt={imageAlt ?? ''} positionX={content.image_position_x} positionY={content.image_position_y} loading="eager" fetchPriority="high" />
+          <FixedMediaFrame mediaKey="hero" className="home-hero-image-frame" src={imagePath} alt={imageAlt ?? ''} positionX={content.image_position_x} positionY={content.image_position_y} loading="eager" fetchPriority="high" />
           <div className="home-hero-note"><span>{content.note_label}</span><strong>{content.note_value}</strong></div>
         </div>
       </div>

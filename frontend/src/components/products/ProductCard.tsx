@@ -1,13 +1,14 @@
-﻿import { PackageCheck, Star } from 'lucide-react'
+import { PackageCheck, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows } from 'lucide-react'
 import { toast } from 'sonner'
 import { homeMediaStyle } from '../../config/homeMedia'
 import { addCompareProduct } from '../../features/products/productMemory'
 import type { Product } from '../../types'
-import { formatPrice } from '../../utils/format'
+import { useFormatPrice } from '../../utils/format'
 
 export function ProductCard({ product, variant = 'default' }: { product: Product; variant?: 'default' | 'catalog' }) {
+  const formatPrice = useFormatPrice()
   const listing = product.best_listing_variant ?? product.variants?.[0]
   const pricedVariant = product.variants.find((item) => item.id === listing?.id) ?? product.variants[0]
   const image = product.images?.find((item) => item.is_primary) ?? product.images?.[0]

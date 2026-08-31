@@ -7,11 +7,12 @@ import { PermissionGate } from '../../components/admin/PermissionGate'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { ApiResponse, Product } from '../../types'
 import { copyText } from '../../utils/browserActions'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 
 interface ProductListResponse { data: Product[]; meta: { total: number; current_page: number; last_page: number } }
 
 export function ProductsAdminPage() {
+  const formatPrice = useFormatPrice()
   const client = useQueryClient()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()

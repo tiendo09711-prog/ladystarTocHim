@@ -6,7 +6,6 @@ import { getStorePage, submitConsultation } from '../../api/contentApi'
 import type { Service } from '../../types'
 import './ConsultationDialog.css'
 
-const heroImage = '/images/brand/ladystars-hero.svg'
 const focusableSelector = 'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled])'
 
 function phoneHref(phone: string) {
@@ -93,20 +92,18 @@ export function ConsultationDialog({ open, onClose, productId, service, context,
       {submitted ? <div className='consultation-dialog-success' role='status'>
         <span><CheckCircle2 size={38} /></span>
         <h2 id='consultation-dialog-title'>Xác nhận đăng ký thành công!</h2>
-        <p>Cảm ơn bạn đã để lại thông tin. LADYSTARS sẽ liên hệ lại trong thời gian sớm nhất.</p>
+        <p>Cảm ơn bạn đã để lại thông tin. Đội ngũ tư vấn sẽ liên hệ lại trong thời gian sớm nhất.</p>
         <button className='btn-primary' type='button' onClick={closeDialog}>Hoàn tất</button>
       </div> : <>
-        <div className='consultation-dialog-media'>
-          <img src={service?.image_path || heroImage} alt={service?.image_alt || service?.name || 'Minh họa phong cách tóc LADYSTARS'} />
-        </div>
+        {service?.image_path && <div className='consultation-dialog-media'><img src={service.image_path} alt={service.image_alt || service.name} /></div>}
         <div className='consultation-dialog-content'>
-          <p className='consultation-dialog-eyebrow'>LADYSTARS CARE</p>
-          <h2 id='consultation-dialog-title'>{service ? 'Đặt lịch dịch vụ' : 'Tư vấn miễn phí giải pháp tóc phù hợp với bạn'}</h2>
-          <p>{service ? <><strong>{service.name}</strong><br />Để lại thông tin, LADYSTARS sẽ liên hệ xác nhận lịch phù hợp.</> : 'Để lại thông tin, đội ngũ LADYSTARS sẽ chủ động liên hệ và hỗ trợ bạn.'}</p>
+          <p className='consultation-dialog-eyebrow'>Tư vấn</p>
+          <h2 id='consultation-dialog-title'>{service ? 'Đặt lịch dịch vụ' : 'Gửi yêu cầu tư vấn'}</h2>
+          <p>{service ? <><strong>{service.name}</strong><br />Để lại thông tin để đội ngũ tư vấn xác nhận lịch phù hợp.</> : 'Để lại thông tin để đội ngũ tư vấn chủ động liên hệ và hỗ trợ bạn.'}</p>
           <form onSubmit={submit}>
             <label><span>Họ và tên</span><input ref={nameInputRef} name='name' required maxLength={120} autoComplete='name' placeholder='Nhập họ và tên' /></label>
             <label><span>Số điện thoại</span><input name='phone' required minLength={8} maxLength={30} inputMode='tel' autoComplete='tel' placeholder='Nhập số điện thoại' /></label>
-            <label><span>Nhu cầu / ghi chú</span><textarea name='message' maxLength={2000} placeholder='Thông tin bạn muốn LADYSTARS lưu ý' /></label>
+            <label><span>Nhu cầu / ghi chú</span><textarea name='message' maxLength={2000} placeholder='Thông tin bạn muốn đội ngũ tư vấn lưu ý' /></label>
             {error && <p className='consultation-dialog-error' role='alert'>{error}</p>}
             <button className='consultation-dialog-submit' type='submit' disabled={submitting}>{submitting ? <><LoaderCircle className='is-spinning' size={18} />Đang gửi...</> : 'Đặt lịch'}</button>
           </form>

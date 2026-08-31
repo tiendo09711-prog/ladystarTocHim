@@ -11,12 +11,10 @@ class GuideController extends Controller
 {
     use ApiResponse;
 
-    private const CATEGORY = 'Hướng dẫn';
-
     public function show(string $slug)
     {
         $article = NewsArticle::published()
-            ->where('category', self::CATEGORY)
+            ->ofType(NewsArticle::TYPE_GUIDE)
             ->where('slug', $slug)
             ->with('author:id,name')
             ->firstOrFail();

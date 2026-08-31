@@ -10,7 +10,7 @@ import { LoadingState } from '../../components/common/LoadingState'
 import { OrderTimeline } from '../../components/orders/OrderTimeline'
 import { PaymentSummary, ShipmentSummary } from '../../components/orders/OrderSummaries'
 import type { ApiResponse, Order, OrderItem, PaymentMethods } from '../../types'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 import { useCart } from '../../stores/CartContext'
 import { copyText } from '../../utils/browserActions'
 
@@ -24,6 +24,7 @@ function apiError(error: unknown, fallback: string) {
 }
 
 export function OrderDetailPage() {
+  const formatPrice = useFormatPrice()
   const { orderNumber = '' } = useParams()
   const client = useQueryClient()
   const [editingItemId, setEditingItemId] = useState<number | null>(null)

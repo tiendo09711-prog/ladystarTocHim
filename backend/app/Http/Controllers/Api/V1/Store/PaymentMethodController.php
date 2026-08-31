@@ -21,7 +21,7 @@ class PaymentMethodController extends Controller
         return $this->success([
             'configured' => true,
             'shipping' => ['fee' => (float) $settings->shipping_fee, 'free_from' => (float) $settings->free_shipping_from],
-            'cod' => ['enabled' => true],
+            'cod' => ['enabled' => (bool) $settings->cod_enabled],
             'bank_transfer' => [
                 'enabled' => (bool) $settings->bank_transfer_enabled,
                 'bank_name' => $settings->bank_name,

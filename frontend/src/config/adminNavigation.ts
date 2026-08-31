@@ -114,6 +114,7 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
       { id: 'services', label: 'Dịch vụ', path: '/admin/services', icon: Scissors, permission: 'services.view' },
       { id: 'news', label: 'Tin tức', path: '/admin/news', icon: Newspaper, permission: 'content.news.manage' },
       { id: 'guides', label: 'Hướng dẫn', path: '/admin/guides', icon: BookOpen, permission: 'content.guides.manage' },
+      { id: 'policies', label: 'Chính sách', path: '/admin/policies', icon: PanelsTopLeft, permission: 'content.policies.manage' },
     ],
   },
   {

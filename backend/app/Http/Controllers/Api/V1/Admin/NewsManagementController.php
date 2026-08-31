@@ -41,17 +41,13 @@ class NewsManagementController extends Controller
     public function index(Request $request)
     {
         $query = NewsArticle::with('author:id,name')->orderByDesc('created_at');
-        $category = $this->routeCategory($request);
-        if ($category) {
-            $query->where('category', $category);
-            if ($category === self::PROMOTION_CATEGORY) $query->withCount('products');
-        } else {
-            $query->where(fn ($nested) => $nested->whereNull('category')->orWhereNotIn('category', [self::PROMOTION_CATEGORY, self::GUIDE_CATEGORY]));
-        }
+        $type = $this->routeType($request);
+        $query->ofType($type);
+        if ($type === NewsArticle::TYPE_PROMOTION) $query->withCount('products');
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
-        if (! $category && $request->filled('category')) {
+        if ($type === NewsArticle::TYPE_NEWS && $request->filled('category')) {
             $query->where('category', $request->input('category'));
         }
         if ($request->filled('search')) {
@@ -72,12 +68,13 @@ class NewsManagementController extends Controller
     {
         $article = DB::transaction(function () use ($request) {
             $data = $this->prepareData($request->validated());
-            $category = $this->routeCategory($request);
-            if ($category) $data['category'] = $category;
+            $type = $this->routeType($request);
+            $data['content_type'] = $type;
+            $this->applyRouteDisplayCategory($data, $type);
             $productIds = $data['product_ids'] ?? [];
             unset($data['product_ids']);
             $article = NewsArticle::create($data + ['author_id' => $request->user()->id]);
-            if ($category === self::PROMOTION_CATEGORY) $article->products()->sync($productIds);
+            if ($type === NewsArticle::TYPE_PROMOTION) $article->products()->sync($productIds);
             $this->guardPublishable($article);
 
             return $article;
@@ -91,12 +88,13 @@ class NewsManagementController extends Controller
         $this->guardRouteArticle($request, $article);
         DB::transaction(function () use ($request, $article) {
             $data = $this->prepareData($request->validated());
-            $category = $this->routeCategory($request);
-            if ($category) $data['category'] = $category;
+            $type = $this->routeType($request);
+            $data['content_type'] = $type;
+            $this->applyRouteDisplayCategory($data, $type);
             $productIds = $data['product_ids'] ?? [];
             unset($data['product_ids']);
             $article->update($data);
-            if ($category === self::PROMOTION_CATEGORY) $article->products()->sync($productIds);
+            if ($type === NewsArticle::TYPE_PROMOTION) $article->products()->sync($productIds);
             $this->guardPublishable($article->fresh());
         });
 
@@ -221,7 +219,7 @@ class NewsManagementController extends Controller
         if ($article->status === 'published' && (! $article->title || ! $article->slug || ! $article->content)) {
             throw ValidationException::withMessages(['content' => ['Bài viết cần đủ tiêu đề, slug và nội dung trước khi xuất bản.']]);
         }
-        if ($article->status === 'published' && $article->category === self::PROMOTION_CATEGORY) {
+        if ($article->status === 'published' && $article->content_type === NewsArticle::TYPE_PROMOTION) {
             if (! $article->promotion_conditions) {
                 throw ValidationException::withMessages(['promotion_conditions' => ['Ưu đãi cần có điều kiện áp dụng trước khi xuất bản.']]);
             }
@@ -231,23 +229,27 @@ class NewsManagementController extends Controller
         }
     }
 
-    private function routeCategory(Request $request): ?string
+    private function routeType(Request $request): string
     {
-        if ($request->is('api/v1/admin/promotions*')) return self::PROMOTION_CATEGORY;
-        if ($request->is('api/v1/admin/guides*')) return self::GUIDE_CATEGORY;
+        if ($request->is('api/v1/admin/promotions*')) return NewsArticle::TYPE_PROMOTION;
+        if ($request->is('api/v1/admin/guides*')) return NewsArticle::TYPE_GUIDE;
 
-        return null;
+        return NewsArticle::TYPE_NEWS;
+    }
+
+    private function applyRouteDisplayCategory(array &$data, string $type): void
+    {
+        if ($type === NewsArticle::TYPE_PROMOTION) $data['category'] = self::PROMOTION_CATEGORY;
+        if ($type === NewsArticle::TYPE_GUIDE) $data['category'] = self::GUIDE_CATEGORY;
     }
 
     private function guardRouteArticle(Request $request, NewsArticle $article): void
     {
-        $category = $this->routeCategory($request);
-        if ($category) abort_unless($article->category === $category, 404);
-        else abort_if(in_array($article->category, [self::PROMOTION_CATEGORY, self::GUIDE_CATEGORY], true), 404);
+        abort_unless($article->content_type === $this->routeType($request), 404);
     }
 
     private function guardGuideRoute(Request $request, NewsArticle $article): void
     {
-        abort_unless($request->is('api/v1/admin/guides*') && $article->category === self::GUIDE_CATEGORY, 404);
+        abort_unless($request->is('api/v1/admin/guides*') && $article->content_type === NewsArticle::TYPE_GUIDE, 404);
     }
 }

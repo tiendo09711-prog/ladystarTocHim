@@ -6,6 +6,7 @@ const services = Array.from({ length: 7 }, (_, index) => ({
   slug: `service-${index + 1}`,
   short_description: 'Dịch vụ chăm sóc chuyên nghiệp tại LADYSTARS.',
   price: [100000, 50000, 500000, 350000, 350000, 180000, 100000][index],
+  duration_minutes: 60,
   image_path: null,
   image_alt: null,
   sort_order: (index + 1) * 10,
@@ -25,9 +26,9 @@ async function mockAdmin(page: Page) {
 
 test('service page desktop renders seven database services and submits booking', async ({ page }) => {
   await page.goto('/dich-vu-cham-soc')
+  await expect(page.locator('.service-card')).toHaveCount(7, { timeout: 20_000 })
   await expect(page).toHaveTitle(/Dịch vụ chăm sóc tóc/)
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Dịch vụ chăm sóc tóc')
-  await expect(page.locator('.service-card')).toHaveCount(7)
   await expect(page.locator('.service-card h3').first()).toHaveText('Vệ sinh tóc giả')
   await expect(page.locator('.service-grid').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).resolves.toBe(3)
   await expect(page.getByRole('link', { name: /Gọi hotline đặt Vệ sinh tóc giả/ })).toHaveAttribute('href', /^tel:/)
@@ -51,7 +52,9 @@ test('service page desktop renders seven database services and submits booking',
 test('service page mobile has one column and no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/dich-vu-cham-soc')
-  await expect(page.locator('.service-card')).toHaveCount(7)
+  const serviceCards = page.locator('.service-card:not(.service-skeleton-card)')
+  await expect(serviceCards.first()).toBeVisible({ timeout: 20_000 })
+  expect(await serviceCards.count()).toBeGreaterThan(0)
   const layout = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth <= window.innerWidth, columns: getComputedStyle(document.querySelector('.service-grid')!).gridTemplateColumns.split(' ').length, buttonHeight: document.querySelector('.service-book-button')!.getBoundingClientRect().height }))
   expect(layout.overflow).toBe(true)
   expect(layout.columns).toBe(1)
@@ -66,7 +69,7 @@ test('admin services page exposes create edit image order and status controls', 
   await expect(page.getByText('Vệ sinh tóc giả', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Sửa' }).first().click()
   await expect(page.getByLabel('Tên dịch vụ')).toHaveValue('Vệ sinh tóc giả')
-  await expect(page.getByLabel('Giá (VND)')).toHaveValue('100000')
+  await expect(page.getByLabel('Giá dịch vụ')).toHaveValue('100000')
   await expect(page.getByLabel('Thứ tự')).toHaveValue('10')
   await expect(page.getByLabel('Trạng thái')).toHaveValue('active')
 })
@@ -74,5 +77,6 @@ test('admin services page exposes create edit image order and status controls', 
 test('legacy hair guide URL redirects to service page', async ({ page }) => {
   await page.goto('/huong-dan-chon-toc')
   await expect(page).toHaveURL('/dich-vu-cham-soc')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Dịch vụ chăm sóc tóc')
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('')
 })

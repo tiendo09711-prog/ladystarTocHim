@@ -13,7 +13,7 @@ export function NewsDetailPage() {
   const { slug } = useParams()
   const query = useQuery({ queryKey: ['news', slug], queryFn: () => getNewsArticle(slug!), enabled: Boolean(slug), retry: false })
   const article = query.data
-  useDocumentMeta(article ? (article.seo_title || `${article.title} | LADYSTARS`) : null, article?.seo_description ?? article?.excerpt ?? null)
+  useDocumentMeta(article ? (article.seo_title || article.title) : null, article?.seo_description ?? article?.excerpt ?? null)
 
   if (query.isLoading) return <div className="container-page py-12"><LoadingState label="Đang tải bài viết..." /></div>
   if (!article) return <NotFoundPage />
@@ -29,7 +29,7 @@ export function NewsDetailPage() {
     </div>
     <div className="news-detail-cta">
       <h2>Cần tư vấn lựa chọn phù hợp?</h2>
-      <p>Đội ngũ LADYSTARS luôn sẵn sàng lắng nghe và đồng hành cùng bạn.</p>
+      <p>Đội ngũ tư vấn luôn sẵn sàng lắng nghe và đồng hành cùng bạn.</p>
       <div className="about-final-cta-actions">
         <Link to="/lien-he" className="btn-primary">Nhận tư vấn riêng <CalendarDays size={17} /></Link>
         <Link to="/san-pham" className="btn-secondary">Xem sản phẩm <ArrowRight size={17} /></Link>

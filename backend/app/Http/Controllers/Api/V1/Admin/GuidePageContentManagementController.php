@@ -20,8 +20,6 @@ class GuidePageContentManagementController extends Controller
 
     private const PAGE_KEY = 'guides';
     private const SEO_KEY = 'huong-dan';
-    private const CATEGORY = 'Hướng dẫn';
-
     public function show()
     {
         return $this->success($this->payload($this->content()));
@@ -112,7 +110,7 @@ class GuidePageContentManagementController extends Controller
     private function payload(NewsPageContent $content): array
     {
         $articles = NewsArticle::query()
-            ->where('category', self::CATEGORY)
+            ->ofType(NewsArticle::TYPE_GUIDE)
             ->orderByDesc('published_at')
             ->get(['id', 'title', 'slug', 'cover_image_path', 'cover_image_alt', 'category', 'published_at', 'status'])
             ->map(fn (NewsArticle $article) => [
@@ -134,7 +132,7 @@ class GuidePageContentManagementController extends Controller
 
     private function isPublishedGuide(NewsArticle $article): bool
     {
-        return $article->category === self::CATEGORY
+        return $article->content_type === NewsArticle::TYPE_GUIDE
             && $article->status === 'published'
             && ($article->published_at === null || $article->published_at <= now());
     }

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { deletePromotionsCtaImage, getAdminPromotionsPage, updatePromotionsPageContent, uploadPromotionsCtaImage } from '../../api/contentApi'
 import { AdminImageCropDialog } from '../../components/admin/HomeImageCropEditor'
 import { LoadingState } from '../../components/common/LoadingState'
-import { fallbackPromotionContent } from '../../data/promotionsContent'
+import { emptyPromotionContent } from '../../data/promotionsContent'
 import type { NewsPageContent } from '../../types'
 import { resolveAssetUrl } from '../../utils/assetUrl'
 
@@ -19,9 +19,9 @@ interface FormState {
 
 const text = (value?: string | null) => value ?? ''
 const toFormState = (content?: NewsPageContent, seo?: { title?: string | null; description?: string | null }): FormState => ({
-  eyebrow: text(content?.eyebrow ?? fallbackPromotionContent.eyebrow), title: text(content?.title ?? fallbackPromotionContent.title), description: text(content?.description ?? fallbackPromotionContent.description), featured_article_id: content?.featured_article_id ? String(content.featured_article_id) : '', featured_badge_label: text(content?.featured_badge_label ?? fallbackPromotionContent.featured_badge_label),
-  list_eyebrow: text(content?.list_eyebrow ?? fallbackPromotionContent.list_eyebrow), list_title: text(content?.list_title ?? fallbackPromotionContent.list_title), list_description: text(content?.list_description ?? fallbackPromotionContent.list_description), show_cta: content?.show_cta ?? false,
-  cta_eyebrow: text(content?.cta_eyebrow ?? fallbackPromotionContent.cta_eyebrow), cta_title: text(content?.cta_title ?? fallbackPromotionContent.cta_title), cta_description: text(content?.cta_description ?? fallbackPromotionContent.cta_description), cta_primary_label: text(content?.cta_primary_label ?? fallbackPromotionContent.cta_primary_label), cta_primary_url: text(content?.cta_primary_url ?? fallbackPromotionContent.cta_primary_url), cta_secondary_label: text(content?.cta_secondary_label ?? fallbackPromotionContent.cta_secondary_label), cta_secondary_url: text(content?.cta_secondary_url ?? fallbackPromotionContent.cta_secondary_url), cta_image_alt: text(content?.cta_image_alt), seo_title: text(seo?.title ?? content?.title ?? fallbackPromotionContent.title), seo_description: text(seo?.description ?? content?.description ?? fallbackPromotionContent.description),
+  eyebrow: text(content?.eyebrow ?? emptyPromotionContent.eyebrow), title: text(content?.title ?? emptyPromotionContent.title), description: text(content?.description ?? emptyPromotionContent.description), featured_article_id: content?.featured_article_id ? String(content.featured_article_id) : '', featured_badge_label: text(content?.featured_badge_label ?? emptyPromotionContent.featured_badge_label),
+  list_eyebrow: text(content?.list_eyebrow ?? emptyPromotionContent.list_eyebrow), list_title: text(content?.list_title ?? emptyPromotionContent.list_title), list_description: text(content?.list_description ?? emptyPromotionContent.list_description), show_cta: content?.show_cta ?? false,
+  cta_eyebrow: text(content?.cta_eyebrow ?? emptyPromotionContent.cta_eyebrow), cta_title: text(content?.cta_title ?? emptyPromotionContent.cta_title), cta_description: text(content?.cta_description ?? emptyPromotionContent.cta_description), cta_primary_label: text(content?.cta_primary_label ?? emptyPromotionContent.cta_primary_label), cta_primary_url: text(content?.cta_primary_url ?? emptyPromotionContent.cta_primary_url), cta_secondary_label: text(content?.cta_secondary_label ?? emptyPromotionContent.cta_secondary_label), cta_secondary_url: text(content?.cta_secondary_url ?? emptyPromotionContent.cta_secondary_url), cta_image_alt: text(content?.cta_image_alt), seo_title: text(seo?.title ?? content?.title ?? emptyPromotionContent.title), seo_description: text(seo?.description ?? content?.description ?? emptyPromotionContent.description),
 })
 
 export function PromotionsPageSettingsAdminPage() {

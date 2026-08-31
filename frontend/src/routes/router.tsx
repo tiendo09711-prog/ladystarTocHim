@@ -54,6 +54,7 @@ const InventoryTransactionsPage = lazy(() => import('../pages/admin/InventoryTra
 const ImportExportPage = lazy(() => import('../pages/admin/ImportExportPage').then((module) => ({ default: module.ImportExportPage })))
 const BarcodesPage = lazy(() => import('../pages/admin/BarcodesPage').then((module) => ({ default: module.BarcodesPage })))
 const SettingsAdminPage = lazy(() => import('../pages/admin/SettingsAdminPage').then((module) => ({ default: module.SettingsAdminPage })))
+const PolicyPagesAdminPage = lazy(() => import('../pages/admin/PolicyPagesAdminPage').then((module) => ({ default: module.PolicyPagesAdminPage })))
 const AboutAdminPage = lazy(() => import('../pages/admin/AboutAdminPage').then((module) => ({ default: module.AboutAdminPage })))
 const CatalogContentAdminPage = lazy(() => import('../pages/admin/CatalogContentAdminPage').then((module) => ({ default: module.CatalogContentAdminPage })))
 const ConsultationRequestsAdminPage = lazy(() => import('../pages/admin/ConsultationRequestsAdminPage').then((module) => ({ default: module.ConsultationRequestsAdminPage })))
@@ -96,7 +97,7 @@ export const router = createBrowserRouter([
     { path: 'reviews', element: lazyPage(<ReviewsAdminPage />) },
     { path: 'coupons', element: lazyPage(<CouponsAdminPage />) },
     { path: 'import-export', element: lazyPage(<ImportExportPage />) }, { path: 'barcodes', element: lazyPage(<BarcodesPage />) },
-    { path: 'reports', element: lazyPage(<ReportsPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) },
+    { path: 'reports', element: lazyPage(<ReportsPage />) }, { path: 'settings', element: lazyPage(<SettingsAdminPage />) }, { path: 'policies', element: lazyPage(<PolicyPagesAdminPage />) },
     { path: 'about', element: lazyPage(<AboutAdminPage />) },
     { path: 'home-page', element: lazyPage(<HomePageAdminPage />) },
     { path: 'store-page', element: lazyPage(<StorePageAdminPage />) },

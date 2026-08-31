@@ -9,9 +9,10 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import type { AdminCustomer, ApiResponse, CustomerDetail, CustomerTag, Pagination } from '../../types'
 import { copyText } from '../../utils/browserActions'
-import { formatPrice, statusLabel } from '../../utils/format'
+import { statusLabel, useFormatPrice } from '../../utils/format'
 
 export function CustomersAdminPage() {
+  const formatPrice = useFormatPrice()
   const client = useQueryClient()
   const [params, setParams] = useSearchParams()
   const search = params.get('search') ?? ''

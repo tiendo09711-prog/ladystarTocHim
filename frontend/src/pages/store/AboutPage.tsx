@@ -25,7 +25,7 @@ export function AboutPage() {
     .sort((a, b) => a.sort_order - b.sort_order)
   useDocumentMeta(query.data?.seo?.title ?? null, query.data?.seo?.description ?? null)
 
-  if (query.isLoading) return <div className="container-page py-12"><LoadingState label="Đang tải câu chuyện LADYSTARS..." /></div>
+  if (query.isLoading) return <div className="container-page py-12"><LoadingState label="Đang tải nội dung giới thiệu..." /></div>
   if (!sections.length) return <div className="container-page py-12"><EmptyState title="Chưa có nội dung giới thiệu" description="Nội dung sẽ xuất hiện sau khi được cấu hình trong trang quản trị." /></div>
 
   return <div className="about-page">

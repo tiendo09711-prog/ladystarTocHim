@@ -3,26 +3,25 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { apiClient } from '../../api/apiClient'
 import type { ApiResponse, Order, PaymentMethods } from '../../types'
+import type { ContentPage as ContentPageData } from '../../types'
+import { EmptyState } from '../../components/common/EmptyState'
 import { resolveAssetUrl } from '../../utils/assetUrl'
-import { formatPrice } from '../../utils/format'
-
-const content: Record<string, { title: string; intro: string; points: string[] }> = {
-  'gioi-thieu': { title: 'Giới thiệu LADYSTARS', intro: 'LADYSTARS hướng đến trải nghiệm lựa chọn tóc rõ ràng, dễ hiểu và tôn trọng nhu cầu riêng của từng khách hàng.', points: ['Thông tin sản phẩm minh bạch', 'Tư vấn dựa trên nhu cầu thực tế', 'Chính sách mua hàng rõ ràng'] },
-  'lien-he': { title: 'Liên hệ', intro: 'Đội ngũ LADYSTARS sẵn sàng hỗ trợ từ 8:00 đến 20:00 mỗi ngày.', points: ['Hotline: 028 7300 8899', 'Email: hello@ladystars.local', 'Địa chỉ mẫu: 123 Đường Mẫu, Quận 3, TP. Hồ Chí Minh'] },
-  'dich-vu-cham-soc': { title: 'Dịch vụ chăm sóc tóc', intro: 'Hãy bắt đầu từ vùng tóc cần che, thời gian sử dụng mỗi ngày và mức độ tự nhiên mong muốn.', points: ['Đế PU dễ vệ sinh và bám chắc', 'Đế lace thoáng, đường chân tóc tự nhiên', 'Tóc thật tạo kiểu linh hoạt', 'Chọn màu gần màu tóc thật', 'Đo kích thước vùng cần che trước khi mua'] },
-  'chinh-sach-giao-hang': { title: 'Chính sách giao hàng', intro: 'Đơn hàng được kiểm tra trước khi bàn giao cho đơn vị vận chuyển.', points: ['Miễn phí từ 1.000.000đ', 'Phí tiêu chuẩn 30.000đ', 'Theo dõi trạng thái trong tài khoản'] },
-  'chinh-sach-doi-tra': { title: 'Chính sách đổi trả', intro: 'LADYSTARS tiếp nhận yêu cầu đổi trả theo tình trạng sản phẩm và thời hạn công bố.', points: ['Giữ nguyên phụ kiện và bao bì', 'Không áp dụng với sản phẩm đã cắt hoặc tạo kiểu', 'Liên hệ trước khi gửi trả'] },
-  'chinh-sach-bao-mat': { title: 'Chính sách bảo mật', intro: 'Thông tin cá nhân chỉ được sử dụng để xử lý đơn hàng và chăm sóc khách hàng.', points: ['Không bán dữ liệu khách hàng', 'Mật khẩu được mã hóa', 'Phiên đăng nhập dùng cookie HttpOnly'] },
-}
+import { useFormatPrice } from '../../utils/format'
 
 export function ContentPage({ page }: { page?: string }) {
   const params = useParams(); const [searchParams] = useSearchParams(); const contentPage = page ?? params.page ?? 'gioi-thieu'
   if (contentPage === 'lien-he' && ['ha-noi', 'ho-chi-minh'].includes(searchParams.get('location') ?? '')) return <Navigate to="/he-thong-cua-hang" replace />
-  const item = content[contentPage] ?? content['gioi-thieu']
-  return <div className="container-page py-12"><div className="card mx-auto max-w-3xl p-7 sm:p-10"><h1 className="section-title">{item.title}</h1><p className="mt-4 text-lg leading-8 text-slate-600">{item.intro}</p><div className="mt-7 grid gap-4">{item.points.map((point) => <div key={point} className="flex gap-3 rounded-xl bg-emerald-50 p-4"><CheckCircle2 className="shrink-0 text-emerald-700" /><span>{point}</span></div>)}</div><Link className="btn-primary mt-8" to="/san-pham">Xem sản phẩm</Link></div></div>
+  const query = useQuery({ queryKey: ['content-page', contentPage], queryFn: async () => (await apiClient.get<ApiResponse<ContentPageData | null>>(`/content-pages/${contentPage}`)).data.data })
+  if (query.isLoading) return <div className="container-page py-12"><div className="card mx-auto max-w-3xl p-10 text-center">Đang tải nội dung...</div></div>
+  if (query.isError) return <div className="container-page py-12"><EmptyState title="Chưa thể tải nội dung" description="Vui lòng thử lại sau ít phút." /></div>
+  const item = query.data
+  if (!item) return <div className="container-page py-12"><EmptyState title="Nội dung đang được cập nhật" description="Trang này chưa được cấu hình trong hệ thống." /></div>
+  const sections = item.content?.sections ?? []
+  return <div className="container-page py-12"><div className="card mx-auto max-w-3xl p-7 sm:p-10"><h1 className="section-title">{item.title}</h1>{item.summary && <p className="mt-4 text-lg leading-8 text-slate-600">{item.summary}</p>}{item.content?.intro && <p className="mt-4 leading-8 text-slate-600">{item.content.intro}</p>}<div className="mt-7 grid gap-6">{sections.map((section) => <section key={section.title}><h2 className="text-xl font-black">{section.title}</h2>{section.body && <p className="mt-2 whitespace-pre-line leading-7 text-slate-600">{section.body}</p>}{section.items?.length ? <div className="mt-3 grid gap-3">{section.items.map((point) => <div key={point} className="flex gap-3 rounded-xl bg-emerald-50 p-4"><CheckCircle2 className="shrink-0 text-emerald-700" /><span>{point}</span></div>)}</div> : null}</section>)}</div><Link className="btn-primary mt-8" to="/san-pham">Xem sản phẩm</Link></div></div>
 }
 
 export function OrderSuccessPage() {
+  const formatPrice = useFormatPrice()
   const { orderNumber = '' } = useParams()
   const [searchParams] = useSearchParams()
   const location = useLocation()

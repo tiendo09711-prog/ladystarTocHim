@@ -8,9 +8,10 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { LoadingState } from '../../components/common/LoadingState'
 import { compareIds, removeCompareProduct } from '../../features/products/productMemory'
 import { useCart } from '../../stores/CartContext'
-import { formatPrice } from '../../utils/format'
+import { useFormatPrice } from '../../utils/format'
 
 export function ComparePage() {
+  const formatPrice = useFormatPrice()
   const [ids, setIds] = useState(compareIds)
   const { addItem } = useCart()
   useEffect(() => {

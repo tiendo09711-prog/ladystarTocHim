@@ -140,7 +140,7 @@ test('mọi nhóm ảnh Home Page đều mở cùng trình crop đúng tỷ lệ
     { section: 'Câu chuyện thương hiệu', input: 'Chọn ảnh Câu chuyện thương hiệu', dialog: 'Cắt ảnh Câu chuyện thương hiệu', ratio: '1:1', badge: 'Cắt ảnh 1:1' },
     { section: 'Giải pháp dành cho bạn', input: 'Chọn ảnh Giải pháp dành cho bạn', dialog: 'Cắt ảnh Giải pháp dành cho bạn', ratio: '6:5', badge: 'Cắt ảnh 6:5' },
     { section: 'Cảm hứng phong cách', input: 'Chọn ảnh Phong cách 1', dialog: 'Cắt ảnh Phong cách 1', ratio: '4:3', badge: 'Cắt từng ảnh 4:3' },
-    { section: 'Quy trình LADYSTARS', input: 'Chọn ảnh Bước 01', dialog: 'Cắt ảnh Bước 01', ratio: '16:9', badge: 'Cắt từng ảnh 16:9' },
+    { section: 'Quy trình', input: 'Chọn ảnh Bước 01', dialog: 'Cắt ảnh Bước 01', ratio: '16:9', badge: 'Cắt từng ảnh 16:9' },
     { section: 'Cảm nhận khách hàng', input: 'Chọn ảnh Cảm nhận 1', dialog: 'Cắt ảnh Cảm nhận 1', ratio: '16:9', badge: 'Cắt từng ảnh 16:9' },
   ]
 

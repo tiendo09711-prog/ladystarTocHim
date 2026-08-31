@@ -20,8 +20,6 @@ class PromotionPageContentManagementController extends Controller
 
     private const PAGE_KEY = 'promotions';
     private const SEO_KEY = 'uu-dai';
-    private const CATEGORY = 'Ưu đãi';
-
     public function show()
     {
         return $this->success($this->payload($this->content()));

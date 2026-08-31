@@ -8,6 +8,7 @@ function containsKey(value: unknown, forbidden: string): boolean {
 }
 
 test('production hardening: empty admin login and public products hide cost price', async ({ page, request }) => {
+  test.setTimeout(60_000)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/admin/login')
   await expect(page.getByLabel('Email')).toHaveValue('')

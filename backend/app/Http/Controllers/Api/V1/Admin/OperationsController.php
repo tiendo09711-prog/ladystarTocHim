@@ -437,6 +437,7 @@ class OperationsController extends Controller
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'order_prefix' => ['required', 'alpha_num', 'max:12'],
             'bank_transfer_enabled' => ['sometimes', 'boolean'],
+            'cod_enabled' => ['sometimes', 'boolean'],
             'bank_name' => ['sometimes', 'nullable', 'string', 'max:190'],
             'bank_account_name' => ['sometimes', 'nullable', 'string', 'max:190'],
             'bank_account_number' => ['sometimes', 'nullable', 'string', 'max:80'],

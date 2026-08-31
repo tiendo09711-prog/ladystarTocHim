@@ -219,5 +219,5 @@ test('admin direct orders load fetches attention, quick action works, and print 
   await page.emulateMedia({ media: 'print' })
   const printDocument = page.locator('.print-document')
   await expect(printDocument.getByRole('heading', { name: 'PHIẾU ĐÓNG HÀNG' })).toBeVisible()
-  await expect(printDocument.getByText(/LADYSTARS · LS2608300007/)).toBeVisible()
+  await expect(printDocument.getByText(/Mã đơn · LS2608300007/)).toBeVisible()
 })

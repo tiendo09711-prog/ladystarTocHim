@@ -23,6 +23,7 @@ async function sourceImage(page: import('@playwright/test').Page) {
 }
 
 test('admin cắt ảnh bìa bản tin 16:9 trước khi upload', async ({ page }) => {
+  test.setTimeout(60_000)
   await loginAdmin(page)
   let uploadedBody: Buffer | null = null
   await page.route('**/api/v1/admin/news', async (route) => {

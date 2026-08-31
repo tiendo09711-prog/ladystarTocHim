@@ -29,6 +29,7 @@ class PromotionsTest extends TestCase
             'title' => 'Ưu đãi không có sản phẩm',
             'slug' => 'uu-dai-khong-san-pham',
             'content' => 'Nội dung',
+            'content_type' => NewsArticle::TYPE_PROMOTION,
             'category' => 'Ưu đãi',
             'status' => 'published',
             'published_at' => now(),
@@ -89,6 +90,7 @@ class PromotionsTest extends TestCase
             'title' => 'Ưu đãi nháp',
             'slug' => 'uu-dai-nhap',
             'content' => 'Nội dung ưu đãi.',
+            'content_type' => NewsArticle::TYPE_PROMOTION,
             'category' => 'Ưu đãi',
             'status' => 'draft',
         ]);
@@ -165,6 +167,7 @@ class PromotionsTest extends TestCase
             'title' => $title,
             'slug' => $slug,
             'content' => 'Nội dung ưu đãi.',
+            'content_type' => NewsArticle::TYPE_PROMOTION,
             'category' => 'Ưu đãi',
             'status' => 'published',
             'published_at' => now(),

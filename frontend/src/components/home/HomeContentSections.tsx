@@ -9,7 +9,7 @@ import { FixedMediaFrame } from '../common/FixedMediaFrame'
 export function BrandStory({ content, imagePath }: { content: HomePageSections['brand_story']; imagePath?: string | null }) {
   return <section className="home-story-section">
     <div className="container-page home-story-grid">
-      <FixedMediaFrame mediaKey="brandStory" className="home-story-image" src={imagePath} fallback="/images/brand/ladystars-hero.svg" alt={content.image_alt} positionX={content.image_position_x} positionY={content.image_position_y} />
+      <FixedMediaFrame mediaKey="brandStory" className="home-story-image" src={imagePath} alt={content.image_alt} positionX={content.image_position_x} positionY={content.image_position_y} />
       <div className="home-story-copy">
         <p className="home-kicker">{content.kicker}</p>
         <h2>{content.title}</h2>
