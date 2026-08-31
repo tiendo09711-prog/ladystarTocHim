@@ -44,7 +44,7 @@ class PromotionPageContentManagementController extends Controller
         $seo = $request->validatedSeo();
         if ($seo !== null) {
             PageSeo::updateOrCreate(['page_key' => self::SEO_KEY], [
-                'title' => $seo['title'] ?: ($content->title ?: 'Ưu đãi LADYSTARS'),
+                'title' => $seo['title'] ?: ($content->title ?: 'Ưu đãi'),
                 'description' => $seo['description'] ?? null,
             ]);
         }

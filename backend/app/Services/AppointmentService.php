@@ -207,7 +207,7 @@ class AppointmentService
 
     private function timezone(): string
     {
-        return StoreSetting::current()->store_timezone ?: 'Asia/Ho_Chi_Minh';
+        return StoreSetting::current()->store_timezone ?: config('app.timezone');
     }
 
     private function uniqueCode(): string

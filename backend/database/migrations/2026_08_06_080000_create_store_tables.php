@@ -30,6 +30,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('image_path')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('show_in_menu')->default(false);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });
@@ -145,7 +146,7 @@ return new class extends Migration
             $table->foreignId('product_variant_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('quantity_on_hand')->default(0);
             $table->unsignedInteger('quantity_reserved')->default(0);
-            $table->unsignedInteger('reorder_level')->default(3);
+            $table->unsignedInteger('reorder_level')->default(0);
             $table->timestamps();
             $table->unique(['branch_id', 'product_variant_id']);
         });

@@ -50,7 +50,7 @@ return new class extends Migration
         });
 
         Schema::table('store_settings', function (Blueprint $table) {
-            $table->boolean('bank_transfer_enabled')->default(true);
+            $table->boolean('bank_transfer_enabled')->default(false);
             $table->string('bank_name')->nullable();
             $table->string('bank_account_name')->nullable();
             $table->string('bank_account_number')->nullable();

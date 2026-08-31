@@ -34,10 +34,11 @@ class CatalogContentController extends Controller
         $content = CatalogPageContent::where('page_key', 'hair-guide')->where('is_active', true)->first();
         $payload = $this->payload($content, 'hair-guide');
         $payload['services'] = ServiceResource::collection(Service::active()->orderBy('sort_order')->orderBy('id')->get())->resolve();
-        $settings = StoreSetting::query()->first(['support_phone', 'support_email']);
+        $settings = StoreSetting::query()->first(['support_phone', 'support_email', 'appointments_enabled']);
         $payload['contact'] = [
             'support_phone' => $settings?->support_phone,
             'support_email' => $settings?->support_email,
+            'appointments_enabled' => (bool) $settings?->appointments_enabled,
         ];
 
         return $this->success($payload);

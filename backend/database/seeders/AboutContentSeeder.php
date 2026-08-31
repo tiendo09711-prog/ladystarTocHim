@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AboutSection;
 use App\Models\PageSeo;
-use App\Support\AboutContent;
+use Tests\Fixtures\AboutContent;
 use Illuminate\Database\Seeder;
 use LogicException;
 

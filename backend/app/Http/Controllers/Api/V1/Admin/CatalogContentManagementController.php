@@ -51,7 +51,7 @@ class CatalogContentManagementController extends Controller
             $content->fill($data)->save();
             if (is_array($request->input('seo'))) {
                 $seo = $request->validated('seo');
-                PageSeo::updateOrCreate(['page_key' => $pageKey], ['title' => $seo['title'] ?: ($content->title ?: 'LADYSTARS'), 'description' => $seo['description'] ?? null]);
+                PageSeo::updateOrCreate(['page_key' => $pageKey], ['title' => $seo['title'] ?: ($content->title ?: $pageKey), 'description' => $seo['description'] ?? null]);
             }
         });
         return $this->success($this->payload($content->fresh(), $pageKey, $category));

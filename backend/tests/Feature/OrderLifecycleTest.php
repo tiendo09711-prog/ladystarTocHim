@@ -215,7 +215,7 @@ class OrderLifecycleTest extends TestCase
         $this->assertDatabaseHas('inventories', ['product_variant_id' => $this->variant->id, 'reorder_level' => 7]);
     }
 
-    public function test_reorder_level_falls_back_to_three(): void
+    public function test_reorder_level_is_zero_until_store_setting_is_configured(): void
     {
         StoreSetting::query()->delete();
         $this->inventory->delete();
@@ -227,7 +227,7 @@ class OrderLifecycleTest extends TestCase
             'type' => 'import',
         ])->assertOk();
 
-        $this->assertDatabaseHas('inventories', ['product_variant_id' => $this->variant->id, 'reorder_level' => 3]);
+        $this->assertDatabaseHas('inventories', ['product_variant_id' => $this->variant->id, 'reorder_level' => 0]);
     }
 
     public function test_admin_cancel_confirmed_order_restocks_consumed_inventory(): void

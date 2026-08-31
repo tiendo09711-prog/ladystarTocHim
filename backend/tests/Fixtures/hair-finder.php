@@ -9,7 +9,7 @@ return [
                 'empty_result' => 'Chưa có sản phẩm khả dụng phù hợp với lựa chọn này.',
                 'score_template' => ':score% phù hợp',
             ],
-            'format' => ['locale' => 'vi-VN', 'currency' => 'VND'],
+            'format' => ['locale' => 'vi-VN'],
             'actions' => [
                 'back' => 'Quay lại',
                 'next' => 'Tiếp tục',

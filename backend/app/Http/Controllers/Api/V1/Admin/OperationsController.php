@@ -384,7 +384,7 @@ class OperationsController extends Controller
 
     public function importProducts(Request $request)
     {
-        $rows = $request->validate(['rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*.name' => ['required', 'string'], 'rows.*.base_sku' => ['required', 'string'], 'rows.*.variant_sku' => ['required', 'string'], 'rows.*.price' => ['required', 'numeric', 'min:0'], 'rows.*.stock_quantity' => ['nullable', 'integer', 'min:0']])['rows'];
+        $rows = $request->validate(['rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*.name' => ['required', 'string'], 'rows.*.base_sku' => ['required', 'string'], 'rows.*.variant_sku' => ['required', 'string'], 'rows.*.category' => ['required', 'string', 'max:190'], 'rows.*.branch_code' => ['required', 'string', 'max:80'], 'rows.*.price' => ['required', 'numeric', 'min:0'], 'rows.*.stock_quantity' => ['nullable', 'integer', 'min:0']])['rows'];
         $errors = [];
         $created = 0;
         foreach ($rows as $index => $row) {
@@ -393,15 +393,22 @@ class OperationsController extends Controller
                     if (Product::where('base_sku', $row['base_sku'])->exists() || ProductVariant::where('sku', $row['variant_sku'])->exists()) {
                         throw ValidationException::withMessages(['sku' => 'SKU đã tồn tại.']);
                     }
-                    $category = Category::firstOrCreate(['slug' => Str::slug($row['category'] ?? 'Chưa phân loại')], ['name' => $row['category'] ?? 'Chưa phân loại', 'is_active' => true]);
+                    $categoryName = trim((string) ($row['category'] ?? ''));
+                    $category = Category::where('is_active', true)->where(fn ($query) => $query->where('name', $categoryName)->orWhere('slug', Str::slug($categoryName)))->first();
+                    if (! $category) throw ValidationException::withMessages(['category' => 'Không tìm thấy danh mục được chỉ định.']);
                     $product = Product::create(['category_id' => $category->id, 'name' => $row['name'], 'slug' => Str::slug($row['name']).'-'.strtolower($row['base_sku']), 'base_sku' => $row['base_sku'], 'description' => $row['description'] ?? $row['name'], 'material' => $row['material'] ?? null, 'base_type' => $row['base_type'] ?? null, 'status' => $row['status'] ?? 'active', 'published_at' => now()]);
                     $variant = $product->variants()->create(['sku' => $row['variant_sku'], 'barcode' => $row['barcode'] ?? null, 'price' => $row['price'], 'sale_price' => $row['sale_price'] ?? null, 'status' => 'active']);
-                    $branch = Branch::where('code', $row['branch_code'] ?? 'MAIN')->firstOrFail();
+                    $branchCode = trim((string) ($row['branch_code'] ?? ''));
+                    $branch = Branch::where('code', $branchCode)->where('is_active', true)->first();
+                    if (! $branch) throw ValidationException::withMessages(['branch_code' => 'Không tìm thấy chi nhánh được chỉ định.']);
                     $this->inventoryService->create($branch->id, $variant->id, $row['stock_quantity'] ?? 0);
                     $created++;
                 });
+            } catch (ValidationException $exception) {
+                $errors[] = ['row' => $index + 2, 'message' => collect($exception->errors())->flatten()->first() ?? 'Dữ liệu dòng không hợp lệ.'];
             } catch (\Throwable $exception) {
-                $errors[] = ['row' => $index + 2, 'message' => $exception->getMessage()];
+                report($exception);
+                $errors[] = ['row' => $index + 2, 'message' => 'Không thể xử lý dòng dữ liệu.'];
             }
         }
 
@@ -410,7 +417,11 @@ class OperationsController extends Controller
 
     public function settings()
     {
-        return $this->success(StoreSetting::current());
+        $settings = StoreSetting::current();
+        $data = $settings->toArray();
+        $data['configured'] = $settings->isConfigured();
+
+        return $this->success($data);
     }
 
     public function updateSettings(Request $request)
@@ -420,7 +431,7 @@ class OperationsController extends Controller
             'support_phone' => ['nullable', 'string', 'max:30'],
             'support_email' => ['nullable', 'email', 'max:190'],
             'store_address' => ['nullable', 'string', 'max:1000'],
-            'currency' => ['required', Rule::in(['VND'])],
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'shipping_fee' => ['required', 'numeric', 'min:0'],
             'free_shipping_from' => ['required', 'numeric', 'min:0'],
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
@@ -440,15 +451,48 @@ class OperationsController extends Controller
             'appointments_enabled' => ['sometimes', 'boolean'],
             'appointment_cancel_before_hours' => ['sometimes', 'integer', 'min:0', 'max:720'],
             'store_timezone' => ['sometimes', 'timezone'],
+            'hair_finder_config' => ['sometimes', 'nullable', 'array'],
+            'hair_finder_config.content' => ['required_with:hair_finder_config', 'array'],
+            'hair_finder_config.content.*' => ['nullable', 'string', 'max:2000'],
+            'hair_finder_config.actions' => ['required_with:hair_finder_config', 'array'],
+            'hair_finder_config.actions.*' => ['nullable', 'string', 'max:190'],
+            'hair_finder_config.format' => ['required_with:hair_finder_config', 'array'],
+            'hair_finder_config.format.locale' => ['required_with:hair_finder_config', 'string', 'max:20'],
+            'hair_finder_config.questions' => ['required_with:hair_finder_config', 'array', 'max:20'],
+            'hair_finder_config.questions.*.key' => ['required', 'alpha_dash', 'distinct', 'max:80'],
+            'hair_finder_config.questions.*.type' => ['required', Rule::in(['single', 'multiple', 'budget', 'select_group'])],
+            'hair_finder_config.questions.*.title' => ['required', 'string', 'max:500'],
+            'hair_finder_config.questions.*.default_value' => ['nullable'],
+            'hair_finder_config.questions.*.empty_label' => ['nullable', 'string', 'max:190'],
+            'hair_finder_config.questions.*.choices' => ['nullable', 'array', 'max:50'],
+            'hair_finder_config.questions.*.choices.*.value' => ['present', 'nullable', 'string', 'max:190'],
+            'hair_finder_config.questions.*.choices.*.label' => ['required', 'string', 'max:500'],
+            'hair_finder_config.questions.*.fields' => ['nullable', 'array', 'max:20'],
+            'hair_finder_config.questions.*.fields.*.key' => ['required', 'alpha_dash', 'max:80'],
+            'hair_finder_config.questions.*.fields.*.label' => ['required', 'string', 'max:190'],
+            'hair_finder_config.questions.*.fields.*.placeholder' => ['nullable', 'string', 'max:190'],
+            'hair_finder_config.questions.*.fields.*.source' => ['required', Rule::in(['material', 'base_type'])],
+            'hair_finder_config.budget' => ['required_with:hair_finder_config', 'array'],
+            'hair_finder_config.budget.labels' => ['required_with:hair_finder_config', 'array', 'min:1', 'max:10'],
+            'hair_finder_config.budget.labels.*' => ['string', 'max:190'],
+            'hair_finder_config.budget.minimum_step' => ['required_with:hair_finder_config', 'integer', 'min:1'],
+            'hair_finder_config.budget.rounding_step' => ['required_with:hair_finder_config', 'integer', 'min:1'],
+            'hair_finder_config.scoring' => ['required_with:hair_finder_config', 'array'],
+            'hair_finder_config.scoring.result_limit' => ['required_with:hair_finder_config', 'integer', 'min:1', 'max:50'],
         ]);
-        $settings = StoreSetting::current();
-        $settings->update($data);
+        if (isset($data['hair_finder_config']['format']) && is_array($data['hair_finder_config']['format'])) {
+            unset($data['hair_finder_config']['format']['currency']);
+        }
+        $settings = StoreSetting::query()->first() ?? new StoreSetting();
+        $settings->fill($data);
+        $settings->save();
 
         return $this->success($settings->refresh(), 'Đã lưu cấu hình cửa hàng.');
     }
 
     public function uploadBankQr(Request $request)
     {
+        abort_unless(StoreSetting::query()->first()?->isConfigured(), 422, 'Cấu hình cửa hàng chưa được thiết lập.');
         $image = $request->validate(['image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']])['image'];
         $path = $image->storePubliclyAs('settings/bank-transfer', Str::uuid().'.'.$image->extension(), 'public');
         $settings = StoreSetting::current();

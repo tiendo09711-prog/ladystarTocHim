@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('store_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('store_name');
+            $table->string('store_name')->nullable();
             $table->string('support_phone')->nullable();
             $table->string('support_email')->nullable();
             $table->text('store_address')->nullable();
-            $table->string('currency', 3)->default('VND');
-            $table->decimal('shipping_fee', 12, 2)->default(30000);
-            $table->decimal('free_shipping_from', 12, 2)->default(1000000);
-            $table->unsignedInteger('low_stock_threshold')->default(3);
-            $table->string('order_prefix', 12)->default('NH');
+            $table->string('currency', 3)->default('');
+            $table->decimal('shipping_fee', 12, 2)->default(0);
+            $table->decimal('free_shipping_from', 12, 2)->default(0);
+            $table->unsignedInteger('low_stock_threshold')->default(0);
+            $table->string('order_prefix', 12)->nullable();
             $table->timestamps();
         });
     }

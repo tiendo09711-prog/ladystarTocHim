@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('store_settings', function (Blueprint $table) {
-            $table->boolean('returns_enabled')->default(true);
-            $table->unsignedInteger('return_window_days')->default(7);
-            $table->boolean('exchange_enabled')->default(true);
-            $table->unsignedInteger('exchange_window_days')->default(7);
+            $table->boolean('returns_enabled')->default(false);
+            $table->unsignedInteger('return_window_days')->default(0);
+            $table->boolean('exchange_enabled')->default(false);
+            $table->unsignedInteger('exchange_window_days')->default(0);
             $table->boolean('refund_shipping_on_full_return')->default(false);
-            $table->boolean('warranty_enabled')->default(true);
-            $table->boolean('appointments_enabled')->default(true);
-            $table->unsignedInteger('appointment_cancel_before_hours')->default(4);
-            $table->string('store_timezone')->default('Asia/Ho_Chi_Minh');
+            $table->boolean('warranty_enabled')->default(false);
+            $table->boolean('appointments_enabled')->default(false);
+            $table->unsignedInteger('appointment_cancel_before_hours')->default(0);
+            $table->string('store_timezone')->nullable();
         });
 
         Schema::create('return_requests', function (Blueprint $table) {

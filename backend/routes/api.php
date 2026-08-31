@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Admin\CatalogContentManagementController;
 use App\Http\Controllers\Api\V1\Admin\CatalogManagementController;
 use App\Http\Controllers\Api\V1\Admin\ConsultationManagementController;
 use App\Http\Controllers\Api\V1\Admin\ContactPageManagementController;
+use App\Http\Controllers\Api\V1\Admin\ContentPageManagementController;
 use App\Http\Controllers\Api\V1\Admin\CustomerCrmController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\GuidePageContentManagementController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\Api\V1\Store\CatalogContentController;
 use App\Http\Controllers\Api\V1\Store\CatalogController;
 use App\Http\Controllers\Api\V1\Store\ConsultationRequestController;
 use App\Http\Controllers\Api\V1\Store\ContactPageController;
+use App\Http\Controllers\Api\V1\Store\ContentPageController;
 use App\Http\Controllers\Api\V1\Store\GuestAppointmentController;
 use App\Http\Controllers\Api\V1\Store\GuestCheckoutController;
 use App\Http\Controllers\Api\V1\Store\GuestReturnController;
@@ -58,6 +60,7 @@ use App\Http\Controllers\Api\V1\Store\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Store\ProductController;
 use App\Http\Controllers\Api\V1\Store\PromotionPageController;
 use App\Http\Controllers\Api\V1\Store\StorePageController;
+use App\Http\Controllers\Api\V1\Store\StoreSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -118,7 +121,9 @@ Route::prefix('v1')->group(function () {
     Route::get('promotions/{slug}', [PromotionPageController::class, 'show']);
     Route::get('home-page', [HomePageController::class, 'show']);
     Route::get('store-page', [StorePageController::class, 'index']);
+    Route::get('settings/public', [StoreSettingsController::class, 'public']);
     Route::get('contact-page', [ContactPageController::class, 'index']);
+    Route::get('content-pages/{pageKey}', [ContentPageController::class, 'show']);
 
     Route::middleware(['auth:sanctum', 'customer'])->group(function () {
         Route::get('account/after-sales-media/{medium}', [StoreAfterSalesMediaController::class, 'account'])->name('account.after-sales-media.show');
@@ -382,6 +387,9 @@ Route::prefix('v1')->group(function () {
                 Route::put('contact-page', [ContactPageManagementController::class, 'update']);
                 Route::post('contact-page/images/{slot}', [ContactPageManagementController::class, 'uploadImage']);
                 Route::delete('contact-page/images/{slot}', [ContactPageManagementController::class, 'deleteImage']);
+                Route::get('content-pages', [ContentPageManagementController::class, 'index']);
+                Route::get('content-pages/{pageKey}', [ContentPageManagementController::class, 'show']);
+                Route::put('content-pages/{pageKey}', [ContentPageManagementController::class, 'update']);
 
                 Route::get('about/sections', [AboutManagementController::class, 'index']);
                 Route::post('about/sections', [AboutManagementController::class, 'store']);

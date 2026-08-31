@@ -197,7 +197,7 @@ class CatalogManagementController extends Controller
 
     private function categoryData(Request $request, ?Category $category = null): array
     {
-        return $request->validate(['name' => ['required', 'string', 'max:190'], 'slug' => ['required', 'alpha_dash', Rule::unique('categories')->ignore($category)], 'parent_id' => ['nullable', 'exists:categories,id'], 'description' => ['nullable', 'string'], 'image_path' => ['nullable', 'string'], 'is_active' => ['boolean'], 'sort_order' => ['integer', 'min:0']]);
+        return $request->validate(['name' => ['required', 'string', 'max:190'], 'slug' => ['required', 'alpha_dash', Rule::unique('categories')->ignore($category)], 'parent_id' => ['nullable', 'exists:categories,id'], 'description' => ['nullable', 'string'], 'image_path' => ['nullable', 'string'], 'is_active' => ['boolean'], 'show_in_menu' => ['boolean'], 'sort_order' => ['integer', 'min:0']]);
     }
 
     private function attributeData(Request $request, ?Attribute $attribute = null): array

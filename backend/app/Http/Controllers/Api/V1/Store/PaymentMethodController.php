@@ -13,9 +13,13 @@ class PaymentMethodController extends Controller
 
     public function index()
     {
-        $settings = StoreSetting::current();
+        $settings = StoreSetting::query()->first();
+        if (! $settings || ! $settings->isConfigured()) {
+            return $this->success(['configured' => false, 'shipping' => null, 'cod' => ['enabled' => false], 'bank_transfer' => ['enabled' => false]]);
+        }
 
         return $this->success([
+            'configured' => true,
             'shipping' => ['fee' => (float) $settings->shipping_fee, 'free_from' => (float) $settings->free_shipping_from],
             'cod' => ['enabled' => true],
             'bank_transfer' => [

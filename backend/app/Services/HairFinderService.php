@@ -20,7 +20,7 @@ class HairFinderService
         return [
             'content' => Arr::get($config, 'content', []),
             'actions' => Arr::get($config, 'actions', []),
-            'format' => Arr::get($config, 'format', []),
+            'format' => [...Arr::get($config, 'format', []), 'currency' => StoreSetting::query()->value('currency') ?: ''],
             'questions' => collect(Arr::get($config, 'questions', []))
                 ->map(fn (array $question) => $this->enrichQuestion($question, $config))
                 ->values()

@@ -46,7 +46,7 @@ return new class extends Migration
                 $table->foreignId('product_variant_id')->constrained()->cascadeOnDelete();
                 $table->unsignedInteger('quantity_on_hand')->default(0);
                 $table->unsignedInteger('quantity_reserved')->default(0);
-                $table->unsignedInteger('reorder_level')->default(3);
+                $table->unsignedInteger('reorder_level')->default(0);
                 $table->timestamps();
                 $table->unique(['branch_id', 'product_variant_id'], 'branch_variant_inventory_unique');
             });

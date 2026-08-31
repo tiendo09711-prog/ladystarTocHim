@@ -61,6 +61,7 @@ final class PermissionRegistry
                 'content.catalog.manage' => 'Quản lý nội dung catalog',
                 'content.news.manage' => 'Quản lý tin tức',
                 'content.guides.manage' => 'Quản lý hướng dẫn',
+                'content.policies.manage' => 'Quản lý chính sách',
             ],
             'Hệ thống' => [
                 'settings.view' => 'Xem cài đặt',
@@ -286,6 +287,9 @@ final class PermissionRegistry
         }
         if (Str::startsWith($uri, ['guides', 'guides-page'])) {
             return ['content.guides.manage'];
+        }
+        if (Str::startsWith($uri, 'content-pages')) {
+            return ['content.policies.manage'];
         }
 
         return null;

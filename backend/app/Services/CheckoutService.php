@@ -104,6 +104,9 @@ class CheckoutService
         }
         $discount = $this->discount($user, $couponCode, $subtotal);
         $settings = StoreSetting::current();
+        if (! $settings->isConfigured()) {
+            throw ValidationException::withMessages(['settings' => 'Cửa hàng chưa được cấu hình để nhận đơn hàng.']);
+        }
         $shipping = $shippingFee ?? ($subtotal >= (float) $settings->free_shipping_from ? 0 : (float) $settings->shipping_fee);
 
         return ['branch' => $branch, 'lines' => $lines, 'subtotal' => $subtotal, 'discount_amount' => $discount, 'shipping_fee' => $shipping, 'total_amount' => max(0, $subtotal - $discount + $shipping)];
@@ -112,6 +115,9 @@ class CheckoutService
     private function createOrder(array $summary, array $payload, ?User $user): Order
     {
         $settings = StoreSetting::current();
+        if (! $settings->isConfigured()) {
+            throw ValidationException::withMessages(['settings' => 'Cửa hàng chưa được cấu hình để nhận đơn hàng.']);
+        }
         if (($payload['payment_method'] ?? 'cod') === 'bank_transfer' && ! $settings->bank_transfer_enabled) {
             throw ValidationException::withMessages(['payment_method' => 'Bank transfer is currently unavailable.']);
         }

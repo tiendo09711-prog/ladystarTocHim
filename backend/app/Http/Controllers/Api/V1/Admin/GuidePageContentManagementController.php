@@ -42,7 +42,7 @@ class GuidePageContentManagementController extends Controller
             $this->content()->update($data);
             $seo = $request->validatedSeo();
             if ($seo !== null) {
-                $seo['title'] = $seo['title'] ?: PageSeo::where('page_key', self::SEO_KEY)->value('title') ?: ($data['title'] ?? null) ?: 'Hướng dẫn | LADYSTARS';
+                $seo['title'] = $seo['title'] ?: PageSeo::where('page_key', self::SEO_KEY)->value('title') ?: ($data['title'] ?? null) ?: 'Hướng dẫn';
                 PageSeo::updateOrCreate(['page_key' => self::SEO_KEY], $seo);
             }
         });

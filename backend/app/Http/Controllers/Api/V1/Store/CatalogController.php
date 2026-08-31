@@ -16,7 +16,7 @@ class CatalogController extends Controller
 
     public function categories()
     {
-        return $this->success(Category::where('is_active', true)->with('children')->orderBy('sort_order')->get());
+        return $this->success(Category::where('is_active', true)->where('show_in_menu', true)->with('children')->orderBy('sort_order')->get());
     }
 
     public function category(string $slug)

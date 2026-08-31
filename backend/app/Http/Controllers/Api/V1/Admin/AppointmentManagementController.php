@@ -165,7 +165,7 @@ class AppointmentManagementController extends Controller
 
     private function assertScheduleChangeSafe(AppointmentSchedule $schedule, ?array $replacement): void
     {
-        $timezone = StoreSetting::current()->store_timezone ?: 'Asia/Ho_Chi_Minh';
+        $timezone = StoreSetting::current()->store_timezone ?: config('app.timezone');
         $appointments = Appointment::where('branch_id', $schedule->branch_id)
             ->whereIn('status', Appointment::ACTIVE_STATUSES)
             ->where('start_at', '>', now())

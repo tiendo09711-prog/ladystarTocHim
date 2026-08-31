@@ -12,10 +12,6 @@ return new class extends Migration
         Schema::table('store_settings', function (Blueprint $table) {
             $table->json('hair_finder_config')->nullable();
         });
-        DB::table('store_settings')->whereNull('hair_finder_config')->update([
-            'hair_finder_config' => json_encode(config('hair-finder'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ]);
-
         $this->ensureWishlistSupportIndexes();
 
         $this->dropLegacyWishlistUnique();

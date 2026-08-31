@@ -98,7 +98,7 @@ class InventoryService
     {
         $threshold = StoreSetting::current()->low_stock_threshold;
 
-        return is_numeric($threshold) && (int) $threshold >= 0 ? (int) $threshold : 3;
+        return is_numeric($threshold) && (int) $threshold >= 0 ? (int) $threshold : 0;
     }
 
     private function initialValues(int $quantityOnHand = 0): array

@@ -29,23 +29,28 @@ class StoreSetting extends Model
 
     public static function current(): self
     {
-        return self::firstOrCreate([], [
-            'store_name' => config('app.store_name', 'LADYSTARS'),
-            'currency' => 'VND',
-            'shipping_fee' => 30000,
-            'free_shipping_from' => 1000000,
-            'low_stock_threshold' => 3,
-            'order_prefix' => 'NH',
-            'bank_transfer_enabled' => true,
-            'returns_enabled' => true,
-            'return_window_days' => 7,
-            'exchange_enabled' => true,
-            'exchange_window_days' => 7,
+        return self::query()->firstOrCreate([], [
+            'store_name' => '',
+            'currency' => '',
+            'shipping_fee' => 0,
+            'free_shipping_from' => 0,
+            'low_stock_threshold' => 0,
+            'order_prefix' => '',
+            'bank_transfer_enabled' => false,
+            'returns_enabled' => false,
+            'return_window_days' => 0,
+            'exchange_enabled' => false,
+            'exchange_window_days' => 0,
             'refund_shipping_on_full_return' => false,
-            'warranty_enabled' => true,
-            'appointments_enabled' => true,
-            'appointment_cancel_before_hours' => 4,
-            'store_timezone' => 'Asia/Ho_Chi_Minh',
+            'warranty_enabled' => false,
+            'appointments_enabled' => false,
+            'appointment_cancel_before_hours' => 0,
+            'store_timezone' => null,
         ]);
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->exists && filled($this->store_name) && filled($this->order_prefix) && filled($this->currency) && filled($this->store_timezone);
     }
 }
