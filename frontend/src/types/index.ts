@@ -51,6 +51,7 @@ export interface HairFinderChoice { value: string; label: string; min?: number; 
 export interface HairFinderField { key: string; label: string; placeholder?: string; source?: string; choices: HairFinderChoice[] }
 export interface HairFinderQuestion { key: string; type: 'single' | 'multiple' | 'budget' | 'select_group'; title: string; default_value?: string | string[]; empty_label?: string; choices?: HairFinderChoice[]; fields?: HairFinderField[] }
 export interface HairFinderOptions {
+  configured: boolean
   content: { eyebrow: string; title: string; description: string; result_title: string; empty_result: string; score_template: string }
   actions: { back: string; next: string; submit: string; loading: string; restart: string }
   format: { locale: string; currency: string }

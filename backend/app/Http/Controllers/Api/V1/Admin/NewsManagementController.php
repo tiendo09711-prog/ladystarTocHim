@@ -18,9 +18,6 @@ class NewsManagementController extends Controller
 {
     use ApiResponse;
 
-    private const PROMOTION_CATEGORY = 'Ưu đãi';
-    private const GUIDE_CATEGORY = 'Hướng dẫn';
-
     public function promotionProductOptions()
     {
         $products = Product::where('status', 'active')
@@ -70,7 +67,7 @@ class NewsManagementController extends Controller
             $data = $this->prepareData($request->validated());
             $type = $this->routeType($request);
             $data['content_type'] = $type;
-            $this->applyRouteDisplayCategory($data, $type);
+            $this->removeDuplicateTypeCategory($data, $type);
             $productIds = $data['product_ids'] ?? [];
             unset($data['product_ids']);
             $article = NewsArticle::create($data + ['author_id' => $request->user()->id]);
@@ -90,7 +87,7 @@ class NewsManagementController extends Controller
             $data = $this->prepareData($request->validated());
             $type = $this->routeType($request);
             $data['content_type'] = $type;
-            $this->applyRouteDisplayCategory($data, $type);
+            $this->removeDuplicateTypeCategory($data, $type);
             $productIds = $data['product_ids'] ?? [];
             unset($data['product_ids']);
             $article->update($data);
@@ -237,10 +234,9 @@ class NewsManagementController extends Controller
         return NewsArticle::TYPE_NEWS;
     }
 
-    private function applyRouteDisplayCategory(array &$data, string $type): void
+    private function removeDuplicateTypeCategory(array &$data, string $type): void
     {
-        if ($type === NewsArticle::TYPE_PROMOTION) $data['category'] = self::PROMOTION_CATEGORY;
-        if ($type === NewsArticle::TYPE_GUIDE) $data['category'] = self::GUIDE_CATEGORY;
+        if (in_array($type, [NewsArticle::TYPE_PROMOTION, NewsArticle::TYPE_GUIDE], true)) $data['category'] = null;
     }
 
     private function guardRouteArticle(Request $request, NewsArticle $article): void

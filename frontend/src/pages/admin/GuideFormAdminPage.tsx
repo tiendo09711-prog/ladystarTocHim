@@ -72,7 +72,7 @@ export function GuideFormAdminPage() {
     setSaving(true)
     try {
       const payload = {
-        ...values, title, slug, content, category: 'Hướng dẫn', status,
+        ...values, title, slug, content, status,
         cover_image_alt: coverImageAlt || null,
         content_image_alt: contentImageAlt || null,
         video_url: videoUrl || null,

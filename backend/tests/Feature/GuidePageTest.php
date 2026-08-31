@@ -81,7 +81,7 @@ class GuidePageTest extends TestCase
             'content' => 'Nội dung từ quản trị.',
             'category' => 'Không được dùng',
             'status' => 'published',
-        ])->assertCreated()->assertJsonPath('data.category', 'Hướng dẫn');
+        ])->assertCreated()->assertJsonPath('data.category', null)->assertJsonPath('data.content_type', 'guide');
 
         $id = $created->json('data.id');
         $this->getJson('/api/v1/guides/huong-dan-quan-tri')->assertOk();

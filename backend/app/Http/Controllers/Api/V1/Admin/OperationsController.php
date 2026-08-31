@@ -384,7 +384,22 @@ class OperationsController extends Controller
 
     public function importProducts(Request $request)
     {
-        $rows = $request->validate(['rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*.name' => ['required', 'string'], 'rows.*.base_sku' => ['required', 'string'], 'rows.*.variant_sku' => ['required', 'string'], 'rows.*.category' => ['required', 'string', 'max:190'], 'rows.*.branch_code' => ['required', 'string', 'max:80'], 'rows.*.price' => ['required', 'numeric', 'min:0'], 'rows.*.stock_quantity' => ['nullable', 'integer', 'min:0']])['rows'];
+        $rows = $request->validate([
+            'rows' => ['required', 'array', 'min:1', 'max:500'],
+            'rows.*.name' => ['required', 'string', 'max:190'],
+            'rows.*.base_sku' => ['required', 'string', 'max:80'],
+            'rows.*.category' => ['required', 'string', 'max:190'],
+            'rows.*.description' => ['required', 'string', 'max:60000'],
+            'rows.*.material' => ['nullable', 'string', 'max:190'],
+            'rows.*.base_type' => ['nullable', 'string', 'max:190'],
+            'rows.*.variant_sku' => ['required', 'string', 'max:190', 'distinct'],
+            'rows.*.barcode' => ['nullable', 'string', 'max:190', 'distinct', Rule::unique('product_variants', 'barcode')],
+            'rows.*.price' => ['required', 'numeric', 'min:0'],
+            'rows.*.sale_price' => ['nullable', 'numeric', 'min:0', 'lt:rows.*.price'],
+            'rows.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
+            'rows.*.branch_code' => ['required', 'string', 'max:80'],
+            'rows.*.status' => ['nullable', Rule::in(['draft', 'inactive', 'active'])],
+        ])['rows'];
         $errors = [];
         $created = 0;
         foreach ($rows as $index => $row) {
@@ -396,8 +411,9 @@ class OperationsController extends Controller
                     $categoryName = trim((string) ($row['category'] ?? ''));
                     $category = Category::where('is_active', true)->where(fn ($query) => $query->where('name', $categoryName)->orWhere('slug', Str::slug($categoryName)))->first();
                     if (! $category) throw ValidationException::withMessages(['category' => 'Không tìm thấy danh mục được chỉ định.']);
-                    $product = Product::create(['category_id' => $category->id, 'name' => $row['name'], 'slug' => Str::slug($row['name']).'-'.strtolower($row['base_sku']), 'base_sku' => $row['base_sku'], 'description' => $row['description'] ?? $row['name'], 'material' => $row['material'] ?? null, 'base_type' => $row['base_type'] ?? null, 'status' => $row['status'] ?? 'active', 'published_at' => now()]);
-                    $variant = $product->variants()->create(['sku' => $row['variant_sku'], 'barcode' => $row['barcode'] ?? null, 'price' => $row['price'], 'sale_price' => $row['sale_price'] ?? null, 'status' => 'active']);
+                    $status = filled($row['status'] ?? null) ? $row['status'] : 'draft';
+                    $product = Product::create(['category_id' => $category->id, 'name' => $row['name'], 'slug' => Str::slug($row['name']).'-'.strtolower($row['base_sku']), 'base_sku' => $row['base_sku'], 'description' => $row['description'], 'material' => $row['material'] ?? null, 'base_type' => $row['base_type'] ?? null, 'status' => $status, 'published_at' => $status === 'active' ? now() : null]);
+                    $variant = $product->variants()->create(['sku' => $row['variant_sku'], 'barcode' => $row['barcode'] ?? null, 'price' => $row['price'], 'sale_price' => $row['sale_price'] ?? null, 'status' => $status === 'active' ? 'active' : 'inactive']);
                     $branchCode = trim((string) ($row['branch_code'] ?? ''));
                     $branch = Branch::where('code', $branchCode)->where('is_active', true)->first();
                     if (! $branch) throw ValidationException::withMessages(['branch_code' => 'Không tìm thấy chi nhánh được chỉ định.']);
@@ -455,11 +471,21 @@ class OperationsController extends Controller
             'hair_finder_config' => ['sometimes', 'nullable', 'array'],
             'hair_finder_config.content' => ['required_with:hair_finder_config', 'array'],
             'hair_finder_config.content.*' => ['nullable', 'string', 'max:2000'],
+            'hair_finder_config.content.title' => ['required_with:hair_finder_config', 'string', 'max:2000'],
+            'hair_finder_config.content.description' => ['required_with:hair_finder_config', 'string', 'max:2000'],
+            'hair_finder_config.content.result_title' => ['required_with:hair_finder_config', 'string', 'max:2000'],
+            'hair_finder_config.content.empty_result' => ['required_with:hair_finder_config', 'string', 'max:2000'],
+            'hair_finder_config.content.score_template' => ['required_with:hair_finder_config', 'string', 'max:2000'],
             'hair_finder_config.actions' => ['required_with:hair_finder_config', 'array'],
             'hair_finder_config.actions.*' => ['nullable', 'string', 'max:190'],
+            'hair_finder_config.actions.back' => ['required_with:hair_finder_config', 'string', 'max:190'],
+            'hair_finder_config.actions.next' => ['required_with:hair_finder_config', 'string', 'max:190'],
+            'hair_finder_config.actions.submit' => ['required_with:hair_finder_config', 'string', 'max:190'],
+            'hair_finder_config.actions.loading' => ['required_with:hair_finder_config', 'string', 'max:190'],
+            'hair_finder_config.actions.restart' => ['required_with:hair_finder_config', 'string', 'max:190'],
             'hair_finder_config.format' => ['required_with:hair_finder_config', 'array'],
             'hair_finder_config.format.locale' => ['required_with:hair_finder_config', 'string', 'max:20'],
-            'hair_finder_config.questions' => ['required_with:hair_finder_config', 'array', 'max:20'],
+            'hair_finder_config.questions' => ['required_with:hair_finder_config', 'array', 'min:1', 'max:20'],
             'hair_finder_config.questions.*.key' => ['required', 'alpha_dash', 'distinct', 'max:80'],
             'hair_finder_config.questions.*.type' => ['required', Rule::in(['single', 'multiple', 'budget', 'select_group'])],
             'hair_finder_config.questions.*.title' => ['required', 'string', 'max:500'],

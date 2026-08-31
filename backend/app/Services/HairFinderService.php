@@ -17,7 +17,18 @@ class HairFinderService
     {
         $config = $this->config();
 
+        if (! $this->configured($config)) {
+            return [
+                'configured' => false,
+                'content' => [],
+                'actions' => [],
+                'format' => ['locale' => 'vi-VN', 'currency' => StoreSetting::query()->value('currency') ?: ''],
+                'questions' => [],
+            ];
+        }
+
         return [
+            'configured' => true,
             'content' => Arr::get($config, 'content', []),
             'actions' => Arr::get($config, 'actions', []),
             'format' => [...Arr::get($config, 'format', []), 'currency' => StoreSetting::query()->value('currency') ?: ''],
@@ -97,6 +108,23 @@ class HairFinderService
     private function config(): array
     {
         return StoreSetting::query()->value('hair_finder_config') ?: [];
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->configured($this->config());
+    }
+
+    private function configured(array $config): bool
+    {
+        $requiredContent = ['title', 'description', 'result_title', 'empty_result', 'score_template'];
+        $requiredActions = ['back', 'next', 'submit', 'loading', 'restart'];
+
+        return collect($requiredContent)->every(fn (string $key) => filled(Arr::get($config, 'content.'.$key)))
+            && collect($requiredActions)->every(fn (string $key) => filled(Arr::get($config, 'actions.'.$key)))
+            && filled(Arr::get($config, 'format.locale'))
+            && count((array) Arr::get($config, 'questions', [])) > 0
+            && (int) Arr::get($config, 'scoring.result_limit', 0) > 0;
     }
 
     private function purchasableVariantQuery($query)

@@ -2,7 +2,7 @@ import { ChevronRight, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { getCategories, getProducts } from '../../api/storeApi'
+import { getCatalogCategories, getProducts } from '../../api/storeApi'
 import { EmptyState } from '../common/EmptyState'
 import { LoadingState } from '../common/LoadingState'
 import { ProductCard } from '../products/ProductCard'
@@ -10,7 +10,7 @@ import type { HomePageSections } from '../../types'
 
 export function ProductDiscovery({ content }: { content: HomePageSections['products'] }) {
   const [activeCategory, setActiveCategory] = useState('all')
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const categories = useQuery({ queryKey: ['catalog-categories'], queryFn: getCatalogCategories })
   const products = useQuery({
     queryKey: ['homepage-products', activeCategory],
     queryFn: () => getProducts(activeCategory === 'all' ? { is_featured: true, per_page: 8 } : { category: activeCategory, per_page: 8 }),

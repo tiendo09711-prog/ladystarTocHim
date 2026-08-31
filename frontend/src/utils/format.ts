@@ -21,6 +21,14 @@ export function formatCompactPrice(value: number | string, currency: string, loc
   }
 }
 
+export function formatDateTime(value: string | Date, timezone?: string | null, locale = 'vi-VN') {
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: timezone || undefined }).format(new Date(value))
+  } catch {
+    return new Date(value).toLocaleString(locale)
+  }
+}
+
 export function useFormatPrice() {
   const currency = useCurrency()
   return useCallback((value: number | string) => formatPrice(value, currency), [currency])

@@ -19,7 +19,7 @@ export function PromotionsAdminPage() {
   const [page, setPage] = useState(1)
   const query = useQuery({
     queryKey: ['admin-promotions', status, search, page],
-    queryFn: async () => (await apiClient.get<ApiResponse<Pagination<NewsArticle>>>('/admin/promotions', { params: { category: 'Ưu đãi', status: status || undefined, search: search || undefined, page } })).data.data,
+    queryFn: async () => (await apiClient.get<ApiResponse<Pagination<NewsArticle>>>('/admin/promotions', { params: { status: status || undefined, search: search || undefined, page } })).data.data,
   })
   const refresh = () => client.invalidateQueries({ queryKey: ['admin-promotions'] })
 

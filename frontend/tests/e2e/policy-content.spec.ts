@@ -19,6 +19,8 @@ test('admin xuất bản chính sách và public dùng live shipping settings', 
   await page.goto('/admin/policies')
   await page.getByLabel('Tiêu đề').fill('Chính sách giao hàng E2E')
   await page.getByLabel('Tóm tắt').fill('Thông tin giao hàng được quản lý từ Admin.')
+  await page.getByLabel('SEO title').fill('Giao hàng | LADYSTARS')
+  await page.getByLabel('SEO description').fill('Thông tin giao hàng và miễn phí vận chuyển của LADYSTARS.')
   await page.getByLabel('Mở đầu').fill('Phí tiêu chuẩn {{shipping_fee}}, miễn phí từ {{free_shipping_from}}.')
   await page.getByLabel('Xuất bản trang').check()
   await page.getByRole('button', { name: 'Lưu chính sách' }).click()

@@ -76,7 +76,7 @@ async function mockStore(page: Page) {
       const ids = (url.searchParams.get('ids') ?? '').split(',').filter(Boolean).map(Number)
       return route.fulfill({ json: paginated(ids.length ? products.filter((product) => ids.includes(product.id)) : products) })
     }
-    if (url.pathname.endsWith('/hair-finder/options')) return route.fulfill({ json: { success: true, data: {
+    if (url.pathname.endsWith('/hair-finder/options')) return route.fulfill({ json: { success: true, data: { configured: true,
       content: { eyebrow: 'LADYSTARS Hair Finder', title: 'Tìm mẫu tóc phù hợp với bạn', description: 'Gợi ý từ cấu hình đang áp dụng.', result_title: 'Gợi ý dành cho bạn', empty_result: 'Chưa có gợi ý.', score_template: ':score% phù hợp' },
       actions: { back: 'Quay lại', next: 'Tiếp tục', submit: 'Xem gợi ý', loading: 'Đang phân tích...', restart: 'Làm lại' },
       format: { locale: 'vi-VN', currency: 'VND' },
@@ -172,6 +172,13 @@ test('admin attention center and keyboard global search work', async ({ page }) 
   await expect(page.getByText('LS2608300007')).toBeVisible()
   await search.press('Enter')
   await expect(page).toHaveURL(/\/admin\/orders\/7$/)
+})
+
+test('hair finder shows a neutral state when unconfigured', async ({ page }) => {
+  await mockStore(page)
+  await page.route('**/api/v1/hair-finder/options', (route) => route.fulfill({ json: { success: true, data: { configured: false, content: {}, actions: {}, format: { locale: 'vi-VN', currency: '' }, questions: [] } } }))
+  await page.goto('/tim-mau-toc')
+  await expect(page.getByRole('heading', { name: 'Hair Finder chưa sẵn sàng' })).toBeVisible()
 })
 
 test('hair finder exposes options and recommendation errors without losing progress', async ({ page }) => {

@@ -72,8 +72,10 @@ class PhaseSixHardeningTest extends TestCase
         $settings->update(['hair_finder_config' => null]);
         $this->getJson('/api/v1/hair-finder/options')
             ->assertOk()
+            ->assertJsonPath('data.configured', false)
             ->assertJsonPath('data.content', [])
             ->assertJsonPath('data.questions', []);
+        $this->postJson('/api/v1/hair-finder/recommendations')->assertUnprocessable();
 
         (new HairFinderConfigSeeder)->run();
         $custom = $settings->fresh()->hair_finder_config;

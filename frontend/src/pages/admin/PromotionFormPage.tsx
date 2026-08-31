@@ -90,7 +90,6 @@ export function PromotionFormPage() {
       slug,
       excerpt: String(form.get('excerpt') ?? '') || null,
       content,
-      category: 'Ưu đãi',
       cover_image_alt: String(form.get('cover_image_alt') ?? '') || null,
       promotion_badge: String(form.get('promotion_badge') ?? '') || null,
       promotion_conditions: String(form.get('promotion_conditions') ?? '') || null,

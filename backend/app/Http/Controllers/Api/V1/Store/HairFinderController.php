@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\HairFinderService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class HairFinderController extends Controller
 {
@@ -20,6 +21,10 @@ class HairFinderController extends Controller
 
     public function recommend(Request $request)
     {
+        if (! $this->service->isConfigured()) {
+            throw ValidationException::withMessages(['hair_finder' => 'Hair Finder chưa được cấu hình.']);
+        }
+
         $data = $request->validate($this->service->validationRules());
 
         return $this->success($this->service->recommend($data));

@@ -102,9 +102,11 @@ test('admin catalog crop Hero và Tư vấn cho mọi trang sản phẩm', async
 test('admin sản phẩm crop mọi ảnh theo khung 1:1', async ({ page }) => {
   await loginAdmin(page)
   await page.route('**/api/v1/categories', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: categories }) }))
+  await page.route('**/api/v1/admin/categories', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [...categories, { id: 13, name: 'Chỉ dùng cho sản phẩm', slug: 'chi-dung-cho-san-pham', is_active: true, show_in_menu: false }] }) }))
   await page.route('**/api/v1/brands', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) }))
   await page.route('**/api/v1/admin/attributes', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) }))
   await page.goto('/admin/products/create')
+  await expect(page.locator('select[name=category_id]')).toContainText('Chỉ dùng cho sản phẩm')
   const imageBase64 = await page.evaluate(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 1200

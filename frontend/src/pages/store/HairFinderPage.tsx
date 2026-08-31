@@ -19,6 +19,7 @@ export function HairFinderPage() {
 
   if (options.isLoading) return <div className='container-page py-12'><LoadingState /></div>
   if (options.isError || !options.data) return <div className='container-page py-12'><div className='card mx-auto max-w-xl p-8 text-center'><h1 className='text-xl font-black'>Không thể tải dữ liệu tư vấn.</h1><button className='btn-primary mt-5' onClick={() => void options.refetch()}>Thử lại</button></div></div>
+  if (!options.data.configured) return <div className='container-page py-12'><div className='card mx-auto max-w-xl p-8 text-center'><h1 className='text-2xl font-black'>Hair Finder chưa sẵn sàng</h1><p className='muted mt-3'>Tính năng tư vấn đang được cửa hàng cấu hình. Vui lòng quay lại sau.</p></div></div>
 
   const { actions, content, format, questions } = options.data
   const currentAnswers = Object.keys(answers).length ? answers : defaultAnswers(questions)

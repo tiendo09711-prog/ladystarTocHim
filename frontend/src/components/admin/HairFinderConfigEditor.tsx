@@ -22,12 +22,12 @@ type Config = {
 }
 
 const blankConfig = (): Config => ({
-  content: { eyebrow: '', title: '', description: '', result_title: '', empty_result: '', score_template: ':score%' },
-  actions: { back: 'Quay lại', next: 'Tiếp tục', submit: 'Xem gợi ý', loading: 'Đang phân tích...', restart: 'Làm lại' },
+  content: { eyebrow: '', title: '', description: '', result_title: '', empty_result: '', score_template: '' },
+  actions: { back: '', next: '', submit: '', loading: '', restart: '' },
   format: { locale: 'vi-VN' },
   questions: [],
-  budget: { labels: ['Mặc định'], minimum_step: 1, rounding_step: 1 },
-  scoring: { result_limit: 5 },
+  budget: { labels: [], minimum_step: 1, rounding_step: 1 },
+  scoring: { result_limit: 1 },
 })
 
 function normalize(value?: Record<string, unknown> | null): Config {
@@ -98,6 +98,7 @@ export function HairFinderConfigEditor({ initialConfig, editable }: { initialCon
       <div><h2 className='text-xl font-black'>Hair Finder</h2><p className='muted mt-1 text-sm'>Quản lý nội dung, câu hỏi, lựa chọn, ngân sách và quy tắc gợi ý đang dùng ở public runtime.</p></div>
       <label className='flex items-center gap-2 font-bold'><input type='checkbox' checked={enabled} disabled={!editable} onChange={(event) => setEnabled(event.target.checked)} /> Bật Hair Finder</label>
     </div>
+    {enabled && !initialConfig && <p className='mt-3 text-sm font-semibold text-amber-700'>Hãy nhập đầy đủ nội dung, CTA, ít nhất một câu hỏi và quy tắc kết quả trước khi lưu.</p>}
     <input type='hidden' name='hair_finder_config' value={enabled ? JSON.stringify(config) : ''} />
     {enabled && <div className='mt-6 grid gap-6'>
       <div><h3 className='font-black'>Nội dung và CTA</h3><div className='mt-3 grid gap-3 md:grid-cols-2'>

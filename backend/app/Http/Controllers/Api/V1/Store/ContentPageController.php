@@ -18,7 +18,9 @@ class ContentPageController extends Controller
 
         $settings = StoreSetting::query()->first();
         $payload = $page->toArray();
-        $payload['content'] = $this->resolveTokens($payload['content'] ?? [], $settings);
+        if ($settings?->isConfigured()) {
+            $payload['content'] = $this->resolveTokens($payload['content'] ?? [], $settings);
+        }
         $payload['business_rules'] = $this->businessRules($pageKey, $settings);
 
         return $this->success($payload);
@@ -48,7 +50,7 @@ class ContentPageController extends Controller
 
     private function businessRules(string $pageKey, ?StoreSetting $settings): array
     {
-        if (! $settings) return ['configured' => false];
+        if (! $settings || ! $settings->isConfigured()) return ['configured' => false];
         return match ($pageKey) {
             'chinh-sach-giao-hang' => ['configured' => true, 'currency' => $settings->currency, 'shipping_fee' => (float) $settings->shipping_fee, 'free_shipping_from' => (float) $settings->free_shipping_from],
             'chinh-sach-doi-tra' => ['configured' => true, 'returns_enabled' => (bool) $settings->returns_enabled, 'return_window_days' => (int) $settings->return_window_days, 'exchange_enabled' => (bool) $settings->exchange_enabled, 'exchange_window_days' => (int) $settings->exchange_window_days],

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getCatalogFilters, getCategories, getProducts } from '../../api/storeApi'
+import { getCatalogFilters, getCatalogCategories, getProducts } from '../../api/storeApi'
 import { getCatalogContent, getCategoryCatalogContent, submitConsultation } from '../../api/contentApi'
 import { ProductCard } from '../../components/products/ProductCard'
 import { EmptyState } from '../../components/common/EmptyState'
@@ -33,7 +33,7 @@ export function ProductsPage() {
     return next
   }, [params, slug])
   const products = useQuery({ queryKey: ['products', queryParams], queryFn: () => getProducts(queryParams) })
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const categories = useQuery({ queryKey: ['catalog-categories'], queryFn: getCatalogCategories })
   const filters = useQuery({ queryKey: ['catalog-filters'], queryFn: getCatalogFilters })
   const content = useQuery({ queryKey: ['catalog-content', slug], queryFn: () => slug ? getCategoryCatalogContent(slug) : getCatalogContent(), enabled: mode !== 'search' })
   const category = categories.data?.find((item) => item.slug === slug)

@@ -23,7 +23,7 @@ class ProductRequest extends FormRequest
             'name' => ['required', 'string', 'max:190'],
             'slug' => ['required', 'alpha_dash', Rule::unique('products', 'slug')->ignore($productId)],
             'base_sku' => ['required', 'max:80', Rule::unique('products', 'base_sku')->ignore($productId)],
-            'category_id' => ['required', 'exists:categories,id'],
+            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($query) => $query->where('is_active', true))],
             'brand_id' => ['nullable', 'exists:brands,id'],
             'short_description' => ['nullable', 'string'],
             'description' => ['required', 'string'],

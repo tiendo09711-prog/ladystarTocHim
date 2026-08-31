@@ -4,7 +4,7 @@ import { GitCompareArrows } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { getHomePageContent } from '../api/contentApi'
-import { getCategories } from '../api/storeApi'
+import { getMenuCategories } from '../api/storeApi'
 import { ConsultationDialog } from '../components/store/ConsultationDialog'
 import { useAuth } from '../stores/AuthContext'
 import { useCart } from '../stores/CartContext'
@@ -46,14 +46,18 @@ export function StoreLayout() {
   const { user } = useAuth()
   const { count } = useCart()
   const navigate = useNavigate()
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories, staleTime: 5 * 60 * 1000 })
+  const categories = useQuery({ queryKey: ['menu-categories'], queryFn: getMenuCategories, staleTime: 5 * 60 * 1000 })
   const settings = usePublicSettings().data
   const storeName = settings?.store_name?.trim() ?? ''
   const appointmentsEnabled = settings?.appointments_enabled === true
+  const categoryLinks = (categories.data ?? []).flatMap((category) => [
+    [category.name, `/danh-muc/${category.slug}`] as const,
+    ...(category.children ?? []).map((child) => [`— ${child.name}`, `/danh-muc/${child.slug}`] as const),
+  ])
   const navItems: NavItem[] = [
     { label: 'Trang chủ', path: '/' },
     { label: 'Câu chuyện thương hiệu', path: '/gioi-thieu' },
-    { label: 'Sản phẩm', path: '/san-pham', children: [['Tất cả sản phẩm', '/san-pham'], ['Tìm mẫu tóc phù hợp', '/tim-mau-toc'], ['So sánh sản phẩm', '/so-sanh'], ...(categories.data ?? []).map((category) => [category.name, `/danh-muc/${category.slug}`] as const)] },
+    { label: 'Sản phẩm', path: '/san-pham', children: [['Tất cả sản phẩm', '/san-pham'], ['Tìm mẫu tóc phù hợp', '/tim-mau-toc'], ['So sánh sản phẩm', '/so-sanh'], ...categoryLinks] },
     { label: 'Tin tức & ưu đãi', path: '/tin-tuc', children: [['Tin tức', '/tin-tuc'], ['Ưu đãi', '/uu-dai'], ['Hướng dẫn', '/huong-dan']] },
     { label: 'Hệ thống cửa hàng', path: '/he-thong-cua-hang' },
     { label: 'Liên hệ', path: '/lien-he' },
@@ -115,6 +119,6 @@ export function StoreLayout() {
     </header>
     {appointmentsEnabled && <ConsultationDialog open={bookingOpen} onClose={() => setBookingOpen(false)} />}
     <main><Outlet /></main>
-    <footer className="store-footer"><div className="container-page store-footer-grid"><div className="store-footer-brand">{storeName && <strong>{storeName}</strong>}{appointmentsEnabled && <Link to="/lien-he">Đặt lịch tư vấn <CalendarDays size={17} /></Link>}{settings?.support_phone && <a href={`tel:${settings.support_phone}`}>{settings.support_phone}</a>}{settings?.support_email && <a href={`mailto:${settings.support_email}`}>{settings.support_email}</a>}{settings?.store_address && <span>{settings.store_address}</span>}</div><div><h2>Mua sắm</h2><Link to="/san-pham">Tất cả sản phẩm</Link>{(categories.data ?? []).map((category) => <Link key={category.id} to={`/danh-muc/${category.slug}`}>{category.name}</Link>)}<Link to="/gio-hang">Giỏ hàng</Link></div><div><h2>Hỗ trợ</h2><Link to="/chinh-sach-giao-hang">Chính sách giao hàng</Link><Link to="/chinh-sach-doi-tra">Chính sách đổi trả</Link><Link to="/chinh-sach-bao-mat">Chính sách bảo mật</Link></div><div><h2>Kết nối</h2><Link to="/gioi-thieu">Câu chuyện thương hiệu</Link><Link to="/lien-he">Liên hệ</Link></div></div><div className="container-page store-footer-bottom"><span>© {new Date().getFullYear()} {storeName}</span><span>{settings?.configured ? settings.currency : ''}</span></div></footer>
+    <footer className="store-footer"><div className="container-page store-footer-grid"><div className="store-footer-brand">{storeName && <strong>{storeName}</strong>}{appointmentsEnabled && <Link to="/lien-he">Đặt lịch tư vấn <CalendarDays size={17} /></Link>}{settings?.support_phone && <a href={`tel:${settings.support_phone}`}>{settings.support_phone}</a>}{settings?.support_email && <a href={`mailto:${settings.support_email}`}>{settings.support_email}</a>}{settings?.store_address && <span>{settings.store_address}</span>}</div><div><h2>Mua sắm</h2><Link to="/san-pham">Tất cả sản phẩm</Link>{categoryLinks.map(([label, path]) => <Link key={path} to={path}>{label}</Link>)}<Link to="/gio-hang">Giỏ hàng</Link></div><div><h2>Hỗ trợ</h2><Link to="/chinh-sach-giao-hang">Chính sách giao hàng</Link><Link to="/chinh-sach-doi-tra">Chính sách đổi trả</Link><Link to="/chinh-sach-bao-mat">Chính sách bảo mật</Link></div><div><h2>Kết nối</h2><Link to="/gioi-thieu">Câu chuyện thương hiệu</Link><Link to="/lien-he">Liên hệ</Link></div></div><div className="container-page store-footer-bottom"><span>© {new Date().getFullYear()} {storeName}</span><span>{settings?.configured ? settings.currency : ''}</span></div></footer>
   </div>
 }
